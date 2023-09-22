@@ -16,21 +16,7 @@ bash <(curl -s https://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@raw.githubuserco
 - بعد از نصب یک پیام مبنی بر موفقیت آمیز بودن نصب در ربات به شما ارسال خواهد شد.
 - وارد ربات شوید و ربات را `/start` کنید.
 
-## آموزش ساخت یوزر جدید برای phpmyadmin
-
-این قسمت در نصب اصلی وجود دارد و فقط زمانی اجرا شود که یوزر یا پسورد phpmyadmin فراموش شده یا نصب قدیمی انجام شده.
-
-- وارد سرور خود شوید.
-- دستور زیر رو برای ساخت یوزر جدید ارسال کنید.
-
-```bash
-bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/phpmyadmin.sh)
-```
-
-- بعد از اجرای این دستور باید یوزر برای آن انتخاب کنید (در صورت خالی گذاشتن به صورت پیشفرض `phpadmin` در نظر گرفته می شود).
-- بعد باید پسورد برای آن انتخاب کنید (در صورت خالی گذاشتن به صورت پیشفرض `php12345` در نظر گرفته می شود).
-
-## آموزش آپدیت
+## آموزش آپدیت یا حذف ربات از سرور
 
 - وارد سرور خود شوید.
 - دستور زیر رو برای آپدیت ربات ارسال کنید.
@@ -39,22 +25,25 @@ bash <(curl -s https://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@raw.githubuserco
 bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/update.sh)
 ```
 
-- گزینه 1 را وارد کنید
+- گزینه 1 برای آپدیت ربات
+- گزینه 2 برای حذف ربات
 - صبر کنید تمام شود
 
-## آموزش حذف ربات از سرور
+## آموزش بکاپ خودکار
 
-- وارد سرور خود شوید.
-- دستور زیر رو برای حذف ربات ارسال کنید.
+- دستور زیر را وارد کنید
 
 ```bash
-bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/update.sh)
+bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/backup_service.sh)
 ```
 
-- گزینه 2 را وارد کنید
+- گزینه 1 برای نصب سرویس بکاپ خودکار و راه اندازی آن
+- گزینه 2 برای حذف سرویس بکاپ خودکار
+- گزینه 3 برای توقف ربات
+- گزینه 4 برای راه اندازی مجدد ربات
 - صبر کنید تمام شود
 
-## آموزش بکاپ
+## آموزش بکاپ دستی
 
 - دستور زیر را وارد کنید
 
@@ -78,24 +67,16 @@ bash <(curl -s https://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@raw.githubuserco
 - گزینه 2 را وارد کنید
 - صبر کنید تمام شود
 
-## آموزش بکاپ خودکار
+## آموزش ساخت یوزر جدید برای phpmyadmin
 
-- دستور زیر را وارد کنید
+این قسمت در نصب اصلی وجود دارد و فقط زمانی اجرا شود که یوزر یا پسورد phpmyadmin فراموش شده یا نصب قدیمی انجام شده.
 
-```bash
-bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/backup_service.sh)
-```
-
-- گزینه 1 را وارد کنید
-- صبر کنید تمام شود
-
-## آموزش حذف بکاپ خودکار
-
-- دستور زیر را وارد کنید
+- وارد سرور خود شوید.
+- دستور زیر رو برای ساخت یوزر جدید ارسال کنید.
 
 ```bash
-bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/backup_service.sh)
+bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/phpmyadmin.sh)
 ```
 
-- گزینه 2 را وارد کنید
-- صبر کنید تمام شود
+- بعد از اجرای این دستور باید یوزر برای آن انتخاب کنید (در صورت خالی گذاشتن به صورت پیشفرض `phpadmin` در نظر گرفته می شود).
+- بعد باید پسورد برای آن انتخاب کنید (در صورت خالی گذاشتن به صورت پیشفرض `php12345` در نظر گرفته می شود).
