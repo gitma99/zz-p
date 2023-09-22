@@ -245,7 +245,7 @@ echo "{\"development\":\"@ZanborPanel\",\"install_location\":\"server\",\"main_d
 # destination_file="/var/www/html/ZanborPanelBot/config.php.tmp"
 source_file="/var/www/html/ZanborPanelBot/bot_config.json"
 destination_file="/var/www/html/ZanborPanelBot/bot_config.json.tmp"
-replace=$(cat "$source_file" | sed -e "s/\[\*TOKEN\*\]/${TOKEN}/g" -e "s/\[\*DEV\*\]/${CHAT_ID}/g" -e "s/\[\*DB-NAME\*\]/${dbname}/g" -e "s/\[\*DB-USER\*\]/${dbuser}/g" -e "s/\[\*DB-PASS\*\]/${dbpass}/g")
+replace=$(cat "$source_file" | sed -e "s/\[\*DOMAIN\*\]/${DOMAIN}/g" -e "s/\[\*TOKEN\*\]/${TOKEN}/g" -e "s/\[\*DEV\*\]/${CHAT_ID}/g" -e "s/\[\*DB-NAME\*\]/${dbname}/g" -e "s/\[\*DB-USER\*\]/${dbuser}/g" -e "s/\[\*DB-PASS\*\]/${dbpass}/g")
 echo "$replace" > "$destination_file"
 mv "$destination_file" "$source_file"
 
