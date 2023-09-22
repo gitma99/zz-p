@@ -44,6 +44,7 @@ echo " "
 question="Please select your action?"
 actions=("Update Bot" "Delete Bot" "Donate" "Exit")
 
+
 select opt in "${actions[@]}"
 do
     case $opt in 
