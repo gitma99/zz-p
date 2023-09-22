@@ -80,9 +80,9 @@ do
                             token=$(echo "$content" | jq -r '.token')
                             dev=$(echo "$content" | jq -r '.dev')
                             domain=$(echo "$content" | jq -r '.main_domin')
-                            db_name=$(echo "$content" | jq -r '.db_name')
-                            db_username=$(echo "$content" | jq -r '.db_username')
-                            db_password=$(echo "$content" | jq -r '.db_password')
+                            db_name=$(echo "$content" | jq -r '.database.db_name')
+                            db_username=$(echo "$content" | jq -r '.database.db_username')
+                            db_password=$(echo "$content" | jq -r '.database.db_password')
 
                             source_file=$CONFIG_JSON
                             destination_file="$CONFIG_JSON.tmp"
