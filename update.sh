@@ -5,6 +5,7 @@
 # Group: @ZanborPanelGap
 
 GITHUB_REPO_ADDRESS='https://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@github.com/gitma99/zz-p.git'
+CONFIG_JSON='/var/www/html/ZanborPanelBot/bot_config.json'
 
 if [ "$(id -u)" -ne 0 ]; then
     echo -e "\033[33mPlease run as root\033[0m"
@@ -51,8 +52,10 @@ do
             read -p "Are you sure you want to update? [y/n] : " answer
             if [ "$answer" != "${answer#[Yy]}" ]; then
                 if [ -d "/var/www/html/ZanborPanelBot" ]; then
-                    if [ -f "/var/www/html/ZanborPanelBot/install/zanbor.install" ]; then
-                        if [ -s "/var/www/html/ZanborPanelBot/install/zanbor.install" ]; then
+                    # if [ -f "/var/www/html/ZanborPanelBot/install/zanbor.install" ]; then
+                    if [ -f "/var/www/html/ZanborPanelBot/bot_config.json" ]; then
+                        # if [ -s "/var/www/html/ZanborPanelBot/install/zanbor.install" ]; then
+                        if [ -s "/var/www/html/ZanborPanelBot/bot_config.json" ]; then
                             colorized_echo green "Please wait, Updating . . ."
                             # update proccess !
                             sudo apt update && apt upgrade -y
@@ -60,17 +63,20 @@ do
                             sudo apt install curl -y
                             sudo apt install jq -y
                             sleep 2
-                            mv /var/www/html/ZanborPanelBot/install/zanbor.install /var/www/html/zanbor.install
+                            mv /var/www/html/ZanborPanelBot/bot_config.json /var/www/html/bot_config.json
+                            # mv /var/www/html/ZanborPanelBot/install/zanbor.install /var/www/html/zanbor.install
                             sleep 1
                             rm -r /var/www/html/ZanborPanelBot/
                             colorized_echo green "\nAll file and folder deleted for update bot . . .\n"
 
                             git clone $GITHUB_REPO_ADDRESS /var/www/html/ZanborPanelBot/
                             sudo chmod -R 777 /var/www/html/ZanborPanelBot/
-                            mv /var/www/html/zanbor.install /var/www/html/ZanborPanelBot/install/zanbor.install
+                            mv /var/www/html/bot_config.json /var/www/html/ZanborPanelBot/bot_config.json
+                            # mv /var/www/html/zanbor.install /var/www/html/ZanborPanelBot/install/zanbor.install
                             sleep 2
                             
-                            content=$(cat /var/www/html/ZanborPanelBot/install/zanbor.install)
+                            # content=$(cat /var/www/html/ZanborPanelBot/install/zanbor.install)
+                            content=$(cat $CONFIG_JSON)
                             token=$(echo "$content" | jq -r '.token')
                             dev=$(echo "$content" | jq -r '.dev')
                             domain=$(echo "$content" | jq -r '.main_domin')
@@ -78,8 +84,8 @@ do
                             db_username=$(echo "$content" | jq -r '.db_username')
                             db_password=$(echo "$content" | jq -r '.db_password')
 
-                            source_file="/var/www/html/ZanborPanelBot/config.php"
-                            destination_file="/var/www/html/ZanborPanelBot/config.php.tmp"
+                            source_file=$CONFIG_JSON
+                            destination_file="$CONFIG_JSON.tmp"
                             replace=$(cat "$source_file" | sed -e "s/\[\*TOKEN\*\]/${token}/g" -e "s/\[\*DEV\*\]/${dev}/g" -e "s/\[\*DB-NAME\*\]/${db_name}/g" -e "s/\[\*DB-USER\*\]/${db_username}/g" -e "s/\[\*DB-PASS\*\]/${db_password}/g")
                             echo "$replace" > "$destination_file"
                             mv "$destination_file" "$source_file"
