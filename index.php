@@ -28,7 +28,7 @@ error_reporting(E_ALL); // Set the error reporting level as needed
 // sendMessage($from_id, "test : $t");
 // // exit();
 
-
+send_message_query();
 renewal_service($text, $from_id);
 
 

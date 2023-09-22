@@ -11,6 +11,32 @@ $my_texts = $texts;
 //     'error_show_service__token_reset_success' => 'سرویس بروز شد . لطفا دوباره امتحان کنید',
 //     'error_show_service__token_reset_failed' => "بروزرسانی سرور با خطا روبه رو شد . لطفا به ادمین ربات اطلاع رسانی کنی\n\n(خطا : marzban token cant be reset automatiacally. please rest it manually)",
 // ];
+
+
+function send_message_query()
+{
+    global $text;
+    function send()
+    {
+        $url = "http://127.0.0.1/ZanborPanelBot/send.php";
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        // curl_setopt($ch, CURLOPT_PUT, true);
+        // curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        // curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $token, 'Content-Type: application/json'));
+        // curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(array('expire' => $new_expire_time, 'data_limit' => $new_traffic_limit)));
+        $response = curl_exec($ch);
+        curl_close($ch);
+        return $response;
+    }
+    if ($text == 'ارسال پیام ها 📧') {
+        return send();
+    } else {
+        return false;
+    }
+};
+
 function get_marzban_panel_token($panel_name)
 {
     function test_token($url, $token)
