@@ -115,7 +115,7 @@ do
                             fi
                             # ================== Restore bot_config.json ======================
                             if [ -f "/root/zz-p-backup.zip" ]; then
-                                cp "/root/extracted_data/var/www/html/ZanborPanelBot/bot_config.json" "/var/www/html/ZanborPanelBot/bot_config.json" -y
+                                cp "/root/extracted_data/var/www/html/ZanborPanelBot/bot_config.json" "/var/www/html/ZanborPanelBot/bot_config.json"
 
                                 content=$(cat "/var/www/html/ZanborPanelBot/bot_config.json")
                                 db_name=$(echo "$content" | jq -r '.database.db_name')

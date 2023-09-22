@@ -1,17 +1,16 @@
 <?php
-$my_texts = [
-    'renewal_service_config_found' => 'سرویس پیدا شد ✅',
-    'renewal_service_config_not_found' => 'سرويس پیدا نشد ❌ مجدد امتحان کنید 🙏',
-    'renewal_service_config_name' => 'نام سرویس را وارد کنید 🖋',
-    'renewal_service_server_selection' => ' حالا از دکمه های زیر جهت ادامه روند تمدید کلیک کنید ❇️⬇️',
-    'buy_service_choose_name_hint' => "لطفا نام کاربری خود را انتخاب کنید ✏️ \n\n ✨ نام کاربری تنها می‌تواند شامل موارد زیر باشد :\n(حروف انگلیسی) و (علامت _ ) و (اعداد) و (بدون فاصله) ✨\n📝 به عنوان مثال :\n arash یا arash_rasoli یا arash_rasoli23",
-    'error_show_service__config_not_found' => 'خطا❗️سرویس مورد نظر حذف شده ⛔️',
-    'error_show_service__server_not_found_internally' => 'خطا❗️سرویس مورد نظر حذف شده ⛔️',
-    'error_show_service__token_reset_success' => 'سرویس بروز شد . لطفا دوباره امتحان کنید',
-    'error_show_service__token_reset_failed' => "بروزرسانی سرور با خطا روبه رو شد . لطفا به ادمین ربات اطلاع رسانی کنی\n\n(خطا : marzban token cant be reset automatiacally. please rest it manually)",
-
-
-];
+$my_texts = $texts;
+// [
+//     'renewal_service_config_found' => 'سرویس پیدا شد ✅',
+//     'renewal_service_config_not_found' => 'سرويس پیدا نشد ❌ مجدد امتحان کنید 🙏',
+//     'renewal_service_config_name' => 'نام سرویس را وارد کنید 🖋',
+//     'renewal_service_server_selection' => ' حالا از دکمه های زیر جهت ادامه روند تمدید کلیک کنید ❇️⬇️',
+//     'buy_service_choose_name_hint' => "لطفا نام کاربری خود را انتخاب کنید ✏️ \n\n ✨ نام کاربری تنها می‌تواند شامل موارد زیر باشد :\n(حروف انگلیسی) و (علامت _ ) و (اعداد) و (بدون فاصله) ✨\n📝 به عنوان مثال :\n arash یا arash_rasoli یا arash_rasoli23",
+//     'error_show_service__config_not_found' => 'خطا❗️سرویس مورد نظر حذف شده ⛔️',
+//     'error_show_service__server_not_found_internally' => 'خطا❗️سرویس مورد نظر حذف شده ⛔️',
+//     'error_show_service__token_reset_success' => 'سرویس بروز شد . لطفا دوباره امتحان کنید',
+//     'error_show_service__token_reset_failed' => "بروزرسانی سرور با خطا روبه رو شد . لطفا به ادمین ربات اطلاع رسانی کنی\n\n(خطا : marzban token cant be reset automatiacally. please rest it manually)",
+// ];
 function get_marzban_panel_token($panel_name)
 {
     function test_token($url, $token)
@@ -346,15 +345,16 @@ function renewal_service($text, $from_id)
 
 function show_hide_charge_account_button($chat_id)
 {
-    $decodedData =     read_bot_settings_json();
+    global $my_texts;
+    $decodedData = read_bot_settings_json();
 
     if ($decodedData !== null) {
         $currenButtonStatus = $decodedData['show_charge_account_btn'];
         if ($currenButtonStatus === true) {
             $newValue = false;
-            $successMsg = "دکمه غیرفعال شد!";
+            $successMsg = $my_texts['charge_button_disabled'];
         } else {
-            $successMsg = "دکمه فعال شد!";
+            $successMsg = $my_texts['charge_button_enabled'];
             $newValue = true;
         }
 
@@ -363,7 +363,7 @@ function show_hide_charge_account_button($chat_id)
         if (write_bot_settings_json($decodedData) !== false) {
             sendMessage($chat_id, $successMsg);
         } else {
-            sendMessage($chat_id, "خطا در تغییر دکمه .");
+            sendMessage($chat_id, $my_texts['alter_charge_button_failed']);
         }
     } else {
         sendMessage($chat_id, "Failed to decode existing JSON data.");

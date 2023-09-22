@@ -120,7 +120,7 @@ if ($data == 'join') {
                 $plan = [];
                 $plan[] = [['text' => '🔙 بازگشت']];
                 $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
-                sendMessage($from_id, "خطا در ارتباط با سرور {$panel['name']} لطفا به ادمین پنل اطلاع رسانی کنید. (token cant be renewed!!)", $plan);
+                sendMessage($from_id, "{$texts['server_connection_failed']}({$panel['name']} token cant be renewed!!)", $plan);
                 exit();
             }
         }
@@ -131,7 +131,7 @@ if ($data == 'join') {
                 $plan[] = [['text' => '🔙 بازگشت']];
                 $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
                 // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
-                sendMessage($from_id, 'این نام قبلا انتخاب شده. لطفا دوباره امتحان کنید.', $plan);
+                sendMessage($from_id, $my_texts['repeated_config_name'], $plan);
                 sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $plan);
 
                 step('choose_name');
@@ -150,7 +150,7 @@ if ($data == 'join') {
                     $_keys = [[['text' => '🔙 بازگشت']]];
                     $_keyboard = json_encode(['keyboard' => $_keys, 'resize_keyboard' => true]);
                     // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
-                    sendMessage($from_id, "خطا در احراز نام انتخاب شده. لطفا دوباره تلاش کنید. ({$getUser['detail']})", $_keyboard);
+                    sendMessage($from_id, "{$texts['config_name_verification_failed']}({$getUser['detail']})", $_keyboard);
                     exit();
                 }
             } else {
@@ -160,7 +160,7 @@ if ($data == 'join') {
             $plan[] = [['text' => '🔙 بازگشت']];
             $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
             // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
-            sendMessage($from_id, 'این نام معتبر نمی باشد.', $plan);
+            sendMessage($from_id, $texts['invalid_config_name'], $plan);
             sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $plan);
             sendMessage($from_id, $getUser['detail'], $plan);
             step('choose_name');
