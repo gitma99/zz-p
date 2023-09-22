@@ -1,4 +1,5 @@
 {
+    "main_domin": "[*DOMAIN*]",
     "token": "[*TOKEN*]",
     "dev": "[*DEV*]",
     "database": {
