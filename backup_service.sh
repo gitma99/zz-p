@@ -62,7 +62,7 @@ colorized_echo green "\n[+] - Please wait for a few seconde !"
 echo " "
 
 question="Please select your action?"
-actions=("Create Backup Task" "Delete Backup Task" "Exit")
+actions=("Create Backup Task" "Delete Backup Task" "Disable Backup Service" "Enable Backup Service" "Exit")
 
 
 select opt in "${actions[@]}"
@@ -112,6 +112,23 @@ do
             systemctl daemon-reload
 
             echo "Service $SERVICE_NAME has been disabled and removed."
+
+        break;;
+        "Disable Backup Service")
+            systemctl stop "$SERVICE_NAME.service"
+            systemctl disable "$SERVICE_NAME.service"
+
+            echo "Service $SERVICE_NAME has been disabled."
+            
+        break;;
+        "Enable Backup Service")
+
+            # Stop and disable the service
+            systemctl start "$SERVICE_NAME.service"
+            systemctl enable "$SERVICE_NAME.service"
+
+
+            echo "Service $SERVICE_NAME has been enabled."
 
         break;;
         "Exit")
