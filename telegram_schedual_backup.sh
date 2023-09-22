@@ -79,14 +79,16 @@ send_backup(){
 }
 
 
-midnight_seconds=$(TZ="$target_time_zone" date -d '00:00 tomorrow' +%s)
 
 while true; do
     send_backup 
 
     current_time=$(TZ="$target_time_zone" date +%H:%M)
     current_seconds=$(TZ="$target_time_zone" date -d "$current_time" +%s)
-    time_remaining=$(($midnight_seconds - $current_seconds))
+
+    tomorrow_midnight_seconds=$(TZ="$target_time_zone" date -d '00:00 tomorrow' +%s)
+    
+    time_remaining=$(($tomorrow_midnight_seconds - $current_seconds))
 
     echo "\n"
     echo "Chron Info : $time_remaining secconds until next backup!"

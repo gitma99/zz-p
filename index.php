@@ -1853,7 +1853,8 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
     }
 
     // ----------- manage message ----------- //
-    elseif ($text == '🔎 وضعیت ارسال / فوروارد همگانی') {
+    // elseif ($text == '🔎 وضعیت ارسال / فوروارد همگانی') {
+    elseif ($text == '🔎 وضعیت ارسال همگانی') {
         $info_send = $sql->query("SELECT * FROM `sends`")->fetch_assoc();
         if ($info_send['send'] == 'yes') $send_status = '✅';
         else $send_status = '❌';
@@ -1861,7 +1862,7 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
         else $status_send = '❌';
         if ($info_send['step'] == 'forward') $status_forward = '✅';
         else $status_forward = '❌';
-        sendMessage($from_id, "👇🏻وضعیت ارسال های شما به شرح زیر است :\n\nℹ️ در صف ارسال/فوروارد : <b>$send_status</b>\n⬅️ ارسال همگانی : <b>$status_send</b>\n⬅️ فوروارد همگانی : <b>$status_forward</b>\n\n🟥 برای لغو ارسال/فوروارد همگانی دستور /cancel_send را ارسال کنید.", $manage_message);
+        sendMessage($from_id, "👇🏻وضعیت ارسال های شما به شرح زیر است :\n\nℹ️ در صف ارسال : <b>$send_status</b>\n⬅️ ارسال همگانی : <b>$status_send</b>\n\n🟥 برای لغو ارسال همگانی دستور /cancel_send را ارسال کنید.", $manage_message);
     } elseif ($text == '/cancel_send') {
         $sql->query("UPDATE `sends` SET `send` = 'no', `text` = 'null', `type` = 'null', `step` = 'null'");
         sendMessage($from_id, "✅ ارسال/فوروارد همگانی شما با موفقیت لغو شد.", $manage_message);
@@ -1924,7 +1925,7 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
             $first_name = $res_get->result->user->first_name;
             $username = '@' . $res_get->result->user->username;
             $coin = number_format($info['coin']) ?? 0;
-            $count_service = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'")->num_rows ?? 0;
+            $count_service = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'")->num_rows ?? 0;
             // $count_service = $info['count_service'] ?? 0;
             $count_payment = $info['count_charge'] ?? 0;
             sendMessage($from_id, "⭕️ اطلاعات کاربر [ <code>$text</code> ] با موفقیت دریافت شد.\n\n▫️یوزرنیم کاربر : $username\n▫️نام کاربر : <b>$first_name</b>\n▫️موجودی کاربر : <code>$coin</code> تومان\n▫️ تعدادی سرویس کاربر : <code>$count_service</code> عدد\n▫️تعداد پرداختی کاربر : <code>$count_payment</code> عدد", $manage_user);
