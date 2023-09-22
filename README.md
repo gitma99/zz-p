@@ -77,3 +77,25 @@ bash <(curl -s https://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@raw.githubuserco
 
 - گزینه 2 را وارد کنید
 - صبر کنید تمام شود
+
+## آموزش بکاپ خودکار
+
+- دستور زیر را وارد کنید
+
+```bash
+bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/backup_service.sh)
+```
+
+- گزینه 1 را وارد کنید
+- صبر کنید تمام شود
+
+## آموزش حذف بکاپ خودکار
+
+- دستور زیر را وارد کنید
+
+```bash
+bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/backup_service.sh)
+```
+
+- گزینه 2 را وارد کنید
+- صبر کنید تمام شود
