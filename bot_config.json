@@ -1,0 +1,9 @@
+{
+    "token": "[*TOKEN*]",
+    "dev": "[*DEV*]",
+    "database": {
+        "db_name": "[*DB-NAME*]",
+        "db_username": "[*DB-USER*]",
+        "db_password": "[*DB-PASS*]"
+    }
+}
