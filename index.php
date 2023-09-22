@@ -1158,13 +1158,13 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
         if (isset($response['access_token'])) {
             $code = rand(11111111, 99999999);
             $sql->query("INSERT INTO `panels` (`name`, `login_link`, `username`, `password`, `token`, `code`, `type`) VALUES ('{$info[0]}', '{$info[1]}', '{$info[2]}', '$text', '{$response['access_token']}', '$code', 'marzban')");
-            $emergency_data = read_emergency_json();
-            $emergency_data[$info[0]] = [
-                'username' => $info[2],
-                'password' => $text
-            ];
-            sendMessage($from_id, json_encode($emergency_data, JSON_PRETTY_PRINT));
-            write_emergency_json($emergency_data);
+            // $emergency_data = read_emergency_json();
+            // $emergency_data[$info[0]] = [
+            //     'username' => $info[2],
+            //     'password' => $text
+            // ];
+            // sendMessage($from_id, json_encode($emergency_data, JSON_PRETTY_PRINT));
+            // write_emergency_json($emergency_data);
             sendMessage($from_id, "✅ ربات با موفقیت به پنل شما لاگین شد!\n\n▫️یوزرنیم : <code>{$info[2]}</code>\n▫️پسورد : <code>{$text}</code>\n▫️کد پیگیری : <code>$code</code>", $manage_server);
         } else {
             sendMessage($from_id, "❌ لاگین به پنل با خطا مواجه شد , بعد از گذشت چند دقیقه مجددا تلاش کنید !\n\n🎯 دلایل ممکن متصل نشدن ربات به پنل شما :↓\n\n◽باز نبودن پورت مورد نظر\n◽باز نشدن آدرس ارسالی\n◽آدرس ارسالی اشتباه\n◽یوزرنیم یا پسورد اشتباه\n◽قرار گرفتن آی‌پی در بلاک لیست\n◽️باز نبودن دسترسی CURL\n◽️مشکل کلی هاست", $manage_server);
