@@ -110,33 +110,60 @@ if ($data == 'join') {
         $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$location'")->fetch_assoc();
         $getUser = getUserInfo($code, $panel['token'], $panel['login_link']);
 
-        if (isset($getUser['username'])) {
-            // if ((!isset($getUser['links']) and $getUser == false)) {
-            $plan = [];
-            $plan[] = [['text' => '🔙 بازگشت']];
-            $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
-            // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
-            sendMessage($from_id, 'این نام قبلا انتخاب شده. لطفا دوباره امتحان کنید.', $plan);
-            sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $plan);
+        if ($getUser['detail'] == 'Could not validate credentials') {
+            $new_marzban_token = get_marzban_panel_token($panel['name']);
 
-            step('choose_name');
-        } elseif (isset($getUser['detail'])) {
+            if ($new_marzban_token !== false) {
+                $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$location'")->fetch_assoc();
+                $getUser = getUserInfo($code, $panel['token'], $panel['login_link']);
+            } else {
+                $plan = [];
+                $plan[] = [['text' => '🔙 بازگشت']];
+                $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
+                sendMessage($from_id, "خطا در ارتباط با سرور {$panel['name']} لطفا به ادمین پنل اطلاع رسانی کنید. (token cant be renewed!!)", $plan);
+                exit();
+            }
+        }
+        if (isset($getUser)) {
+            if (isset($getUser['username'])) {
+                // if ((!isset($getUser['links']) and $getUser == false)) {
+                $plan = [];
+                $plan[] = [['text' => '🔙 بازگشت']];
+                $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
+                // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
+                sendMessage($from_id, 'این نام قبلا انتخاب شده. لطفا دوباره امتحان کنید.', $plan);
+                sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $plan);
+
+                step('choose_name');
+            } elseif (isset($getUser['detail'])) {
+                if ($getUser['detail'] == 'User not found') {
+                    $fetch = $sql->query("SELECT * FROM `category` WHERE `name` = '$plan_name'")->fetch_assoc();
+                    $price = $fetch['price'] ?? 0;
+                    $limit = $fetch['limit'] ?? 0;
+                    $date = $fetch['date'] ?? 0;
+
+                    $sql->query("INSERT INTO `service_factors` (`from_id`, `location`, `protocol`, `plan`, `price`, `code`, `status`) VALUES ('$from_id', '$location', 'null', '$plan', '$price', '$code_base', 'active')");
+                    $copen_key = json_encode(['inline_keyboard' => [[['text' => '🎁 کد تخفیف', 'callback_data' => 'use_copen-' . $code]]]]);
+                    sendMessage($from_id, sprintf($texts['service_factor'], $location, $limit, $date, $code_base, number_format($price)), $copen_key);
+                    step('confirm_service');
+                } else {
+                    $_keys = [[['text' => '🔙 بازگشت']]];
+                    $_keyboard = json_encode(['keyboard' => $_keys, 'resize_keyboard' => true]);
+                    // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
+                    sendMessage($from_id, "خطا در احراز نام انتخاب شده. لطفا دوباره تلاش کنید. ({$getUser['detail']})", $_keyboard);
+                    exit();
+                }
+            } else {
+            }
+        } else {
             $plan = [];
             $plan[] = [['text' => '🔙 بازگشت']];
             $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
             // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
             sendMessage($from_id, 'این نام معتبر نمی باشد.', $plan);
             sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $plan);
-        } else {
-            $fetch = $sql->query("SELECT * FROM `category` WHERE `name` = '$plan_name'")->fetch_assoc();
-            $price = $fetch['price'] ?? 0;
-            $limit = $fetch['limit'] ?? 0;
-            $date = $fetch['date'] ?? 0;
-
-            $sql->query("INSERT INTO `service_factors` (`from_id`, `location`, `protocol`, `plan`, `price`, `code`, `status`) VALUES ('$from_id', '$location', 'null', '$plan', '$price', '$code_base', 'active')");
-            $copen_key = json_encode(['inline_keyboard' => [[['text' => '🎁 کد تخفیف', 'callback_data' => 'use_copen-' . $code]]]]);
-            sendMessage($from_id, sprintf($texts['service_factor'], $location, $limit, $date, $code_base, number_format($price)), $copen_key);
-            step('confirm_service');
+            sendMessage($from_id, $getUser['detail'], $plan);
+            step('choose_name');
         }
     } else {
         sendMessage($from_id, $texts['choice_error']);

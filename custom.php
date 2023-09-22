@@ -28,8 +28,6 @@ function get_marzban_panel_token($panel_name)
     $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$panel_name'")->fetch_assoc();
     $panel_url = $panel['login_link'];
     $panel_token = $panel['token'];
-    $panel_username = $panel['username'];
-    $panel_password = $panel['password'];
     $token_test_res = json_decode(test_token($panel_url, $panel_token), true);
     if (isset($token_test_res['version'])) {
         return $panel_token;
@@ -288,10 +286,10 @@ function renewal_service($text, $from_id)
         foreach (['renewal-service-' . $from_id . '.json'] as $file) if (file_exists($file)) unlink($file);
 
         # ---------------- check coin for create service ---------------- #
-        // if ($user['coin'] < $select_service['price']) {
-        //     sendMessage($from_id, sprintf($texts['not_coin'], number_format($price)), $start_key);
-        //     exit();
-        // }
+        if ($user['coin'] < $price) {
+            sendMessage($from_id, sprintf($texts['not_coin'], number_format($price)), $start_key);
+            exit();
+        }
         # ---------------- check database ----------------#
         if ($get_plan->num_rows == 0) {
             sendmessage($from_id, sprintf($texts['create_error'], 0), $start_key);
@@ -332,6 +330,7 @@ function renewal_service($text, $from_id)
                 exit();
             }
         }
+        $sql->query("UPDATE `users` SET `coin` = coin - $price WHERE `from_id` = '$from_id' LIMIT 1");
     } elseif ($text == '❌  انصراف' and $user['step'] == 'renewal_service_confirm_service') {
         step('none');
         foreach ([$from_id . '-location.txt', $from_id . '-protocol.txt'] as $file) if (file_exists($file)) unlink($file);
