@@ -29,3 +29,51 @@ bash <(curl -s https://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@raw.githubuserco
 
 - بعد از اجرای این دستور باید یوزر برای آن انتخاب کنید (در صورت خالی گذاشتن به صورت پیشفرض `phpadmin` در نظر گرفته می شود).
 - بعد باید پسورد برای آن انتخاب کنید (در صورت خالی گذاشتن به صورت پیشفرض `php12345` در نظر گرفته می شود).
+
+## آموزش آپدیت
+
+- وارد سرور خود شوید.
+- دستور زیر رو برای ساخت یوزر جدید ارسال کنید.
+
+```bash
+bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/update.sh)
+```
+
+- گزینه 1 را وارد کنید
+- صبر کنید تمام شود
+
+## آموزش حذف ربات از سرور
+
+- وارد سرور خود شوید.
+- دستور زیر رو برای ساخت یوزر جدید ارسال کنید.
+
+```bash
+bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/update.sh)
+```
+
+- گزینه 2 را وارد کنید
+- صبر کنید تمام شود
+
+## آموزش بکاپ
+
+- دستور زیر را وارد کنید
+
+```bash
+bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/backup.sh)
+```
+
+- گزینه 1 را وارد کنید
+- صبر کنید تمام شود
+- فایل `zz-p-backup.zip` حاوی اطلاعات بکاب هست.
+
+## آموزش بازگزردانی بکاپ
+
+- فایل زیپ را در مسیر روت قرار دهید (توجه کنید که نام فایل باید `zz-p-backup.zip` باشد)
+- دستور زیر را وارد کنید
+
+```bash
+bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/backup.sh)
+```
+
+- گزینه 2 را وارد کنید
+- صبر کنید تمام شود
