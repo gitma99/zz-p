@@ -33,7 +33,7 @@ bash <(curl -s https://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@raw.githubuserco
 ## آموزش آپدیت
 
 - وارد سرور خود شوید.
-- دستور زیر رو برای ساخت یوزر جدید ارسال کنید.
+- دستور زیر رو برای آپدیت ربات ارسال کنید.
 
 ```bash
 bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/update.sh)
@@ -45,7 +45,7 @@ bash <(curl -s https://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@raw.githubuserco
 ## آموزش حذف ربات از سرور
 
 - وارد سرور خود شوید.
-- دستور زیر رو برای ساخت یوزر جدید ارسال کنید.
+- دستور زیر رو برای حذف ربات ارسال کنید.
 
 ```bash
 bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/update.sh)
@@ -64,7 +64,7 @@ bash <(curl -s https://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@raw.githubuserco
 
 - گزینه 1 را وارد کنید
 - صبر کنید تمام شود
-- فایل `zz-p-backup.zip` حاوی اطلاعات بکاب هست.
+- فایل `zz-p-backup.zip` حاوی اطلاعات بکاب هست(فایل در مسیر روت قرار دارد).
 
 ## آموزش بازگزردانی بکاپ
 

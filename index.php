@@ -276,7 +276,6 @@ if ($data == 'join') {
                 sendmessage($from_id, sprintf($texts['success_create_service'], $code_base, $location, $date, $limit, number_format($price), $subscribe, '@' . $getMe['result']['username']), $start_key);
             }
             $sql->query("INSERT INTO `orders` (`from_id`, `location`, `protocol`, `date`, `volume`, `link`, `price`, `code`, `status`, `type`) VALUES ('$from_id', '$location', 'null', '$date', '$limit', '$links', '$price', '$code_base', 'active', 'marzban')");
-            $sql->query("INSERT INTO `orders` (`from_id`, `location`, `protocol`, `date`, `volume`, `link`, `price`, `code`, `status`, `type`) VALUES ('$from_id', '$location', 'null', '$date', '$limit', '$links', '$price', '$code_base', 'active', 'marzban')");
             // sendmessage($config['dev'], sprintf($texts['success_create_notif']), $first_name, $username, $from_id, $user['count_service'], $user['coin'], $location, $plan, $limit, $date, $code, number_format($price));
         } else {
             sendmessage($from_id, sprintf($texts['create_error'], 2), $start_key);
@@ -1925,7 +1924,8 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
             $first_name = $res_get->result->user->first_name;
             $username = '@' . $res_get->result->user->username;
             $coin = number_format($info['coin']) ?? 0;
-            $count_service = $info['count_service'] ?? 0;
+            $count_service = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'")->num_rows ?? 0;
+            // $count_service = $info['count_service'] ?? 0;
             $count_payment = $info['count_charge'] ?? 0;
             sendMessage($from_id, "⭕️ اطلاعات کاربر [ <code>$text</code> ] با موفقیت دریافت شد.\n\n▫️یوزرنیم کاربر : $username\n▫️نام کاربر : <b>$first_name</b>\n▫️موجودی کاربر : <code>$coin</code> تومان\n▫️ تعدادی سرویس کاربر : <code>$count_service</code> عدد\n▫️تعداد پرداختی کاربر : <code>$count_payment</code> عدد", $manage_user);
         } else {
