@@ -76,6 +76,9 @@ do
             printf "" 
             read CHAT_ID
 
+            apt install zip -y
+            apt install curl -y
+
             default_file=$default_telegram_config_json
             destination_file="$default_telegram_config_json.tmp"
             replace=$(cat "$default_file" | sed -e "s/\[\*TOKEN\*\]/${TOKEN}/g" -e "s/\[\*CHAT\*\]/${CHAT_ID}/g")
@@ -119,7 +122,7 @@ do
             systemctl disable "$SERVICE_NAME.service"
 
             echo "Service $SERVICE_NAME has been disabled."
-            
+
         break;;
         "Enable Backup Service")
 
