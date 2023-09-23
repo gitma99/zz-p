@@ -76,6 +76,8 @@ function bot($method, $datas = [])
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
         CURLOPT_POSTFIELDS => $datas
     ]);
     $res = curl_exec($ch);
@@ -159,7 +161,12 @@ function step($step)
 function checkURL($url)
 {
     $ch = curl_init($url);
-    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => 1, CURLOPT_TIMEOUT => 10]);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => 1,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
+        CURLOPT_TIMEOUT => 10
+    ]);
     $output = curl_exec($ch);
     $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
@@ -250,6 +257,8 @@ function zarinpalGenerator($from_id, $price, $code)
     curl_setopt($ch, CURLOPT_USERAGENT, 'ZarinPal Rest Api v1');
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
     curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Content-Length: ' . strlen($jsonData)));
     $result = json_decode(curl_exec($ch), true);
@@ -269,6 +278,8 @@ function checkZarinpalFactor($merchend_id, $authority, $amount)
     $ch = curl_init('https://api.zarinpal.com/pg/v4/payment/verify.json');
     curl_setopt($ch, CURLOPT_USERAGENT, 'ZarinPal Rest Api v4');
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json', 'Content-Length: ' . strlen($jsonData)));
@@ -296,6 +307,8 @@ function idpayGenerator($from_id, $price, $code)
     $curl = curl_init();
     curl_setopt_array($curl, array(
         CURLOPT_URL => 'https://api.idpay.ir/v1.1/payment',
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -329,6 +342,8 @@ function nowPaymentGenerator($price_amount, $price_currency, $pay_currency, $ord
     $curl = curl_init();
     curl_setopt_array($curl, array(
         CURLOPT_URL => 'https://api.nowpayments.io/v1/payment',
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -353,6 +368,8 @@ function checkNowPayment($payment_id)
     $curl = curl_init();
     curl_setopt_array($curl, array(
         CURLOPT_URL => 'https://api.nowpayments.io/v1/payment/' . $payment_id,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -389,6 +406,8 @@ function loginPanelSanayi($address, $username, $password)
     $ch = curl_init();
     curl_setopt_array($ch, [
         CURLOPT_URL => $address . '/login',
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST => true,
@@ -437,6 +456,8 @@ function createService($username, $limit, $expire_data, $proxies, $inbounds, $to
 {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url . '/api/user');
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $token, 'Content-Type: application/json'));
@@ -454,6 +475,8 @@ function getUserInfo($username, $token, $url)
 {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url . '/api/user/' . $username);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     curl_setopt($ch, CURLOPT_HTTPGET, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token));
@@ -466,6 +489,8 @@ function resetUserDataUsage($username, $token, $url)
 {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url . '/api/user/' . $username . '/reset');
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token));
@@ -478,6 +503,8 @@ function getSystemStatus($token, $url)
 {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url . '/api/system');
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     curl_setopt($ch, CURLOPT_HTTPGET, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token));
@@ -490,6 +517,8 @@ function removeuser($username, $token, $url)
 {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url . '/api/user/' . $username);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
     curl_setopt($ch, CURLOPT_HTTPGET, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -503,6 +532,8 @@ function Modifyuser($username, $data, $token, $url)
 {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url . '/api/user/' . $username);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
@@ -516,6 +547,8 @@ function inbounds($token, $url)
 {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url . '/api/inbounds');
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
     curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token, 'Content-Type: application/json'));
