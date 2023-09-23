@@ -4,7 +4,7 @@
 - دستور زیر رو برای نصب ربات ارسال کنید.
 
 ```bash
-bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/zanbor.sh)
+bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/zanbor.sh)
 ```
 
 - بعد از اجرای این دستور باید کمی صبر کنید تا به مرحله وارد کردن دامنه برسید.
@@ -22,7 +22,7 @@ bash <(curl -s https://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@raw.githubuserco
 - دستور زیر رو برای آپدیت ربات ارسال کنید.
 
 ```bash
-bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/update.sh)
+bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/update.sh)
 ```
 
 - گزینه 1 برای آپدیت ربات
@@ -34,7 +34,7 @@ bash <(curl -s https://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@raw.githubuserco
 - دستور زیر را وارد کنید
 
 ```bash
-bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/backup_service.sh)
+bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/backup_service.sh)
 ```
 
 - گزینه 1 برای نصب سرویس بکاپ خودکار و راه اندازی آن
@@ -48,7 +48,7 @@ bash <(curl -s https://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@raw.githubuserco
 - دستور زیر را وارد کنید
 
 ```bash
-bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/backup.sh)
+bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/backup.sh)
 ```
 
 - گزینه 1 را وارد کنید
@@ -61,7 +61,7 @@ bash <(curl -s https://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@raw.githubuserco
 - دستور زیر را وارد کنید
 
 ```bash
-bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/backup.sh)
+bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/backup.sh)
 ```
 
 - گزینه 2 را وارد کنید
@@ -75,7 +75,7 @@ bash <(curl -s https://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@raw.githubuserco
 - دستور زیر رو برای ساخت یوزر جدید ارسال کنید.
 
 ```bash
-bash <(curl -s https://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@raw.githubusercontent.com/gitma99/zz-p/main/phpmyadmin.sh)
+bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/phpmyadmin.sh)
 ```
 
 - بعد از اجرای این دستور باید یوزر برای آن انتخاب کنید (در صورت خالی گذاشتن به صورت پیشفرض `phpadmin` در نظر گرفته می شود).
