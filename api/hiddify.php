@@ -21,7 +21,6 @@ class Hiddify
             "Origin: " . $base_url,
             "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
         ];
-
     }
 
     private function gen_uuid()
@@ -44,6 +43,8 @@ class Hiddify
         $url = is_null($url) ? $this->complate_url . "/user/new/?url=%2F8itQkDU30qCOwzUkK3LnMf58qfna%2F276dbb23-95d8-4802-a741-bb0474bd9b71%2Fadmin%2Fuser%2F" : $url;
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_URL, $url);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_HEADER, 1);
         $response = curl_exec($curl);
@@ -57,6 +58,8 @@ class Hiddify
         $url = is_null($url) ? $this->complate_url . "/user/new/?url=%2F8itQkDU30qCOwzUkK3LnMf58qfna%2F276dbb23-95d8-4802-a741-bb0474bd9b71%2Fadmin%2Fuser%2F" : $url;
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_URL, $url);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         $response = curl_exec($curl);
         curl_close($curl);
@@ -88,6 +91,8 @@ class Hiddify
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $url);
         curl_setopt($curl, CURLOPT_POST, true);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_HTTPHEADER, $this->headers);
         curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($pyload));
@@ -121,6 +126,8 @@ class Hiddify
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $url);
         curl_setopt($curl, CURLOPT_POST, true);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_HTTPHEADER, $this->headers);
         curl_setopt($curl, CURLOPT_POSTFIELDS, $pyload);
@@ -130,6 +137,3 @@ class Hiddify
         return json_encode(['status' => true, 'results' => $response], 448);
     }
 }
-
-
-?>

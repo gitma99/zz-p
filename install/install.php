@@ -5,6 +5,8 @@ function request($url) {
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_FOLLOWLOCATION => true,
+		CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
         CURLOPT_CONNECTTIMEOUT => 10,
         CURLOPT_TIMEOUT => 30,
     ]);
@@ -56,5 +58,3 @@ if (isset($_POST['token']) and isset($_POST['admin-id']) and isset($_POST['db-na
 } else {
 	print '<h2 style="text-align: center; color: black; font-size: 40px; margin-top: 60px;">مقادیر اجباری به درستی ارسال نشده است ❌</h2>';
 }
-
-?>
