@@ -402,16 +402,29 @@ function loginPanelSanayi($address, $username, $password)
 
 function loginPanel($address, $username, $password)
 {
+    global $from_id, $cancel_add_server;
     $fields = array('username' => $username, 'password' => $password);
     $curl = curl_init($address . '/api/admin/token');
+    $marzban_login_headers = array(
+        'Content-Type: application/x-www-form-urlencoded',
+        'accept: application/json'
+
+    );
     curl_setopt_array($curl, array(
         CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => http_build_query($fields),
-        CURLOPT_HTTPHEADER => array('Content-Type: application/x-www-form-urlencoded', 'accept: application/json')
+        CURLOPT_HTTPHEADER => $marzban_login_headers
     ));
     $response = curl_exec($curl);
+    // $t = json_encode($response, 448);
+    // // $t = $fields;
+    // sendMessage($from_id, "test : $t");
+    // exit();
     if ($response === false) {
+        sendMessage($from_id, curl_error($curl), $cancel_add_server);
         error_log('cURL Error: ' . curl_error($curl));
         curl_close($curl);
     } else {
