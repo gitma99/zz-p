@@ -41,23 +41,31 @@ function send_message_query()
 
 function get_marzban_panel_token($panel_name)
 {
-    function test_token($url, $token)
-    {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url . "/api/system");
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $token, 'Content-Type: application/json'));
-        $response = curl_exec($ch);
-        curl_close($ch);
-        return $response;
-    };
     global $sql;
     $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$panel_name'")->fetch_assoc();
     $panel_url = $panel['login_link'];
     $panel_token = $panel['token'];
-    $token_test_res = json_decode(test_token($panel_url, $panel_token), true);
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $panel_url . "/api/system");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $panel_token, 'Content-Type: application/json'));
+    $test_response = curl_exec($ch);
+    curl_close($ch);
+    // function test_token($url, $token)
+    // {
+    //     $ch = curl_init();
+    //     curl_setopt($ch, CURLOPT_URL, $url . "/api/system");
+    //     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    //     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    //     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    //     curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $token, 'Content-Type: application/json'));
+    //     $response = curl_exec($ch);
+    //     curl_close($ch);
+    //     return $response;
+    // };
+    $token_test_res = json_decode($test_response, true);
     if (isset($token_test_res['version'])) {
         return $panel_token;
     } else {
@@ -73,10 +81,9 @@ function get_marzban_panel_token($panel_name)
 function reset_panel_panel_token($panel_name, $panel_login_address)
 {
     global $sql;
-    $emergency_data = json_decode(file_get_contents('emergency_server_token_fix.json'), true);
-    $panel_login_info = $emergency_data[$panel_name];
-    $panel_username = $panel_login_info['username'];
-    $panel_password = $panel_login_info['password'];
+    $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$panel_name'")->fetch_assoc();
+    $panel_username = $panel['username'];
+    $panel_password = $panel['password'];
     $login_result = loginPanel($panel_login_address, $panel_username, $panel_password);
     if (isset($login_result["access_token"])) {
         $new_token = $login_result["access_token"];
