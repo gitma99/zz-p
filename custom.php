@@ -69,7 +69,9 @@ function get_marzban_panel_token($panel_name)
     if (isset($token_test_res['version'])) {
         return $panel_token;
     } else {
-        $new_token = reset_panel_panel_token($panel_name, $panel_url);
+        $panel_username = $panel['username'];
+        $panel_password = $panel['password'];
+        $new_token = reset_panel_panel_token($panel_name, $panel_url, $panel_username, $panel_password);
         if ($new_token !== false) {
             return $new_token;
         } else {
@@ -78,12 +80,9 @@ function get_marzban_panel_token($panel_name)
     }
     // return  $panel;
 }
-function reset_panel_panel_token($panel_name, $panel_login_address)
+function reset_panel_panel_token($panel_name, $panel_login_address, $panel_username, $panel_password)
 {
     global $sql;
-    $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$panel_name'")->fetch_assoc();
-    $panel_username = $panel['username'];
-    $panel_password = $panel['password'];
     $login_result = loginPanel($panel_login_address, $panel_username, $panel_password);
     if (isset($login_result["access_token"])) {
         $new_token = $login_result["access_token"];
