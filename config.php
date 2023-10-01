@@ -475,7 +475,6 @@ function getUserInfo($username, $token, $url)
 {
     $api_url = $url . '/api/user/' . $username;
     $req_headers = array(
-        'Host: sgmnm.salamatfitnessnes.xyz',
         'Accept: application/json',
         'Authorization: Bearer ' . $token,
 
