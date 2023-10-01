@@ -109,6 +109,11 @@ if ($data == 'join') {
 
         $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$location'")->fetch_assoc();
         $getUser = getUserInfo($code, $panel['token'], $panel['login_link']);
+        $t = json_encode($getUser, 448);
+        // // $t = $renewal_service;
+        sendMessage($from_id, "debug :\n $t");
+        // exit();
+
         # if ($getUser['detail'] == 'Could not validate credentials') {
         if (in_array($getUser['detail'] , ['Could not validate credentials','Not authenticated'])) {
             $new_marzban_token = get_marzban_panel_token($panel['name']);
