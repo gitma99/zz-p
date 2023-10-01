@@ -1,5 +1,5 @@
 <?php
-
+$debug = false;
 date_default_timezone_set('Asia/Tehran');
 error_reporting(E_ALL ^ E_NOTICE);
 // $admin_ids = read_bot_settings_json()['admin_ids'];
@@ -473,15 +473,27 @@ function createService($username, $limit, $expire_data, $proxies, $inbounds, $to
 
 function getUserInfo($username, $token, $url)
 {
+    $api_url = $url . '/api/user/' . $username;
+    $req_headers = array(
+        'Host: sgmnm.salamatfitnessnes.xyz',
+        'Accept: application/json',
+        'Authorization: Bearer ' . $token,
+
+    );
+    global $debug, $from_id;
     $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url . '/api/user/' . $username);
+    curl_setopt($ch, CURLOPT_URL, $api_url);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     curl_setopt($ch, CURLOPT_HTTPGET, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $req_headers);
     $response = json_decode(curl_exec($ch), true);
     curl_close($ch);
+    $debug_msg = json_encode($response, 448);
+    if ($debug === true) {
+        sendMessage($from_id, "getUserInfo result :\n$debug_msg");
+    };
     return $response;
 }
 
