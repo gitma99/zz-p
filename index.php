@@ -22,14 +22,35 @@ ini_set('error_log', 'error.log'); // Specify the path to the error log file
 error_reporting(E_ALL); // Set the error reporting level as needed
 
 
+// sendMessage($from_id, "Start");
+// sendMessage($from_id, "1");
+
 
 // $t = json_encode(get_marzban_panel_token('آلمانن'), 448);
 // // $t = $renewal_service;
 // sendMessage($from_id, "test : $t");
 // // exit();
 
-send_message_query();
-renewal_service($text, $from_id);
+// $t = json_encode(, 448);
+// // $t = $renewal_service;
+// sendMessage($from_id, "test : $t");
+
+// exit();
+
+if ($text == $texts['back_to_menu_button']){
+    step('none');
+    sendMessage($from_id,$texts['back_to_menu'], $start_key );
+    exit(1);
+}elseif ($text == $texts['back_to_bot_management_button']){
+    step('panel');
+    sendMessage($from_id, "👮‍♂️ - سلام ادمین [ <b>$first_name</b> ] عزیز !\n\n⚡️به پنل مدیریت ربات خوش آمدید.\n🗃 ورژن فعلی ربات : <code>{$config['version']}</code>\n\n⚙️ جهت مدیریت ربات ، یکی از گزینه های زیر را انتخاب کنید.", $bot_management_keyboard);
+    exit(1);
+} else{
+    send_message_query();
+    renewal_service($text, $from_id);
+    change_account_status($text, $from_id);
+}
+
 
 
 if ($data == 'join') {
@@ -45,15 +66,14 @@ if ($data == 'join') {
     sendMessage($from_id, $texts['block']);
 } elseif ($text == '/start' or $text == '🔙 بازگشت' or $text == '/back') {
     step('none');
-    sendMessage($from_id, sprintf($texts['start'], $first_name), $start_key);
+    sendMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $start_key);
 } elseif ($text == '❌  انصراف' and $user['step'] == 'confirm_service') {
     step('none');
     foreach ([$from_id . '-location.txt', $from_id . '-protocol.txt'] as $file) if (file_exists($file)) unlink($file);
     if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0) $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
-    sendMessage($from_id, sprintf($texts['start'], $first_name), $start_key);
+    sendMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $start_key);
 } elseif ($text == '🛒 خرید سرویس') {
     $servers = $sql->query("SELECT * FROM `panels` WHERE `status` = 'active'");
-    $tett = get_current_status_charge_account_button($from_id);
     if ($servers->num_rows > 0) {
         step('buy_service');
         if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0) $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
@@ -124,7 +144,7 @@ if ($data == 'join') {
                 exit();
             }
         }
-        if (isset($getUser)) {
+        if (isset($getUser) and strpos($code_base, "_") === false) {
             if (isset($getUser['username'])) {
                 // if ((!isset($getUser['links']) and $getUser == false)) {
                 $plan = [];
@@ -144,7 +164,8 @@ if ($data == 'join') {
 
                     $sql->query("INSERT INTO `service_factors` (`from_id`, `location`, `protocol`, `plan`, `price`, `code`, `status`) VALUES ('$from_id', '$location', 'null', '$plan', '$price', '$code_base', 'active')");
                     $copen_key = json_encode(['inline_keyboard' => [[['text' => '🎁 کد تخفیف', 'callback_data' => 'use_copen-' . $code]]]]);
-                    sendMessage($from_id, sprintf($texts['service_factor'], $location, $limit, $date, $code_base, number_format($price)), $copen_key);
+                    // sendMessage($from_id, sprintf($texts['service_factor'], $location, $limit, $date, $code_base, number_format($price)), $copen_key);
+                    sendMessage($from_id, sprintf($texts['service_factor'], $location, $limit, $date, $code_base, number_format($price)));
                     step('confirm_service');
                 } else {
                     $_keys = [[['text' => '🔙 بازگشت']]];
@@ -162,7 +183,9 @@ if ($data == 'join') {
             // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
             sendMessage($from_id, $texts['invalid_config_name'], $plan);
             sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $plan);
-            sendMessage($from_id, $getUser['detail'], $plan);
+            if ($debug === true){
+                sendMessage($from_id, $getUser['detail'], $plan);
+            };
             step('choose_name');
         }
     } else {
@@ -391,7 +414,23 @@ if ($data == 'join') {
     $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'");
     if ($services->num_rows > 0) {
         while ($row = $services->fetch_assoc()) {
-            $status = ($row['status'] == 'active') ? '🟢 | ' : '🔴 | ';
+            $service_base_name = $row['code'];
+            $service_name = $row['code'] . "_" . $from_id;
+            $service_location = $row['location'];
+            $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();;
+            $marzban_res = getUserInfo($service_name, $mysql_service_panel['token'], $mysql_service_panel['login_link']);
+            $service_status = $marzban_res['status'];
+            // $t = json_encode($service_name, 448);
+            // sendMessage($from_id, "test : $t");
+            // // exit();
+            if ($service_status == 'active'){
+                $status = '🟢';
+            }elseif($service_status == 'disabled'){
+                $status = '🔴';
+            }else{
+                $status = '❌';
+            }
+
             $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code']];
             // $key[] = ['text' => $status . base64_encode($row['code']) . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code']];
         }
@@ -453,11 +492,11 @@ if ($data == 'join') {
             ]]);
 
             if ($note->num_rows == 0) {
-                editMessage($from_id, sprintf($texts['your_service'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $getService['location'], $code_base, Conversion($getUser['used_traffic'], 'GB'), Conversion($getUser['data_limit'], 'GB'), date('Y-m-d H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
+                editMessage($from_id, sprintf($texts['your_service'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $getService['location'], $code_base, Conversion(number_format($getUser['used_traffic']), 'GB'), Conversion($getUser['data_limit'], 'GB'), date('Y-m-d H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
                 // editMessage($from_id, sprintf($texts['your_service'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $getService['location'], base64_encode($code), Conversion($getUser['used_traffic'], 'GB'), Conversion($getUser['data_limit'], 'GB'), date('Y-d-m H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
             } else {
                 $note = $note->fetch_assoc();
-                editMessage($from_id, sprintf($texts['your_service_with_note'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $note['note'], $getService['location'], $code_base, Conversion($getUser['used_traffic'], 'GB'), Conversion($getUser['data_limit'], 'GB'), date('Y-m-d H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
+                editMessage($from_id, sprintf($texts['your_service_with_note'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $note['note'], $getService['location'], $code_base, Conversion(number_format($getUser['used_traffic']), 'GB'), Conversion($getUser['data_limit'], 'GB'), date('Y-m-d H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
                 // editMessage($from_id, sprintf($texts['your_service_with_note'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $note['note'], $getService['location'], base64_encode($code), Conversion($getUser['used_traffic'], 'GB'), Conversion($getUser['data_limit'], 'GB'), date('Y-d-m H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
             }
         } else {
@@ -723,7 +762,7 @@ if ($data == 'join') {
 } elseif ($data == 'cancel_payment_proccess') {
     step('none');
     deleteMessage($from_id, $message_id);
-    sendMessage($from_id, sprintf($texts['start'], $first_name), $start_key);
+    sendMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $start_key);
 } elseif (in_array($data, ['zarinpal', 'idpay']) and strpos($user['step'], 'sdp-') !== false) {
     if ($payment_setting[$data . '_status'] == 'active') {
         $status = $sql->query("SELECT `{$data}_token` FROM `payment_setting`")->fetch_assoc()[$data . '_token'];
@@ -816,10 +855,39 @@ if ($data == 'join') {
 } elseif ($text == '🛒 تعرفه خدمات') {
     sendMessage($from_id, $texts['service_tariff']);
 } elseif ($text == '👤 پروفایل') {
+    $count_all_active = 0;
+    $count_all_inactive = 0;
+    
+    $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'");
+    if ($services->num_rows > 0) {
+        while ($row = $services->fetch_assoc()) {
+            $service_base_name = $row['code'];
+            $service_name = $row['code'] . "_" . $from_id;
+            $service_location = $row['location'];
+            $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();;
+            $marzban_res = getUserInfo($service_name, $mysql_service_panel['token'], $mysql_service_panel['login_link']);
+            $service_status = $marzban_res['status'];
+            // $t = json_encode($service_name, 448);
+            // sendMessage($from_id, "test : $t");
+            // // exit();
+            if ($service_status == 'active'){
+                $count_all_active = $count_all_active + 1;
+            }elseif($service_status == 'disabled'){
+                $count_all_inactive = $count_all_inactive = $count_all_inactive + 1;
+            }else{
+                $status = '❌';
+            }
+        }
+    }
     $count_all = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'")->num_rows;
-    $count_all_active = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id' AND `status` = 'active'")->num_rows;
-    $count_all_inactive = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id' AND `status` = 'inactive'")->num_rows;
-    sendMessage($from_id, sprintf($texts['my_account'], $from_id, number_format($user['coin']), $count_all, $count_all_active, $count_all_inactive), $start_key);
+
+
+    $user_usage = get_users_usage($from_id);
+    $total_trafic = $user_usage['total_traffic_bought'];
+    $used_trafic = $user_usage['total_traffic_used'];
+    
+    
+    sendMessage($from_id, sprintf($texts['my_account'], $from_id, number_format($user['coin']), $count_all, $count_all_active, $count_all_inactive, $total_trafic, $used_trafic), $start_key);
 } elseif ($text == '📮 پشتیبانی آنلاین') {
     step('support');
     sendMessage($from_id, $texts['support'], $back);
@@ -840,9 +908,9 @@ if ($data == 'join') {
 
 $admins = $sql->query("SELECT * FROM `admins`")->fetch_assoc() ?? [];
 if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
-    if (in_array($text, ['/panel', 'panel', '🔧 مدیریت', 'پنل', '⬅️ بازگشت به مدیریت'])) {
+    if (in_array($text, ['/panel', 'panel', '🔧 مدیریت', 'پنل', $texts['back_to_bot_management_button']])) {
         step('panel');
-        sendMessage($from_id, "👮‍♂️ - سلام ادمین [ <b>$first_name</b> ] عزیز !\n\n⚡️به پنل مدیریت ربات خوش آمدید.\n🗃 ورژن فعلی ربات : <code>{$config['version']}</code>\n\n⚙️ جهت مدیریت ربات ، یکی از گزینه های زیر را انتخاب کنید.", $panel);
+        sendMessage($from_id, "👮‍♂️ - سلام ادمین [ <b>$first_name</b> ] عزیز !\n\n⚡️به پنل مدیریت ربات خوش آمدید.\n🗃 ورژن فعلی ربات : <code>{$config['version']}</code>\n\n⚙️ جهت مدیریت ربات ، یکی از گزینه های زیر را انتخاب کنید.", $bot_management_keyboard);
     } elseif ($text == '👥 مدیریت آمار ربات') {
         sendMessage($from_id, "👋 به مدیریت آمار کلی ربات خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید:\n\n◽️@ZanborPanel", $manage_statistics);
     } elseif ($text == '🌐 مدیریت سرور') {
@@ -860,7 +928,7 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
 
     // ----------- do not touch this part ----------- //
     elseif ($text == base64_decode('YmFzZTY0X2RlY29kZQ==')('8J+TniDYp9i32YTYp9i524zZhyDYotm+2K/bjNiqINix2KjYp9iq')) {
-        base64_decode('c2VuZE1lc3NhZ2U=')($from_id, base64_decode('8J+QnSB8INio2LHYp9uMINin2LfZhNin2Lkg2KfYsiDYqtmF2KfZhduMINii2b7Yr9uM2Kog2YfYpyDZiCDZhtiz2K7ZhyDZh9in24wg2KjYudiv24wg2LHYqNin2Kog2LLZhtio2YjYsSDZvtmG2YQg2K/YsSDaqdin2YbYp9mEINiy2YbYqNmI2LEg2b7ZhtmEINi52LbZiCDYtNuM2K8gOuKGkwril73vuI9AWmFuYm9yUGFuZWwK8J+QnSB8INmIINmH2YXahtmG24zZhiDYqNix2KfbjCDZhti42LEg2K/Zh9uMINii2b7Yr9uM2Kog24zYpyDYqNin2q8g2YfYpyDYqNmHINqv2LHZiNmHINiy2YbYqNmI2LEg2b7ZhtmEINio2b7bjNmI2YbYr9uM2K8gOuKGkwril73vuI9AWmFuYm9yUGFuZWxHYXAK8J+QnSB8INmG2YXZiNmG2Ycg2LHYqNin2Kog2KLYrtix24zZhiDZhtiz2K7ZhyDYsdio2KfYqiDYstmG2KjZiNixINm+2YbZhCA64oaTCuKXve+4j0BaYW5ib3JQYW5lbEJvdA=='), $panel);
+        base64_decode('c2VuZE1lc3NhZ2U=')($from_id, base64_decode('8J+QnSB8INio2LHYp9uMINin2LfZhNin2Lkg2KfYsiDYqtmF2KfZhduMINii2b7Yr9uM2Kog2YfYpyDZiCDZhtiz2K7ZhyDZh9in24wg2KjYudiv24wg2LHYqNin2Kog2LLZhtio2YjYsSDZvtmG2YQg2K/YsSDaqdin2YbYp9mEINiy2YbYqNmI2LEg2b7ZhtmEINi52LbZiCDYtNuM2K8gOuKGkwril73vuI9AWmFuYm9yUGFuZWwK8J+QnSB8INmIINmH2YXahtmG24zZhiDYqNix2KfbjCDZhti42LEg2K/Zh9uMINii2b7Yr9uM2Kog24zYpyDYqNin2q8g2YfYpyDYqNmHINqv2LHZiNmHINiy2YbYqNmI2LEg2b7ZhtmEINio2b7bjNmI2YbYr9uM2K8gOuKGkwril73vuI9AWmFuYm9yUGFuZWxHYXAK8J+QnSB8INmG2YXZiNmG2Ycg2LHYqNin2Kog2KLYrtix24zZhiDZhtiz2K7ZhyDYsdio2KfYqiDYstmG2KjZiNixINm+2YbZhCA64oaTCuKXve+4j0BaYW5ib3JQYW5lbEJvdA=='), $bot_management_keyboard);
     }
 
     // ----------- manage auth ----------- //
@@ -1181,19 +1249,19 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
         step('add_name');
         deleteMessage($from_id, $message_id);
         sendMessage($from_id, "👇🏻نام این دسته بندی را  ارسال کنید :↓", $back_panel);
-    } elseif ($user['step'] == 'add_name' and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif ($user['step'] == 'add_name' and $text != $texts['back_to_bot_management_button']) {
         step('add_limit');
         file_put_contents('add_plan.txt', "$text\n", FILE_APPEND);
         sendMessage($from_id, "👇🏻حجم خود را به صورت عدد صحیح و لاتین ارسال کنید :↓\n\n◽نمونه : <code>50</code>", $back_panel);
-    } elseif ($user['step'] == 'add_limit' and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif ($user['step'] == 'add_limit' and $text != $texts['back_to_bot_management_button']) {
         step('add_date');
         file_put_contents('add_plan.txt', "$text\n", FILE_APPEND);
         sendMessage($from_id, "👇🏻تاریخ خود را به صورت عدد صحیح و لاتین ارسال کنید :↓\n\n◽نمونه : <code>30</code>", $back_panel);
-    } elseif ($user['step'] == 'add_date' and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif ($user['step'] == 'add_date' and $text != $texts['back_to_bot_management_button']) {
         step('add_price');
         file_put_contents('add_plan.txt', "$text\n", FILE_APPEND);
         sendMessage($from_id, "💸 مبلغ این حجم را به صورت عدد صحیح و لاتین ارسال کنید :↓\n\n◽نمونه : <code>60000</code>", $back_panel);
-    } elseif ($user['step'] == 'add_price' and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif ($user['step'] == 'add_price' and $text != $texts['back_to_bot_management_button']) {
         step('none');
         $info = explode("\n", file_get_contents('add_plan.txt'));
         $code = rand(1111111, 9999999);
@@ -1204,15 +1272,15 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
         step('add_name_limit');
         deleteMessage($from_id, $message_id);
         sendMessage($from_id, "👇🏻نام این دسته بندی را  ارسال کنید :↓", $back_panel);
-    } elseif ($user['step'] == 'add_name_limit' and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif ($user['step'] == 'add_name_limit' and $text != $texts['back_to_bot_management_button']) {
         step('add_limit_limit');
         file_put_contents('add_plan_limit.txt', "$text\n", FILE_APPEND);
         sendMessage($from_id, "👇🏻حجم خود را به صورت عدد صحیح و لاتین ارسال کنید :↓\n\n◽نمونه : <code>50</code>", $back_panel);
-    } elseif ($user['step'] == 'add_limit_limit' and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif ($user['step'] == 'add_limit_limit' and $text != $texts['back_to_bot_management_button']) {
         step('add_price_limit');
         file_put_contents('add_plan_limit.txt', "$text\n", FILE_APPEND);
         sendMessage($from_id, "💸 مبلغ این حجم را به صورت عدد صحیح و لاتین ارسال کنید :↓\n\n◽نمونه : <code>60000</code>", $back_panel);
-    } elseif ($user['step'] == 'add_price_limit' and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif ($user['step'] == 'add_price_limit' and $text != $texts['back_to_bot_management_button']) {
         step('none');
         $info = explode("\n", file_get_contents('add_plan_limit.txt'));
         $code = rand(1111111, 9999999);
@@ -1223,15 +1291,15 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
         step('add_name_date');
         deleteMessage($from_id, $message_id);
         sendMessage($from_id, "👇🏻نام این دسته بندی را  ارسال کنید :↓", $back_panel);
-    } elseif ($user['step'] == 'add_name_date' and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif ($user['step'] == 'add_name_date' and $text != $texts['back_to_bot_management_button']) {
         step('add_date_date');
         file_put_contents('add_plan_date.txt', "$text\n", FILE_APPEND);
         sendMessage($from_id, "👇🏻تاریخ خود را به صورت عدد صحیح و لاتین ارسال کنید :↓\n\n◽نمونه : <code>30</code>", $back_panel);
-    } elseif ($user['step'] == 'add_date_date' and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif ($user['step'] == 'add_date_date' and $text != $texts['back_to_bot_management_button']) {
         step('add_price_date');
         file_put_contents('add_plan_date.txt', "$text\n", FILE_APPEND);
         sendMessage($from_id, "💸 مبلغ این حجم را به صورت عدد صحیح و لاتین ارسال کنید :↓\n\n◽نمونه : <code>60000</code>", $back_panel);
-    } elseif ($user['step'] == 'add_price_date' and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif ($user['step'] == 'add_price_date' and $text != $texts['back_to_bot_management_button']) {
         step('none');
         $info = explode("\n", file_get_contents('add_plan_date.txt'));
         $code = rand(1111111, 9999999);
@@ -1800,52 +1868,52 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
         $code = explode('-', $data)[1];
         step('change_name_limit-' . $code);
         sendMessage($from_id, "🔰نام جدید را ارسال کنید :", $back_panel);
-    } elseif (strpos($user['step'], 'change_date-') !== false and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif (strpos($user['step'], 'change_date-') !== false and $text != $texts['back_to_bot_management_button']) {
         $code = explode('-', $user['step'])[1];
         step('none');
         $sql->query("UPDATE `category` SET `date` = '$text' WHERE `code` = '$code' LIMIT 1");
         sendMessage($from_id, "✅ اطلاعات ارسالی شما با موفقیت ثبت شد.", $manage_server);
-    } elseif (strpos($user['step'], 'change_date_date-') !== false and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif (strpos($user['step'], 'change_date_date-') !== false and $text != $texts['back_to_bot_management_button']) {
         $code = explode('-', $user['step'])[1];
         step('none');
         $sql->query("UPDATE `category_date` SET `date` = '$text' WHERE `code` = '$code' LIMIT 1");
         sendMessage($from_id, "✅ اطلاعات ارسالی شما با موفقیت ثبت شد.", $manage_server);
-    } elseif (strpos($user['step'], 'change_limit-') !== false and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif (strpos($user['step'], 'change_limit-') !== false and $text != $texts['back_to_bot_management_button']) {
         $code = explode('-', $user['step'])[1];
         step('none');
         $sql->query("UPDATE `category` SET `limit` = '$text' WHERE `code` = '$code' LIMIT 1");
         sendMessage($from_id, "✅ اطلاعات ارسالی شما با موفقیت ثبت شد.", $manage_server);
-    } elseif (strpos($user['step'], 'change_limit_limit-') !== false and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif (strpos($user['step'], 'change_limit_limit-') !== false and $text != $texts['back_to_bot_management_button']) {
         $code = explode('-', $user['step'])[1];
         step('none');
         $sql->query("UPDATE `category_limit` SET `limit` = '$text' WHERE `code` = '$code' LIMIT 1");
         sendMessage($from_id, "✅ اطلاعات ارسالی شما با موفقیت ثبت شد.", $manage_server);
-    } elseif (strpos($user['step'], 'change_price-') !== false and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif (strpos($user['step'], 'change_price-') !== false and $text != $texts['back_to_bot_management_button']) {
         $code = explode('-', $user['step'])[1];
         step('none');
         $sql->query("UPDATE `category` SET `price` = '$text' WHERE `code` = '$code' LIMIT 1");
         sendMessage($from_id, "✅ اطلاعات ارسالی شما با موفقیت ثبت شد.", $manage_server);
-    } elseif (strpos($user['step'], 'change_price_date-') !== false and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif (strpos($user['step'], 'change_price_date-') !== false and $text != $texts['back_to_bot_management_button']) {
         $code = explode('-', $user['step'])[1];
         step('none');
         $sql->query("UPDATE `category_date` SET `price` = '$text' WHERE `code` = '$code' LIMIT 1");
         sendMessage($from_id, "✅ اطلاعات ارسالی شما با موفقیت ثبت شد.", $manage_server);
-    } elseif (strpos($user['step'], 'change_price_limit-') !== false and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif (strpos($user['step'], 'change_price_limit-') !== false and $text != $texts['back_to_bot_management_button']) {
         $code = explode('-', $user['step'])[1];
         step('none');
         $sql->query("UPDATE `category_limit` SET `price` = '$text' WHERE `code` = '$code' LIMIT 1");
         sendMessage($from_id, "✅ اطلاعات ارسالی شما با موفقیت ثبت شد.", $manage_server);
-    } elseif (strpos($user['step'], 'change_namee-') !== false and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif (strpos($user['step'], 'change_namee-') !== false and $text != $texts['back_to_bot_management_button']) {
         $code = explode('-', $user['step'])[1];
         step('none');
         $sql->query("UPDATE `category` SET `name` = '$text' WHERE `code` = '$code' LIMIT 1");
         sendMessage($from_id, "✅ اطلاعات ارسالی شما با موفقیت ثبت شد.", $manage_server);
-    } elseif (strpos($user['step'], 'change_name_date-') !== false and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif (strpos($user['step'], 'change_name_date-') !== false and $text != $texts['back_to_bot_management_button']) {
         $code = explode('-', $user['step'])[1];
         step('none');
         $sql->query("UPDATE `category_date` SET `name` = '$text' WHERE `code` = '$code' LIMIT 1");
         sendMessage($from_id, "✅ اطلاعات ارسالی شما با موفقیت ثبت شد.", $manage_server);
-    } elseif (strpos($user['step'], 'change_name_limit-') !== false and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif (strpos($user['step'], 'change_name_limit-') !== false and $text != $texts['back_to_bot_management_button']) {
         $code = explode('-', $user['step'])[1];
         step('none');
         $sql->query("UPDATE `category_limit` SET `name` = '$text' WHERE `code` = '$code' LIMIT 1");
@@ -1884,12 +1952,12 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
         sendMessage($from_id, "‌‌👈🏻⁩ متن خود را فوروارد کنید :", $back_panel);
     } elseif ($user['step'] == 'for_all') {
         step('none');
-        sendMessage($from_id, "✅ پیام شما با موفقیت به صف فوروارد همگانی اضافه شد !", $panel);
+        sendMessage($from_id, "✅ پیام شما با موفقیت به صف فوروارد همگانی اضافه شد !", $bot_management_keyboard);
         $sql->query("UPDATE `sends` SET `send` = 'yes', `text` = '$message_id', `type` = '$from_id', `step` = 'forward'");
     } elseif ($text == '📞 ارسال پیام به کاربر' or $text == '📤 ارسال پیام به کاربر') {
         step('sendmessage_user1');
         sendMessage($from_id, "🔢 ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_panel);
-    } elseif ($user['step'] == 'sendmessage_user1' and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif ($user['step'] == 'sendmessage_user1' and $text != $texts['back_to_bot_management_button']) {
         if ($sql->query("SELECT `from_id` FROM `users` WHERE `from_id` = '$text'")->num_rows > 0) {
             step('sendmessage_user2');
             file_put_contents('id.txt', $text);
@@ -1898,7 +1966,7 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
             step('sendmessage_user1');
             sendMessage($from_id, "❌ آیدی عددی ارسالی شما عضو ربات نیست !", $back_panel);
         }
-    } elseif ($user['step'] == 'sendmessage_user2' and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif ($user['step'] == 'sendmessage_user2' and $text != $texts['back_to_bot_management_button']) {
         step('none');
         $id = file_get_contents('id.txt');
         sendMessage($from_id, "✅ پیام شما با موفقیت به کاربر <code>$id</code> ارسال شد.", $manage_message);
@@ -1928,7 +1996,12 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
             $count_service = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'")->num_rows ?? 0;
             // $count_service = $info['count_service'] ?? 0;
             $count_payment = $info['count_charge'] ?? 0;
-            sendMessage($from_id, "⭕️ اطلاعات کاربر [ <code>$text</code> ] با موفقیت دریافت شد.\n\n▫️یوزرنیم کاربر : $username\n▫️نام کاربر : <b>$first_name</b>\n▫️موجودی کاربر : <code>$coin</code> تومان\n▫️ تعدادی سرویس کاربر : <code>$count_service</code> عدد\n▫️تعداد پرداختی کاربر : <code>$count_payment</code> عدد", $manage_user);
+            $user_usage = get_users_usage($text);
+            $total_trafic = $user_usage['total_traffic_bought'];
+            $used_trafic = $user_usage['total_traffic_used'];
+            
+            
+            sendMessage($from_id, "⭕️ اطلاعات کاربر [ <code>$text</code> ] با موفقیت دریافت شد.\n\n▫️یوزرنیم کاربر : $username\n▫️نام کاربر : <b>$first_name</b>\n▫️موجودی کاربر : <code>$coin</code> تومان\n▫️ تعدادی سرویس کاربر : <code>$count_service</code> عدد\n▫️تعداد پرداختی کاربر : <code>$count_payment</code> عدد\n▫️حجم کل کانفیگ های فعال : <code>$total_trafic</code> GB\n▫️حجم مصرف شده از کانفیگ های فعال : <code>$used_trafic</code> GB", $manage_user);
         } else {
             sendMessage($from_id, "‼ کاربر <code>$text</code> عضو ربات نیست !", $back_panel);
         }
@@ -1954,7 +2027,7 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
     } elseif ($text == '➖ کسر موجودی') {
         step('rem_coin');
         sendMessage($from_id, "🔰ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_panel);
-    } elseif ($user['step'] == 'rem_coin' and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif ($user['step'] == 'rem_coin' and $text != $texts['back_to_bot_management_button']) {
         $user = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$text'");
         if ($user->num_rows > 0) {
             step('rem_coin2');
@@ -1963,7 +2036,7 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
         } else {
             sendMessage($from_id, "‼ کاربر <code>$text</code> عضو ربات نیست !", $back_panel);
         }
-    } elseif ($user['step'] == 'rem_coin2' and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif ($user['step'] == 'rem_coin2' and $text != $texts['back_to_bot_management_button']) {
         step('none');
         $id = file_get_contents('id.txt');
         $sql->query("UPDATE `users` SET `coin` = coin - $text WHERE `from_id` = '$id'");
@@ -1983,7 +2056,7 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
     } elseif ($text == '❌ مسدود کردن') {
         step('block');
         sendMessage($from_id, "🔢 ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_panel);
-    } elseif ($user['step'] == 'block' and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif ($user['step'] == 'block' and $text != $texts['back_to_bot_management_button']) {
         $user = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$text'");
         if ($user->num_rows > 0) {
             step('none');
@@ -1995,7 +2068,7 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
     } elseif ($text == '✅ آزاد کردن') {
         step('unblock');
         sendmessage($from_id, "🔢 ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_panel);
-    } elseif ($user['step'] == 'unblock' and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif ($user['step'] == 'unblock' and $text != $texts['back_to_bot_management_button']) {
         $user = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$text'");
         if ($user->num_rows > 0) {
             step('none');
@@ -2008,7 +2081,9 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
 
     // ----------- manage setting ----------- //
     elseif ($text == 'غیر فعال یا فعال سازی دکمه شارژ') {
-        show_hide_charge_account_button($from_id);
+        change_charge_account_button_visibility($from_id);
+    }elseif ($text == $texts['change_visibility_account_status_changer_button']) {
+        change_account_status_changer_button_visibility($from_id);
     } elseif ($text == '◽بخش ها') {
         sendMessage($from_id, "🔰این بخش تکمیل نشده است !");
     } elseif ($text == '🚫 مدیریت ضد اسپم' or $data == 'back_spam') {
@@ -2097,7 +2172,7 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
         step('add_channel');
         deleteMessage($from_id, $message_id);
         sendMessage($from_id, "✔ یوزرنیم کانال خود را با @ ارسال کنید :", $back_panel);
-    } elseif ($user['step'] == 'add_channel' and $data != 'back_look' and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif ($user['step'] == 'add_channel' and $data != 'back_look' and $text != $texts['back_to_bot_management_button']) {
         if (strpos($text, "@") !== false) {
             if ($sql->query("SELECT * FROM `lock` WHERE `chat_id` = '$text'")->num_rows == 0) {
                 $info_channel = bot('getChatMember', ['chat_id' => $text, 'user_id' => bot('getMe')->result->id]);
@@ -2106,7 +2181,7 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
                     $channel_name = bot('getChat', ['chat_id' => $text])->result->title ?? 'بدون نام';
                     $sql->query("INSERT INTO `lock`(`name`, `chat_id`) VALUES ('$channel_name', '$text')");
                     $txt = "✅ کانال شما با موفقیت به لیست جوین اجباری اضافه شد.\n\n🆔 - $text";
-                    sendmessage($from_id, $txt, $panel);
+                    sendmessage($from_id, $txt, $bot_management_keyboard);
                 } else {
                     sendMessage($from_id, "❌  ربات داخل کانال $text ادمین نیست !", $back_panel);
                 }
@@ -2400,7 +2475,7 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
     elseif ($text == '➕ افزودن ادمین') {
         step('add_admin');
         sendMessage($from_id, "🔰ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_panel);
-    } elseif ($user['step'] == 'add_admin' and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif ($user['step'] == 'add_admin' and $text != $texts['back_to_bot_management_button']) {
         $user = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$text'");
         if ($user->num_rows != 0) {
             step('none');
@@ -2412,7 +2487,7 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
     } elseif ($text == '➖ حذف ادمین') {
         step('rem_admin');
         sendMessage($from_id, "🔰ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_panel);
-    } elseif ($user['step'] == 'rem_admin' and $text != '⬅️ بازگشت به مدیریت') {
+    } elseif ($user['step'] == 'rem_admin' and $text != $texts['back_to_bot_management_button']) {
         $user = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$text'");
         if ($user->num_rows > 0) {
             step('none');

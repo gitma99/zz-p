@@ -116,6 +116,7 @@ wait
 
 git clone $GITHUB_REPO_ADDRESS /var/www/html/ZanborPanelBot
 sudo chmod -R 777 /var/www/html/ZanborPanelBot/
+sudo chmod -R 777 /var/www/html/ZanborPanelBot/bot_config.json
 colorized_echo green "\n\tAll ZanborPanel robot files/folders have been successfully installed on your server!"
 
 wait

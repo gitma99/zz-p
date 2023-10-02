@@ -73,6 +73,7 @@ do
                             git clone $GITHUB_REPO_ADDRESS /var/www/html/ZanborPanelBot/
                             sudo chmod -R 777 /var/www/html/ZanborPanelBot/
                             mv /var/www/html/bot_config.json /var/www/html/ZanborPanelBot/bot_config.json
+                            chmod 777 /var/www/html/ZanborPanelBot/bot_config.json
                             # mv /var/www/html/zanbor.install /var/www/html/ZanborPanelBot/install/zanbor.install
                             sleep 2
                             
@@ -97,6 +98,7 @@ do
                             echo -e "\n"
                             TEXT_MESSAGE="✅ ربات شما با موفقیت به آخرین نسخه آپدیت شد."$'\n\n'"#️⃣ اطلاعات ربات :"$'\n\n'"▫️token: <code>${token}</code>"$'\n'"▫️admin: <code>${dev}</code> "$'\n'"▫️domain: <code>${domain}</code>"$'\n'"▫️db_name: <code>${db_name}</code>"$'\n'"▫️db_username: <code>${db_username}</code>"$'\n'"▫️db_password: <code>${db_password}</code>"$'\n\n'"🔎 - @ZanborPanel | @ZanborPanelGap"
                             curl -s -X POST "https://api.telegram.org/bot${token}/sendMessage" -d chat_id="${dev}" -d text="${TEXT_MESSAGE}" -d parse_mode="html"
+
 
                             sleep 2
                             clear

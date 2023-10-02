@@ -2,7 +2,6 @@
 $debug = false;
 date_default_timezone_set('Asia/Tehran');
 error_reporting(E_ALL ^ E_NOTICE);
-// $admin_ids = read_bot_settings_json()['admin_ids'];
 
 
 $config_json = file_get_contents("bot_config.json");
@@ -438,10 +437,6 @@ function loginPanel($address, $username, $password)
         CURLOPT_HTTPHEADER => $marzban_login_headers
     ));
     $response = curl_exec($curl);
-    // $t = json_encode($response, 448);
-    // // $t = $fields;
-    // sendMessage($from_id, "test : $t");
-    // exit();
     if ($response === false) {
         sendMessage($from_id, curl_error($curl), $cancel_add_server);
         error_log('cURL Error: ' . curl_error($curl));
@@ -586,46 +581,39 @@ function checkInbound($inbounds, $inbound)
 # ----------------- [ <- keyboard -> ] ----------------- #
 include_once 'custom.php';
 
-function charge_account_button_text()
-{
-    if (get_current_status_charge_account_button() === true) {
-        $button_text = '💸 شارژ حساب';
-    } else {
-        $button_text = '';
-    }
-    return $button_text;
-}
-
-
 if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
     if ($test_account_setting['status'] == 'active' and $user['test_account'] == 'no') {
         $start_key = json_encode(['keyboard' => [
             [['text' => '🔧 مدیریت']],
-            [['text' => '🛍 سرویس های من'], ['text' => '➕ تمدید سرویس'], ['text' => '🛒 خرید سرویس']],
+            [['text' => '➕ تمدید سرویس'], ['text' => '🛒 خرید سرویس']],
+            [['text' => '🛍 سرویس های من'], ['text' => get_account_status_changer_button_status()]],
             [['text' => '🎁 سرویس تستی (رایگان)']],
-            [['text' => '👤 پروفایل'], ['text' => '🛒 تعرفه خدمات'], ['text' => charge_account_button_text()]],
+            [['text' => '👤 پروفایل'], ['text' => '🛒 تعرفه خدمات'], ['text' => get_charge_account_button_status()]],
             [['text' => '🔗 راهنمای اتصال'], ['text' => '📮 پشتیبانی آنلاین']]
         ], 'resize_keyboard' => true]);
     } else {
         $start_key = json_encode(['keyboard' => [
             [['text' => '🔧 مدیریت']],
-            [['text' => '🛍 سرویس های من'], ['text' => '➕ تمدید سرویس'], ['text' => '🛒 خرید سرویس']],
-            [['text' => '👤 پروفایل'], ['text' => '🛒 تعرفه خدمات'], ['text' => charge_account_button_text()]],
+            [['text' => '➕ تمدید سرویس'], ['text' => '🛒 خرید سرویس']],
+            [['text' => '🛍 سرویس های من'], ['text' => get_account_status_changer_button_status()]],
+            [['text' => '👤 پروفایل'], ['text' => '🛒 تعرفه خدمات'], ['text' => get_charge_account_button_status()]],
             [['text' => '🔗 راهنمای اتصال'], ['text' => '📮 پشتیبانی آنلاین']]
         ], 'resize_keyboard' => true]);
     }
 } else {
     if ($test_account_setting['status'] == 'active' and $user['test_account'] == 'no') {
         $start_key = json_encode(['keyboard' => [
-            [['text' => '🛍 سرویس های من'], ['text' => '➕ تمدید سرویس'], ['text' => '🛒 خرید سرویس']],
+            [['text' => '➕ تمدید سرویس'], ['text' => '🛒 خرید سرویس']],
+            [['text' => '🛍 سرویس های من'], ['text' => get_account_status_changer_button_status()]],
             [['text' => '🎁 سرویس تستی (رایگان)']],
-            [['text' => '👤 پروفایل'], ['text' => '🛒 تعرفه خدمات'], ['text' => charge_account_button_text()]],
+            [['text' => '👤 پروفایل'], ['text' => '🛒 تعرفه خدمات'], ['text' => get_charge_account_button_status()]],
             [['text' => '🔗 راهنمای اتصال'], ['text' => '📮 پشتیبانی آنلاین']]
         ], 'resize_keyboard' => true]);
     } else {
         $start_key = json_encode(['keyboard' => [
-            [['text' => '🛍 سرویس های من'], ['text' => '➕ تمدید سرویس'], ['text' => '🛒 خرید سرویس']],
-            [['text' => '👤 پروفایل'], ['text' => '🛒 تعرفه خدمات'], ['text' => charge_account_button_text()]],
+            [['text' => '➕ تمدید سرویس'], ['text' => '🛒 خرید سرویس']],
+            [['text' => '🛍 سرویس های من'], ['text' => get_account_status_changer_button_status()]],
+            [['text' => '👤 پروفایل'], ['text' => '🛒 تعرفه خدمات'], ['text' => get_charge_account_button_status()]],
             [['text' => '🔗 راهنمای اتصال'], ['text' => '📮 پشتیبانی آنلاین']]
         ], 'resize_keyboard' => true]);
     }
@@ -661,7 +649,7 @@ $send_phone = json_encode(['keyboard' => [
     [['text' => '🔙 بازگشت']]
 ], 'resize_keyboard' => true]);
 
-$panel = json_encode(['keyboard' => [
+$bot_management_keyboard = json_encode(['keyboard' => [
     // [['text' => '📞 اطلاعیه آپدیت ربات']],
     // [['text' => '🔑 سیستم احراز هویت']],
     [['text' => '👥 مدیریت آمار ربات'], ['text' => '🌐 مدیریت سرور']],
@@ -734,7 +722,7 @@ $manage_message = json_encode(['keyboard' => [
 ], 'resize_keyboard' => true]);
 
 $manage_user = json_encode(['keyboard' => [
-    [['text' => '🔎 اطلاعات کاربر']],
+    [['text' => '🔎 اطلاعات کاربر'],['text' => $texts['account_status_changer_button']]],
     [['text' => '➖ کسر موجودی'], ['text' => '➕ افزایش موجودی']],
     [['text' => '❌ مسدود کردن'], ['text' => '✅ آزاد کردن']],
     [['text' => '📤 ارسال پیام به کاربر']],
@@ -748,11 +736,12 @@ $manage_admin = json_encode(['keyboard' => [
 ], 'resize_keyboard' => true]);
 
 $manage_setting = json_encode(['keyboard' => [
-    [['text' => 'غیر فعال یا فعال سازی دکمه شارژ']],
-    [['text' => '🚫 مدیریت ضد اسپم']],
-    [['text' => '◽کانال ها'], ['text' => '◽بخش ها']],
+    [['text' => 'غیر فعال یا فعال سازی دکمه شارژ'] ,['text' => $texts['change_visibility_account_status_changer_button']]],
+    // [['text' => '🚫 مدیریت ضد اسپم']],
+    [['text' => '🚫 مدیریت ضد اسپم'],['text' => '◽کانال ها']],
+    // [['text' => '◽کانال ها'], ['text' => '◽بخش ها']],
     [['text' => '◽تنظیم متون ربات'], ['text' => '◽تنظیمات درگاه پرداخت']],
-    [['text' => '🎁 مدیریت کد تخفیف']],
+    // [['text' => '🎁 مدیریت کد تخفیف']],
     [['text' => '⬅️ بازگشت به مدیریت']]
 ], 'resize_keyboard' => true]);
 

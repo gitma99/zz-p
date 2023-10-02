@@ -12,6 +12,180 @@ $my_texts = $texts;
 //     'error_show_service__token_reset_failed' => "بروزرسانی سرور با خطا روبه رو شد . لطفا به ادمین ربات اطلاع رسانی کنی\n\n(خطا : marzban token cant be reset automatiacally. please rest it manually)",
 // ];
 
+// $t = json_encode($renewal_service, 448);
+// sendMessage($from_id, "test : $t");
+// exit();
+$BOT_CONFIG = json_decode(file_get_contents("bot_config.json"), true);
+
+function get_users_usage($user_id){
+    global $from_id,$sql;
+    $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$user_id'");
+    if ($services->num_rows > 0) {
+        $total_traffic_bought = 0;
+        $total_traffic_used = 0;
+
+        while ($row = $services->fetch_assoc()) {
+            $config_name = $row['code'] . '_' . $user_id;
+            $config_location = $row['location'];
+
+            $info_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$config_location'");
+            $panel = $info_panel->fetch_assoc();
+
+            $marzban_res =getUserInfo($config_name,$panel['token'],$panel['login_link']);
+            // $t = json_encode($a, 448);
+            // sendMessage($from_id, "test : $t");
+            if ($marzban_res['username'] == $config_name){
+                if ($marzban_res['status'] == 'active'){
+                    $total_traffic_bought = $total_traffic_bought + $marzban_res['data_limit'];
+                    $total_traffic_used = $total_traffic_used + $marzban_res['used_traffic'];
+                }
+            }
+        }
+        $total_traffic_bought = round($total_traffic_bought / 1024 / 1024 / 1024 ,2);
+        $total_traffic_used = round($total_traffic_used / 1024 / 1024 / 1024 ,2);
+        return [
+            "total_traffic_bought" => $total_traffic_bought,
+            "total_traffic_used" => $total_traffic_used
+        ];
+    }else{
+        return null;
+    }
+
+}
+
+function modify_bot_config(){
+    global $BOT_CONFIG;
+    $json_file_name = "bot_config.json";
+    $bot_config_data_json = json_encode($BOT_CONFIG, JSON_PRETTY_PRINT);
+    file_put_contents($json_file_name, $bot_config_data_json);
+};
+
+function change_account_status($text, $from_id){
+    global $BOT_CONFIG,$texts;
+    function marzban_change_status($username, $new_status, $token, $url)
+    {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url . "/api/user/$username");
+        // curl_setopt($ch, CURLOPT_PUT, true);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $token, 'Content-Type: application/json'));
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(array('status' => $new_status)));
+        $response = curl_exec($ch);
+        curl_close($ch);
+        return $response;
+    };
+
+    function change(){
+        global $from_id, $user, $text, $sql, $texts,$my_texts, $start_key, $bot_management_keyboard;
+        if ($text == $texts['account_status_changer_button']) {
+            step('account_status_changer_service_get_service_name');
+            global $config;
+            if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())){
+
+                $_keyboard_keys  = [[['text' => $texts['back_to_bot_management_button']]]];
+            }else{
+                $_keyboard_keys  = [[['text' => $texts['back_to_menu_button']]]];
+            }
+            $_keyboard = json_encode(['keyboard' => $_keyboard_keys, 'resize_keyboard' => true]);
+            sendMessage($from_id, $my_texts['account_status_changer_service_config_name'], $_keyboard);
+    
+        } elseif ($user['step'] == 'account_status_changer_service_get_service_name') {
+            if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())){
+                $_return_keyboard = $bot_management_keyboard;
+                $config_base_name = $text;
+                $config_location_obj = $sql->query("SELECT `location`, `from_id` FROM `orders` WHERE `code` = '$config_base_name'");
+
+                $config_found_count = 0 ;
+                while ($row = $config_location_obj->fetch_assoc()) {
+                    $config_found_count = $config_found_count + 1;
+                    $last_row = $row;
+                }
+
+                if ($config_found_count == 1){
+                    if ($last_row['from_id'] == $from_id){
+                        $config_base_name = $text;
+                        $config_user_id = $from_id;
+                    }else{
+                        step('account_status_changer_service_get_service_name');
+                        sendMessage($from_id, $my_texts['account_status_changer_service_config_not_found'] . "(code 1)");
+                        exit();
+                    }
+                }else{
+                    $config_parts = explode("_", $text);
+                    $config_base_name = implode("_", array_slice($config_parts, 0, -1));
+                    $config_user_id = end($config_parts);
+                }
+
+            }else{
+                $_return_keyboard = $start_key;
+                $config_base_name = $text;
+                $config_user_id = $from_id;
+            }
+
+
+            $config_name = $config_base_name . '_' . $config_user_id;
+            $mysql_config_array = $sql->query("SELECT `location`,`from_id` FROM `orders` WHERE `code` = '$config_base_name'")->fetch_assoc();
+            
+            if (isset($mysql_config_array)) {
+                if ($mysql_config_array['from_id'] != $config_user_id){
+                    step('account_status_changer_service_get_service_name');
+                    sendMessage($from_id, $my_texts['account_status_changer_service_config_not_found'] . "(code 2)");
+                    exit();
+                }
+                $config_location_name = $mysql_config_array['location'];
+                sendMessage($from_id, $my_texts['account_status_changer_service_config_found'],);
+                
+                sleep(0.5);
+    
+                $panel_info = $sql->query("SELECT * FROM `panels` WHERE `name` = '$config_location_name'")->fetch_assoc();
+                $panel_token = $panel_info['token'];
+                $panel_url = $panel_info['login_link'];
+    
+                $user_config_info = getUserInfo($config_name,$panel_token,$panel_url);
+                $user_config_status = $user_config_info['status'];
+    
+                if ($user_config_status == "active"){
+                    $new_status = 'disabled';
+    
+                }elseif ($user_config_status == "disabled"){
+                    $new_status = 'active';
+                }
+                
+                $new_marzban_change_status_response = json_decode(marzban_change_status($config_name, $new_status, $panel_token, $panel_url), true);
+                if (isset($new_marzban_change_status_response['username'])) {
+                    step('none');
+                    
+                    if ($new_marzban_change_status_response['status'] == "active"){
+                        sendMessage($from_id, $texts['account_status_changer_service_successfully_enabled'],$_return_keyboard);
+                    } elseif($new_marzban_change_status_response['status'] == "disabled"){
+                        sendMessage($from_id, $texts['account_status_changer_service_successfully_disabled'],$_return_keyboard);
+                    }
+    
+                } else {
+                    step('none');
+                    sendMessage($from_id, $texts['account_status_changer_service_failed_to_change_status'],$_return_keyboard);
+                }
+    
+            } else {
+                step('account_status_changer_service_get_service_name');
+                sendMessage($from_id, $my_texts['account_status_changer_service_config_not_found'] . "(code 3)");
+            }
+        }
+    }
+    global $config;
+    if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())){
+        change();
+    }else{
+        $charge_btn_status = $BOT_CONFIG['show_account_status_changer_btn'];
+        if ($charge_btn_status === true){
+            change();
+        }
+    }
+
+}
 
 function send_message_query()
 {
@@ -92,21 +266,7 @@ function reset_panel_panel_token($panel_name, $panel_login_address, $panel_usern
         return false;
     };
 }
-function read_bot_settings_json()
-{
-    $json_file_name = "bot_settings.json";
-    $bot_settings_data_json = file_get_contents($json_file_name);
-    $bot_settings_data_array = json_decode($bot_settings_data_json, true);
-    return $bot_settings_data_array;
-    // file_put_contents("renewal-service-$user_id.json", $user_array_json);
-}
 
-function write_bot_settings_json($bot_settings_data_array)
-{
-    $json_file_name = "bot_settings.json";
-    $bot_settings_data_json = json_encode($bot_settings_data_array, JSON_PRETTY_PRINT);
-    file_put_contents($json_file_name, $bot_settings_data_json);
-}
 
 function read_emergency_json()
 {
@@ -376,51 +536,87 @@ function renewal_service($text, $from_id)
         if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0) $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
         sendMessage($from_id, sprintf($texts['start'], $first_name), $start_key);
     }
-    // $t = json_encode($renewal_service, 448);
-    // // $t = $renewal_service;
-    // sendMessage($from_id, "test : $t");
-    // exit();
+
 }
 
 
-function show_hide_charge_account_button($chat_id)
+function change_charge_account_button_visibility($chat_id)
 {
-    global $my_texts;
-    $decodedData = read_bot_settings_json();
-
-    if ($decodedData !== null) {
-        $currenButtonStatus = $decodedData['show_charge_account_btn'];
-        if ($currenButtonStatus === true) {
-            $newValue = false;
+    global $my_texts,$BOT_CONFIG;
+    $currenButtonStatus = $BOT_CONFIG['show_charge_account_btn'];
+    if (isset($currenButtonStatus)) {
+        if ($currenButtonStatus === true){
+            $BOT_CONFIG['show_charge_account_btn'] = false;
             $successMsg = $my_texts['charge_button_disabled'];
-        } else {
+        }else{
+            $BOT_CONFIG['show_charge_account_btn'] = true;
             $successMsg = $my_texts['charge_button_enabled'];
-            $newValue = true;
         }
-
-        $decodedData['show_charge_account_btn'] = $newValue;
-
-        if (write_bot_settings_json($decodedData) !== false) {
-            sendMessage($chat_id, $successMsg);
-        } else {
-            sendMessage($chat_id, $my_texts['alter_charge_button_failed']);
-        }
+        modify_bot_config();
+        sendMessage($chat_id, $successMsg);
     } else {
-        sendMessage($chat_id, "Failed to decode existing JSON data.");
+        $BOT_CONFIG["show_charge_account_btn"] = true;
+        modify_bot_config();
+        $successMsg = $my_texts['charge_button_enabled'];
+        sendMessage($chat_id, $successMsg);
     }
 }
 
-function get_current_status_charge_account_button($chat_id = null)
+function get_charge_account_button_status()
 {
-    $decodedData =  read_bot_settings_json();
-    if ($decodedData !== null) {
-        $currenButtonStatus = $decodedData['show_charge_account_btn'];
-        return $currenButtonStatus;
-    } else {
-        if ($decodedData !== null) {
-            sendMessage($chat_id, "Failed to decode existing JSON data.");
-        }
+    global $BOT_CONFIG;
+    $charge_btn_status = $BOT_CONFIG['show_charge_account_btn'];
+    if (!isset($charge_btn_status)){
+        $BOT_CONFIG["show_charge_account_btn"] = true;
+
+        modify_bot_config();
+        $charge_btn_status = $BOT_CONFIG['show_charge_account_btn'];
     }
+    if ($charge_btn_status === true) {
+        $button_text = '💸 شارژ حساب';
+    } else {
+        $button_text = '';
+    }
+    return $button_text;
+}
+
+function change_account_status_changer_button_visibility($chat_id)
+{
+    global $my_texts,$BOT_CONFIG;
+    $currenButtonStatus = $BOT_CONFIG['show_account_status_changer_btn'];
+    if (isset($currenButtonStatus)) {
+        if ($currenButtonStatus === true){
+            $BOT_CONFIG['show_account_status_changer_btn'] = false;
+            $successMsg = $my_texts['account_status_changer_button_disabled'];
+        }else{
+            $BOT_CONFIG['show_account_status_changer_btn'] = true;
+            $successMsg = $my_texts['account_status_changer_button_enabled'];
+        }
+        modify_bot_config();
+        sendMessage($chat_id, $successMsg);
+    } else {
+        $BOT_CONFIG["show_account_status_changer_btn"] = true;
+        modify_bot_config();
+        $successMsg = $my_texts['account_status_changer_button_enabled'];
+        sendMessage($chat_id, $successMsg);
+    }
+}
+function get_account_status_changer_button_status()
+{
+    global $BOT_CONFIG,$texts ;
+    $charge_btn_status = $BOT_CONFIG['show_account_status_changer_btn'];
+    if (!isset($charge_btn_status)){
+        $BOT_CONFIG["show_account_status_changer_btn"] = true;
+
+        modify_bot_config();
+        $charge_btn_status = $BOT_CONFIG['show_account_status_changer_btn'];
+    }
+    if ($charge_btn_status === true) {
+        $button_text = $texts['account_status_changer_button'];
+    } else {
+        $button_text = '';
+    }
+    return $button_text;
 }
 
 function get_admin_ids()
