@@ -97,13 +97,16 @@ function change_account_status($text, $from_id){
                 $config_base_name = $text;
                 $config_location_obj = $sql->query("SELECT `location`, `from_id` FROM `orders` WHERE `code` = '$config_base_name'");
 
+                // $t = json_encode($config_location_obj, 448);
+                // sendMessage($from_id, "config_location_obj : $t");
                 
                 $config_found_count = 0 ;
                 while ($row = $config_location_obj->fetch_assoc()) {
                     $config_found_count = $config_found_count + 1;
                     $last_row = $row;
-                    $t = json_encode($config_location_obj, 448);
-                    sendMessage($from_id, "test : $t");
+                    
+                    // $t = json_encode($row, 448);
+                    // sendMessage($from_id, "row : $t");
 
                 }
                 
