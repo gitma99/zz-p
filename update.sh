@@ -73,7 +73,7 @@ do
                             git clone $GITHUB_REPO_ADDRESS /var/www/html/ZanborPanelBot/
                             sudo chmod -R 777 /var/www/html/ZanborPanelBot/
                             mv /var/www/html/bot_config.json /var/www/html/ZanborPanelBot/bot_config.json
-                            chmod 777 /var/www/html/ZanborPanelBot/bot_config.json
+                            sudo chmod 777 /var/www/html/ZanborPanelBot/bot_config.json
                             # mv /var/www/html/zanbor.install /var/www/html/ZanborPanelBot/install/zanbor.install
                             sleep 2
                             
