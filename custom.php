@@ -79,10 +79,9 @@ function change_account_status($text, $from_id){
     };
 
     function change(){
-        global $from_id, $user, $text, $sql, $texts,$my_texts, $start_key, $bot_management_keyboard;
+        global $from_id, $user, $text, $sql, $texts,$my_texts, $start_key, $bot_management_keyboard, $config;
         if ($text == $texts['account_status_changer_button']) {
             step('account_status_changer_service_get_service_name');
-            global $config;
             if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())){
 
                 $_keyboard_keys  = [[['text' => $texts['back_to_bot_management_button']]]];
@@ -118,15 +117,15 @@ function change_account_status($text, $from_id){
                     $config_base_name = implode("_", array_slice($config_parts, 0, -1));
                     $config_user_id = end($config_parts);
                 }
-
+                
             }else{
                 $_return_keyboard = $start_key;
                 $config_base_name = $text;
                 $config_user_id = $from_id;
             }
-
-
+            
             $config_name = $config_base_name . '_' . $config_user_id;
+
             $mysql_config_array = $sql->query("SELECT `location`,`from_id` FROM `orders` WHERE `code` = '$config_base_name'")->fetch_assoc();
             
             if (isset($mysql_config_array)) {
