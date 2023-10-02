@@ -6,5 +6,7 @@
         "db_name": "[*DB-NAME*]",
         "db_username": "[*DB-USER*]",
         "db_password": "[*DB-PASS*]"
-    }
+    },
+    "show_account_status_changer_btn": true,
+    "show_charge_account_btn": true
 }
