@@ -97,12 +97,16 @@ function change_account_status($text, $from_id){
                 $config_base_name = $text;
                 $config_location_obj = $sql->query("SELECT `location`, `from_id` FROM `orders` WHERE `code` = '$config_base_name'");
 
+                
                 $config_found_count = 0 ;
                 while ($row = $config_location_obj->fetch_assoc()) {
                     $config_found_count = $config_found_count + 1;
                     $last_row = $row;
-                }
+                    $t = json_encode($config_location_obj, 448);
+                    sendMessage($from_id, "test : $t");
 
+                }
+                
                 if ($config_found_count == 1){
                     if ($last_row['from_id'] == $from_id){
                         $config_base_name = $text;
@@ -114,27 +118,55 @@ function change_account_status($text, $from_id){
                     }
                 }else{
                     $config_parts = explode("_", $text);
-                    $config_base_name = implode("_", array_slice($config_parts, 0, -1));
-                    $config_user_id = end($config_parts);
+
+                    // $t = json_encode($config_parts, 448);
+                    // sendMessage($from_id, "config_parts : $t");
+                    
+                    // $t = json_encode(count($config_parts), 448);
+                    // sendMessage($from_id, "count($config_parts) : $t");
+
+                    if (count($config_parts) == 1){
+                        $config_base_name = $text;
+                        $config_user_id = $from_id;
+                    } else{
+                        $config_base_name = implode("_", array_slice($config_parts, 0, -1));
+                        $config_user_id = end($config_parts);
+                    }
                 }
+
                 
             }else{
                 $_return_keyboard = $start_key;
                 $config_base_name = $text;
                 $config_user_id = $from_id;
             }
-            
             $config_name = $config_base_name . '_' . $config_user_id;
 
-            $mysql_config_array = $sql->query("SELECT `location`,`from_id` FROM `orders` WHERE `code` = '$config_base_name'")->fetch_assoc();
+            // $t = json_encode($config_base_name, 448);
+            // sendMessage($from_id, "config_base_name : $t");
+            // $t = json_encode($config_user_id, 448);
+            // sendMessage($from_id, "config_user_id : $t");
+            // $t = json_encode($config_name, 448);
+            // sendMessage($from_id, "config_name : $t");
             
-            if (isset($mysql_config_array)) {
-                if ($mysql_config_array['from_id'] != $config_user_id){
+            $mysql_config_array = $sql->query("SELECT `location`,`from_id` FROM `orders` WHERE `code` = '$config_base_name'");
+            $config_array = null ;
+            while ($row = $mysql_config_array->fetch_assoc()) {
+                if ($row['from_id'] == $config_user_id){
+                    $config_array = $row;
+                }
+            }
+            if (isset($config_array)) {
+
+                // $t = json_encode($config_array['from_id'], 448);
+                // sendMessage($from_id, "test : $t");
+
+                if ($config_array['from_id'] != $config_user_id){
                     step('account_status_changer_service_get_service_name');
                     sendMessage($from_id, $my_texts['account_status_changer_service_config_not_found'] . "(code 2)");
                     exit();
                 }
-                $config_location_name = $mysql_config_array['location'];
+                $config_location_name = $config_array['location'];
                 sendMessage($from_id, $my_texts['account_status_changer_service_config_found'],);
                 
                 sleep(0.5);

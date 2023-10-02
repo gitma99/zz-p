@@ -144,7 +144,7 @@ if ($data == 'join') {
                 exit();
             }
         }
-        if (isset($getUser) and strpos($code_base, "_") === false) {
+        if (isset($getUser)) {
             if (isset($getUser['username'])) {
                 // if ((!isset($getUser['links']) and $getUser == false)) {
                 $plan = [];
