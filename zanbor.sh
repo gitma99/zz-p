@@ -4,7 +4,7 @@
 # Channel: @ZanborPanel
 # Group: @ZanborPanelGap
 
-GITHUB_REPO_ADDRESS='https://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@github.com/gitma99/zz-p.git'
+GITHUB_REPO_ADDRESS='https://github.com/gitma99/zz-p.git'
 
 if [ "$(id -u)" -ne 0 ]; then
     echo -e "\033[33mPlease run as root\033[0m"
