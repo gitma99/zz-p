@@ -267,26 +267,6 @@ function reset_panel_panel_token($panel_name, $panel_login_address, $panel_usern
 }
 
 
-function read_emergency_json()
-{
-    $json_file_name = "emergency_server_token_fix.json";
-    $emergency_data_json = file_get_contents($json_file_name);
-    $emergency_data_array = json_decode($emergency_data_json, true);
-    return $emergency_data_array;
-    // file_put_contents("renewal-service-$user_id.json", $user_array_json);
-}
-
-function write_emergency_json($emergency_data_array)
-{
-
-    $json_file_name = "emergency_server_token_fix.json";
-    $emergency_data_json = json_encode($emergency_data_array, JSON_PRETTY_PRINT);
-    if (file_put_contents($json_file_name, $emergency_data_json) === true) {
-        return true;
-    } else {
-        return false;
-    };
-}
 function read_renewal_json($user_id)
 {
     $json_file_name = "renewal-service-$user_id.json";
