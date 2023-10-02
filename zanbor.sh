@@ -186,9 +186,11 @@ printf "\n\e[33m[+] \e[36mBot Token: \033[0m"
 read TOKEN
 printf "\e[33m[+] \e[36mChat id: \033[0m"
 read CHAT_ID
-printf "\e[33m[+] \e[36mEnter The Domain Without [https:// | http://]: \033[0m"
-read DOMAIN
+# printf "\e[33m[+] \e[36mEnter The Domain Without [https:// | http://]: \033[0m"
+# read DOMAIN
 echo " "
+
+$DOMAIN = $domain
 
 if [ 'http' in "$DOMAIN" ]; then
     colorized_echo red "Input invalid !"
@@ -226,7 +228,9 @@ replace=$(cat "$source_file" | sed -e "s/\[\*DOMAIN\*\]/${DOMAIN}/g" -e "s/\[\*T
 echo "$replace" > "$destination_file"
 mv "$destination_file" "$source_file"
 
-sleep 2
+sleep 1
+sudo chmod 777 /var/www/html/ZanborPanelBot/bot_config.json
+sleep 1
 
 # curl process
 colorized_echo blue "Database Status:"
