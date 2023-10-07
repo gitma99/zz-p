@@ -502,7 +502,7 @@ if ($data == 'join') {
                 // editMessage($from_id, sprintf($texts['your_service'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $getService['location'], base64_encode($code), Conversion($getUser['used_traffic'], 'GB'), Conversion($getUser['data_limit'], 'GB'), date('Y-d-m H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
             } else {
                 $note = $note->fetch_assoc();
-                editMessage($from_id, sprintf($texts['your_service_with_note'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $note['note'], $getService['location'], $code_base, Conversion(number_format($getUser['used_traffic']), 'GB'), Conversion($getUser['data_limit'], 'GB'), date('Y-m-d H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
+                editMessage($from_id, sprintf($texts['your_service_with_note'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $note['note'], $getService['location'], $code_base, Conversion(number_format($getUser['used_traffic']), 'MB'), Conversion($getUser['data_limit'], 'GB'), date('Y-m-d H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
                 // editMessage($from_id, sprintf($texts['your_service_with_note'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $note['note'], $getService['location'], base64_encode($code), Conversion($getUser['used_traffic'], 'GB'), Conversion($getUser['data_limit'], 'GB'), date('Y-d-m H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
             }
         } else {
