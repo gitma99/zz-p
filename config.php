@@ -176,13 +176,13 @@ function Conversion($byte, $one = 'GB')
 {
     if (isset($one)) {
         if ($one == 'GB') {
-            $limit = round($byte / 1073741824,3);
+            $limit = round($byte / 1073741824,1);
             // $limit = floor($byte / 1048576);
         } elseif ($one == 'MB') {
-            $limit = round($byte / 1048576,3);
+            $limit = round($byte / 1048576,1);
             // $limit = floor($byte / 1024);
         } elseif ($one == 'KB') {
-            $limit = round($byte / 1024,3);
+            $limit = round($byte / 1024,1);
             // $limit = floor($byte);
         }
     }
