@@ -490,7 +490,10 @@ if ($data == 'join') {
                 [['text' => 'دریافت QrCode', 'callback_data' => 'getQrCode-' . $code_base . '-marzban']],
                 [['text' => '🔙 بازگشت', 'callback_data' => 'back_services']]
             ]]);
-
+                
+            $t = json_encode($getUser, 448);
+            sendMessage($from_id, "test : $t");
+            
             if ($note->num_rows == 0) {
                 editMessage($from_id, sprintf($texts['your_service'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $getService['location'], $code_base, Conversion(number_format($getUser['used_traffic']), 'GB'), Conversion($getUser['data_limit'], 'GB'), date('Y-m-d H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
                 // editMessage($from_id, sprintf($texts['your_service'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $getService['location'], base64_encode($code), Conversion($getUser['used_traffic'], 'GB'), Conversion($getUser['data_limit'], 'GB'), date('Y-d-m H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
