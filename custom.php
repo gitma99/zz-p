@@ -41,8 +41,11 @@ function get_users_usage($user_id){
                 }
             }
         }
-        $total_traffic_bought = round($total_traffic_bought / 1024 / 1024 / 1024 ,2);
-        $total_traffic_used = round($total_traffic_used / 1024 / 1024 / 1024 ,2);
+        
+        $total_traffic_bought = Conversion($total_traffic_bought,"GB");
+        // $total_traffic_bought = round($total_traffic_bought / 1024 / 1024 / 1024 ,2);
+        $total_traffic_used = Conversion($total_traffic_used,"GB");
+        // $total_traffic_used = round($total_traffic_used / 1024 / 1024 / 1024 ,2);
         return [
             "total_traffic_bought" => $total_traffic_bought,
             "total_traffic_used" => $total_traffic_used
