@@ -1,7 +1,7 @@
 #!/bin/bash
 
-target_time_zone='Asia/Tehran'
 # CONFIG_JSON='/var/www/html/ZanborPanelBot/backup_service_config.json'
+target_time_zone='Asia/Tehran'
 CONFIG_JSON='/root/backup_service_config.json'
 
 telegram_config_content=$(cat $CONFIG_JSON)

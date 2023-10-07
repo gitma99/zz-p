@@ -1,7 +1,5 @@
 #!/bin/bash
 
-
-
 SERVICE_NAME="zz-backup"
 SCRIPT_PATH="/var/www/html/ZanborPanelBot/telegram_schedual_backup.sh"
 LOG_PATH="/var/www/html/ZanborPanelBot/backup.log"
@@ -13,8 +11,6 @@ if [[ $EUID -ne 0 ]]; then
 echo "This script must be run as root."
 exit 1
 fi
-
-
 
 
 # Add a cron job to run a script every day at midnight
