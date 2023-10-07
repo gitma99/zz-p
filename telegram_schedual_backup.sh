@@ -8,6 +8,7 @@ telegram_config_content=$(cat $CONFIG_JSON)
 BOT_TOKEN=$(echo "$telegram_config_content" | jq -r '.token')
 USER_ID=$(echo "$telegram_config_content" | jq -r '.chat_id')
 
+
 colorized_echo() {
     local color=$1
     local text=$2
