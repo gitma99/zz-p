@@ -176,13 +176,13 @@ function Conversion($byte, $one = 'GB')
 {
     if (isset($one)) {
         if ($one == 'GB') {
-            $limit = round($byte / 1073741824,3);
+            $limit = round($byte / 1073741824, 3);
             // $limit = floor($byte / 1048576);
         } elseif ($one == 'MB') {
-            $limit = round($byte / 1048576,3);
+            $limit = round($byte / 1048576, 3);
             // $limit = floor($byte / 1024);
         } elseif ($one == 'KB') {
-            $limit = round($byte / 1024,3);
+            $limit = round($byte / 1024, 3);
             // $limit = floor($byte);
         }
     }
@@ -469,9 +469,9 @@ function createService($username, $limit, $expire_data, $proxies, $inbounds, $to
     return $response;
 }
 
-function getUserInfo($username, $token, $url)
+function getUserInfo($sevice_name, $token, $url)
 {
-    $api_url = $url . '/api/user/' . $username;
+    $api_url = $url . '/api/user/' . $sevice_name;
     $req_headers = array(
         'Accept: application/json',
         'Authorization: Bearer ' . $token,
@@ -487,8 +487,8 @@ function getUserInfo($username, $token, $url)
     curl_setopt($ch, CURLOPT_HTTPHEADER, $req_headers);
     $response = json_decode(curl_exec($ch), true);
     curl_close($ch);
-    $debug_msg = json_encode($response, 448);
     if ($debug === true) {
+        $debug_msg = json_encode($response, 448);
         sendMessage($from_id, "getUserInfo result :\n$debug_msg");
     };
     return $response;
@@ -725,7 +725,7 @@ $manage_message = json_encode(['keyboard' => [
 ], 'resize_keyboard' => true]);
 
 $manage_user = json_encode(['keyboard' => [
-    [['text' => '🔎 اطلاعات کاربر'],['text' => $texts['account_status_changer_button']]],
+    [['text' => '🔎 اطلاعات کاربر'], ['text' => $texts['account_status_changer_button']]],
     [['text' => '➖ کسر موجودی'], ['text' => '➕ افزایش موجودی']],
     [['text' => '❌ مسدود کردن'], ['text' => '✅ آزاد کردن']],
     [['text' => '📤 ارسال پیام به کاربر']],
@@ -739,9 +739,9 @@ $manage_admin = json_encode(['keyboard' => [
 ], 'resize_keyboard' => true]);
 
 $manage_setting = json_encode(['keyboard' => [
-    [['text' => 'غیر فعال یا فعال سازی دکمه شارژ'] ,['text' => $texts['change_visibility_account_status_changer_button']]],
+    [['text' => 'غیر فعال یا فعال سازی دکمه شارژ'], ['text' => $texts['change_visibility_account_status_changer_button']]],
     // [['text' => '🚫 مدیریت ضد اسپم']],
-    [['text' => '🚫 مدیریت ضد اسپم'],['text' => '◽کانال ها']],
+    [['text' => '🚫 مدیریت ضد اسپم'], ['text' => '◽کانال ها']],
     // [['text' => '◽کانال ها'], ['text' => '◽بخش ها']],
     [['text' => '◽تنظیم متون ربات'], ['text' => '◽تنظیمات درگاه پرداخت']],
     // [['text' => '🎁 مدیریت کد تخفیف']],

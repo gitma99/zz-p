@@ -128,14 +128,14 @@ if ($data == 'join') {
         $code = $code_base . '_' . $from_id;
 
         $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$location'")->fetch_assoc();
-        $getUser = getUserInfo($code, $panel['token'], $panel['login_link']);
+        $getUser = getUserInfo($code, get_marzban_panel_token($location), $panel['login_link']);
         # if ($getUser['detail'] == 'Could not validate credentials') {
         if (in_array($getUser['detail'], ['Could not validate credentials', 'Not authenticated'])) {
             $new_marzban_token = get_marzban_panel_token($panel['name']);
 
             if ($new_marzban_token !== false) {
                 $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$location'")->fetch_assoc();
-                $getUser = getUserInfo($code, $panel['token'], $panel['login_link']);
+                $getUser = getUserInfo($code, get_marzban_panel_token($location), $panel['login_link']);
             } else {
                 $plan = [];
                 $plan[] = [['text' => '🔙 بازگشت']];
@@ -418,7 +418,7 @@ if ($data == 'join') {
             $service_name = $row['code'] . "_" . $from_id;
             $service_location = $row['location'];
             $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();;
-            $marzban_res = getUserInfo($service_name, $mysql_service_panel['token'], $mysql_service_panel['login_link']);
+            $marzban_res = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
             $service_status = $marzban_res['status'];
             // $t = json_encode($service_name, 448);
             // sendMessage($from_id, "test : $t");
@@ -456,7 +456,7 @@ if ($data == 'join') {
     if ($getService['type'] == 'marzban') {
 
         $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '{$getService['location']}'")->fetch_assoc();
-        $getUser = getUserInfo($code, $panel['token'], $panel['login_link']);
+        $getUser = getUserInfo($code, get_marzban_panel_token($getService['location']), $panel['login_link']);
 
         if (isset($getUser['detail'])) {
             $marzban_error_msg = $getUser['detail'];
@@ -465,7 +465,7 @@ if ($data == 'join') {
                 $reset_token_result = get_marzban_panel_token($panel['name']);
                 if ($reset_token_result !== false) {
                     $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '{$getService['location']}'")->fetch_assoc();
-                    $getUser = getUserInfo($code, $panel['token'], $panel['login_link']);
+                    $getUser = getUserInfo($code, get_marzban_panel_token($getService['location']), $panel['login_link']);
                 } else {
                     alert($my_texts['error_show_service__token_reset_failed']);
                     exit();
@@ -871,7 +871,7 @@ if ($data == 'join') {
             $service_name = $row['code'] . "_" . $from_id;
             $service_location = $row['location'];
             $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();;
-            $marzban_res = getUserInfo($service_name, $mysql_service_panel['token'], $mysql_service_panel['login_link']);
+            $marzban_res = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
             $service_status = $marzban_res['status'];
             // $t = json_encode($service_name, 448);
             // sendMessage($from_id, "test : $t");

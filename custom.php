@@ -17,8 +17,9 @@ $my_texts = $texts;
 // exit();
 $BOT_CONFIG = json_decode(file_get_contents("bot_config.json"), true);
 
-function get_users_usage($user_id){
-    global $from_id,$sql;
+function get_users_usage($user_id)
+{
+    global $from_id, $sql;
     $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$user_id'");
     if ($services->num_rows > 0) {
         $total_traffic_bought = 0;
@@ -31,40 +32,41 @@ function get_users_usage($user_id){
             $info_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$config_location'");
             $panel = $info_panel->fetch_assoc();
 
-            $marzban_res =getUserInfo($config_name,$panel['token'],$panel['login_link']);
+            $marzban_res = getUserInfo($config_name, get_marzban_panel_token($config_location), $panel['login_link']);
             // $t = json_encode($a, 448);
             // sendMessage($from_id, "test : $t");
-            if ($marzban_res['username'] == $config_name){
-                if ($marzban_res['status'] == 'active'){
+            if ($marzban_res['username'] == $config_name) {
+                if ($marzban_res['status'] == 'active') {
                     $total_traffic_bought = $total_traffic_bought + $marzban_res['data_limit'];
                     $total_traffic_used = $total_traffic_used + $marzban_res['used_traffic'];
                 }
             }
         }
-        
-        $total_traffic_bought = Conversion($total_traffic_bought,"GB");
+
+        $total_traffic_bought = Conversion($total_traffic_bought, "GB");
         // $total_traffic_bought = round($total_traffic_bought / 1024 / 1024 / 1024 ,2);
-        $total_traffic_used = Conversion($total_traffic_used,"GB");
+        $total_traffic_used = Conversion($total_traffic_used, "GB");
         // $total_traffic_used = round($total_traffic_used / 1024 / 1024 / 1024 ,2);
         return [
             "total_traffic_bought" => $total_traffic_bought,
             "total_traffic_used" => $total_traffic_used
         ];
-    }else{
+    } else {
         return null;
     }
-
 }
 
-function modify_bot_config(){
+function modify_bot_config()
+{
     global $BOT_CONFIG;
     $json_file_name = "bot_config.json";
     $bot_config_data_json = json_encode($BOT_CONFIG, JSON_PRETTY_PRINT);
     file_put_contents($json_file_name, $bot_config_data_json);
 };
 
-function change_account_status($text, $from_id){
-    global $BOT_CONFIG,$texts;
+function change_account_status($text, $from_id)
+{
+    global $BOT_CONFIG, $texts;
     function marzban_change_status($username, $new_status, $token, $url)
     {
         $ch = curl_init();
@@ -81,67 +83,65 @@ function change_account_status($text, $from_id){
         return $response;
     };
 
-    function change(){
-        global $from_id, $user, $text, $sql, $texts,$my_texts, $start_key, $bot_management_keyboard, $config;
+    function change()
+    {
+        global $from_id, $user, $text, $sql, $texts, $my_texts, $start_key, $bot_management_keyboard, $config;
         if ($text == $texts['account_status_changer_button']) {
             step('account_status_changer_service_get_service_name');
-            if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())){
+            if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
 
                 $_keyboard_keys  = [[['text' => $texts['back_to_bot_management_button']]]];
-            }else{
+            } else {
                 $_keyboard_keys  = [[['text' => $texts['back_to_menu_button']]]];
             }
             $_keyboard = json_encode(['keyboard' => $_keyboard_keys, 'resize_keyboard' => true]);
             sendMessage($from_id, $my_texts['account_status_changer_service_config_name'], $_keyboard);
-    
         } elseif ($user['step'] == 'account_status_changer_service_get_service_name') {
-            if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())){
+            if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
                 $_return_keyboard = $bot_management_keyboard;
                 $config_base_name = $text;
                 $config_location_obj = $sql->query("SELECT `location`, `from_id` FROM `orders` WHERE `code` = '$config_base_name'");
 
                 // $t = json_encode($config_location_obj, 448);
                 // sendMessage($from_id, "config_location_obj : $t");
-                
-                $config_found_count = 0 ;
+
+                $config_found_count = 0;
                 while ($row = $config_location_obj->fetch_assoc()) {
                     $config_found_count = $config_found_count + 1;
                     $last_row = $row;
-                    
+
                     // $t = json_encode($row, 448);
                     // sendMessage($from_id, "row : $t");
 
                 }
-                
-                if ($config_found_count == 1){
-                    if ($last_row['from_id'] == $from_id){
+
+                if ($config_found_count == 1) {
+                    if ($last_row['from_id'] == $from_id) {
                         $config_base_name = $text;
                         $config_user_id = $from_id;
-                    }else{
+                    } else {
                         step('account_status_changer_service_get_service_name');
                         sendMessage($from_id, $my_texts['account_status_changer_service_config_not_found'] . "(code 1)");
                         exit();
                     }
-                }else{
+                } else {
                     $config_parts = explode("_", $text);
 
                     // $t = json_encode($config_parts, 448);
                     // sendMessage($from_id, "config_parts : $t");
-                    
+
                     // $t = json_encode(count($config_parts), 448);
                     // sendMessage($from_id, "count($config_parts) : $t");
 
-                    if (count($config_parts) == 1){
+                    if (count($config_parts) == 1) {
                         $config_base_name = $text;
                         $config_user_id = $from_id;
-                    } else{
+                    } else {
                         $config_base_name = implode("_", array_slice($config_parts, 0, -1));
                         $config_user_id = end($config_parts);
                     }
                 }
-
-                
-            }else{
+            } else {
                 $_return_keyboard = $start_key;
                 $config_base_name = $text;
                 $config_user_id = $from_id;
@@ -154,11 +154,11 @@ function change_account_status($text, $from_id){
             // sendMessage($from_id, "config_user_id : $t");
             // $t = json_encode($config_name, 448);
             // sendMessage($from_id, "config_name : $t");
-            
+
             $mysql_config_array = $sql->query("SELECT `location`,`from_id` FROM `orders` WHERE `code` = '$config_base_name'");
-            $config_array = null ;
+            $config_array = null;
             while ($row = $mysql_config_array->fetch_assoc()) {
-                if ($row['from_id'] == $config_user_id){
+                if ($row['from_id'] == $config_user_id) {
                     $config_array = $row;
                 }
             }
@@ -167,45 +167,42 @@ function change_account_status($text, $from_id){
                 // $t = json_encode($config_array['from_id'], 448);
                 // sendMessage($from_id, "test : $t");
 
-                if ($config_array['from_id'] != $config_user_id){
+                if ($config_array['from_id'] != $config_user_id) {
                     step('account_status_changer_service_get_service_name');
                     sendMessage($from_id, $my_texts['account_status_changer_service_config_not_found'] . "(code 2)");
                     exit();
                 }
                 $config_location_name = $config_array['location'];
                 sendMessage($from_id, $my_texts['account_status_changer_service_config_found'],);
-                
+
                 sleep(0.5);
-    
+
                 $panel_info = $sql->query("SELECT * FROM `panels` WHERE `name` = '$config_location_name'")->fetch_assoc();
-                $panel_token = $panel_info['token'];
+                $panel_token = get_marzban_panel_token($config_location_name);
                 $panel_url = $panel_info['login_link'];
-    
-                $user_config_info = getUserInfo($config_name,$panel_token,$panel_url);
+
+                $user_config_info = getUserInfo($config_name, $panel_token, $panel_url);
                 $user_config_status = $user_config_info['status'];
-    
-                if ($user_config_status == "active"){
+
+                if ($user_config_status == "active") {
                     $new_status = 'disabled';
-    
-                }elseif ($user_config_status == "disabled"){
+                } elseif ($user_config_status == "disabled") {
                     $new_status = 'active';
                 }
-                
+
                 $new_marzban_change_status_response = json_decode(marzban_change_status($config_name, $new_status, $panel_token, $panel_url), true);
                 if (isset($new_marzban_change_status_response['username'])) {
                     step('none');
-                    
-                    if ($new_marzban_change_status_response['status'] == "active"){
-                        sendMessage($from_id, $texts['account_status_changer_service_successfully_enabled'],$_return_keyboard);
-                    } elseif($new_marzban_change_status_response['status'] == "disabled"){
-                        sendMessage($from_id, $texts['account_status_changer_service_successfully_disabled'],$_return_keyboard);
+
+                    if ($new_marzban_change_status_response['status'] == "active") {
+                        sendMessage($from_id, $texts['account_status_changer_service_successfully_enabled'], $_return_keyboard);
+                    } elseif ($new_marzban_change_status_response['status'] == "disabled") {
+                        sendMessage($from_id, $texts['account_status_changer_service_successfully_disabled'], $_return_keyboard);
                     }
-    
                 } else {
                     step('none');
-                    sendMessage($from_id, $texts['account_status_changer_service_failed_to_change_status'],$_return_keyboard);
+                    sendMessage($from_id, $texts['account_status_changer_service_failed_to_change_status'], $_return_keyboard);
                 }
-    
             } else {
                 step('account_status_changer_service_get_service_name');
                 sendMessage($from_id, $my_texts['account_status_changer_service_config_not_found'] . "(code 3)");
@@ -213,15 +210,14 @@ function change_account_status($text, $from_id){
         }
     }
     global $config;
-    if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())){
+    if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
         change();
-    }else{
+    } else {
         $charge_btn_status = $BOT_CONFIG['show_account_status_changer_btn'];
-        if ($charge_btn_status === true){
+        if ($charge_btn_status === true) {
             change();
         }
     }
-
 }
 
 function send_message_query()
@@ -553,19 +549,18 @@ function renewal_service($text, $from_id)
         if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0) $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
         sendMessage($from_id, sprintf($texts['start'], $first_name), $start_key);
     }
-
 }
 
 
 function change_charge_account_button_visibility($chat_id)
 {
-    global $my_texts,$BOT_CONFIG;
+    global $my_texts, $BOT_CONFIG;
     $currenButtonStatus = $BOT_CONFIG['show_charge_account_btn'];
     if (isset($currenButtonStatus)) {
-        if ($currenButtonStatus === true){
+        if ($currenButtonStatus === true) {
             $BOT_CONFIG['show_charge_account_btn'] = false;
             $successMsg = $my_texts['charge_button_disabled'];
-        }else{
+        } else {
             $BOT_CONFIG['show_charge_account_btn'] = true;
             $successMsg = $my_texts['charge_button_enabled'];
         }
@@ -583,7 +578,7 @@ function get_charge_account_button_status()
 {
     global $BOT_CONFIG;
     $charge_btn_status = $BOT_CONFIG['show_charge_account_btn'];
-    if (!isset($charge_btn_status)){
+    if (!isset($charge_btn_status)) {
         $BOT_CONFIG["show_charge_account_btn"] = true;
 
         modify_bot_config();
@@ -599,13 +594,13 @@ function get_charge_account_button_status()
 
 function change_account_status_changer_button_visibility($chat_id)
 {
-    global $my_texts,$BOT_CONFIG;
+    global $my_texts, $BOT_CONFIG;
     $currenButtonStatus = $BOT_CONFIG['show_account_status_changer_btn'];
     if (isset($currenButtonStatus)) {
-        if ($currenButtonStatus === true){
+        if ($currenButtonStatus === true) {
             $BOT_CONFIG['show_account_status_changer_btn'] = false;
             $successMsg = $my_texts['account_status_changer_button_disabled'];
-        }else{
+        } else {
             $BOT_CONFIG['show_account_status_changer_btn'] = true;
             $successMsg = $my_texts['account_status_changer_button_enabled'];
         }
@@ -620,9 +615,9 @@ function change_account_status_changer_button_visibility($chat_id)
 }
 function get_account_status_changer_button_status()
 {
-    global $BOT_CONFIG,$texts ;
+    global $BOT_CONFIG, $texts;
     $charge_btn_status = $BOT_CONFIG['show_account_status_changer_btn'];
-    if (!isset($charge_btn_status)){
+    if (!isset($charge_btn_status)) {
         $BOT_CONFIG["show_account_status_changer_btn"] = true;
 
         modify_bot_config();
