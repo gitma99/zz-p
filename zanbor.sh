@@ -190,7 +190,7 @@ read CHAT_ID
 # read DOMAIN
 echo " "
 
-$DOMAIN = $domain
+$DOMAIN=$domain
 
 if [ 'http' in "$DOMAIN" ]; then
     colorized_echo red "Input invalid !"
@@ -219,6 +219,9 @@ sleep 1
 # add information to file
 # touch('/var/www/html/ZanborPanelBot/install/zanbor.install')
 echo "{\"development\":\"@ZanborPanel\",\"install_location\":\"server\",\"main_domin\":\"${DOMAIN}\",\"token\":\"${TOKEN}\",\"dev\":\"${CHAT_ID}\",\"db_name\":\"${dbname}\",\"db_username\":\"${randdbdb}\",\"db_password\":\"${randdbpass}\"}" > /var/www/html/ZanborPanelBot/install/zanbor.install
+
+
+# ================================= Make bot_config file ===========================================
 
 # source_file="/var/www/html/ZanborPanelBot/config.php"
 # destination_file="/var/www/html/ZanborPanelBot/config.php.tmp"
