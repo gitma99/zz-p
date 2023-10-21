@@ -190,7 +190,7 @@ read CHAT_ID
 # read DOMAIN
 echo " "
 
-$DOMAIN=$domain
+DOMAIN=$domain
 
 if [ 'http' in "$DOMAIN" ]; then
     colorized_echo red "Input invalid !"
