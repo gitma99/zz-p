@@ -37,15 +37,15 @@ error_reporting(E_ALL); // Set the error reporting level as needed
 
 // exit();
 
-if ($text == $texts['back_to_menu_button']){
+if ($text == $texts['back_to_menu_button']) {
     step('none');
-    sendMessage($from_id,$texts['back_to_menu'], $start_key );
+    sendMessage($from_id, $texts['back_to_menu'], $start_key);
     exit(1);
-}elseif ($text == $texts['back_to_bot_management_button']){
+} elseif ($text == $texts['back_to_bot_management_button']) {
     step('panel');
     sendMessage($from_id, "👮‍♂️ - سلام ادمین [ <b>$first_name</b> ] عزیز !\n\n⚡️به پنل مدیریت ربات خوش آمدید.\n🗃 ورژن فعلی ربات : <code>{$config['version']}</code>\n\n⚙️ جهت مدیریت ربات ، یکی از گزینه های زیر را انتخاب کنید.", $bot_management_keyboard);
     exit(1);
-} else{
+} else {
     send_message_query();
     renewal_service($text, $from_id);
     change_account_status($text, $from_id);
@@ -183,7 +183,7 @@ if ($data == 'join') {
             // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
             sendMessage($from_id, $texts['invalid_config_name'], $plan);
             sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $plan);
-            if ($debug === true){
+            if ($debug === true) {
                 sendMessage($from_id, $getUser['detail'], $plan);
             };
             step('choose_name');
@@ -423,24 +423,53 @@ if ($data == 'join') {
             // $t = json_encode($service_name, 448);
             // sendMessage($from_id, "test : $t");
             // // exit();
-            if ($service_status == 'active'){
+            if ($service_status == 'active') {
                 $status = '🟢';
-            }elseif($service_status == 'disabled'){
+            } elseif ($service_status == 'disabled') {
                 $status = '🔴';
-            }else{
+            } else {
                 $status = '❌';
             }
 
             $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code']];
             // $key[] = ['text' => $status . base64_encode($row['code']) . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code']];
         }
-        $key = array_chunk($key, 1);
-        $key = json_encode(['inline_keyboard' => $key]);
-        if (isset($text)) {
-            sendMessage($from_id, sprintf($texts['my_services'], $services->num_rows), $key);
+        $all_service_keys = array_chunk($key, 1);
+        $total_items = count($all_service_keys);
+        if ($total_items < 90) {
+            $service_keys = json_encode(['inline_keyboard' => $all_service_keys]);
+            if (isset($text)) {
+                sendMessage($from_id, sprintf($texts['my_services'], $services->num_rows,1), $service_keys);
+            } else {
+                editMessage($from_id, sprintf($texts['my_services'], $services->num_rows,1), $message_id, $service_keys);
+            }
         } else {
-            editMessage($from_id, sprintf($texts['my_services'], $services->num_rows), $message_id, $key);
+            $start_i = 0;
+            $end_i = 0;
+            $list_number = 0;
+            while ($end_i != $total_items) {
+                $end_i += 90;
+                if ($end_i > $total_items) {
+                    $end_i = $total_items;
+                }
+                $current_list_buttons = array_slice($all_service_keys, $start_i, $end_i - $start_i);
+                $start_i = $end_i;
+
+                $service_keys = json_encode(['inline_keyboard' => $current_list_buttons]);
+                $list_number += 1;
+                if ($list_number == 1){
+                    $reply_msg = sprintf($texts['my_services'], $services->num_rows,$list_number);
+                }else{
+                    $reply_msg = "لیست : {$list_number}";
+                }
+                if (isset($text)) {
+                    sendMessage($from_id, $reply_msg, $service_keys);
+                } else {
+                    editMessage($from_id, $reply_msg, $message_id, $service_keys);
+                }
+            }
         }
+        
     } else {
         if (isset($text)) {
             sendMessage($from_id, $texts['my_services_not_found'], $start_key);
@@ -490,14 +519,14 @@ if ($data == 'join') {
                 [['text' => 'دریافت QrCode', 'callback_data' => 'getQrCode-' . $code_base . '-marzban']],
                 [['text' => '🔙 بازگشت', 'callback_data' => 'back_services']]
             ]]);
-                
-            if ($debug === true){
+
+            if ($debug === true) {
                 $t = json_encode($getUser, 448);
                 sendMessage($from_id, "Debug for getUser:\n$t");
             }
             // $_config_used_traffic = intval($getUser['used_traffic']) / 1024 /1024;
             if ($note->num_rows == 0) {
-                editMessage($from_id, sprintf($texts['your_service'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $getService['location'], $code_base, Conversion($getUser['used_traffic'], 'GB'), Conversion($getUser['data_limit'], 'GB') , date('Y-m-d H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
+                editMessage($from_id, sprintf($texts['your_service'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $getService['location'], $code_base, Conversion($getUser['used_traffic'], 'GB'), Conversion($getUser['data_limit'], 'GB'), date('Y-m-d H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
                 // editMessage($from_id, sprintf($texts['your_service'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $getService['location'], $code_base, Conversion(number_format($getUser['used_traffic']), 'GB'), Conversion($getUser['data_limit'], 'GB'), date('Y-m-d H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
                 // editMessage($from_id, sprintf($texts['your_service'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $getService['location'], base64_encode($code), Conversion($getUser['used_traffic'], 'GB'), Conversion($getUser['data_limit'], 'GB'), date('Y-d-m H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
             } else {
@@ -863,7 +892,7 @@ if ($data == 'join') {
 } elseif ($text == '👤 پروفایل') {
     $count_all_active = 0;
     $count_all_inactive = 0;
-    
+
     $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'");
     if ($services->num_rows > 0) {
         while ($row = $services->fetch_assoc()) {
@@ -876,12 +905,11 @@ if ($data == 'join') {
             // $t = json_encode($service_name, 448);
             // sendMessage($from_id, "test : $t");
             // // exit();
-            if ($service_status == 'active'){
+            if ($service_status == 'active') {
                 $count_all_active = $count_all_active + 1;
-            }elseif($service_status == 'disabled'){
+            } elseif ($service_status == 'disabled') {
                 $count_all_inactive = $count_all_inactive = $count_all_inactive + 1;
-            }else{
-                $status = '❌';
+            } else {;
             }
         }
     }
@@ -891,8 +919,8 @@ if ($data == 'join') {
     $user_usage = get_users_usage($from_id);
     $total_trafic = $user_usage['total_traffic_bought'];
     $used_trafic = $user_usage['total_traffic_used'];
-    
-    
+
+
     sendMessage($from_id, sprintf($texts['my_account'], $from_id, number_format($user['coin']), $count_all, $count_all_active, $count_all_inactive, $total_trafic, $used_trafic), $start_key);
 } elseif ($text == '📮 پشتیبانی آنلاین') {
     step('support');
@@ -1998,8 +2026,8 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
             $user_usage = get_users_usage($text);
             $total_trafic = $user_usage['total_traffic_bought'];
             $used_trafic = $user_usage['total_traffic_used'];
-            
-            
+
+
             sendMessage($from_id, "⭕️ اطلاعات کاربر [ <code>$text</code> ] با موفقیت دریافت شد.\n\n▫️یوزرنیم کاربر : $username\n▫️نام کاربر : <b>$first_name</b>\n▫️موجودی کاربر : <code>$coin</code> تومان\n▫️ تعدادی سرویس کاربر : <code>$count_service</code> عدد\n▫️تعداد پرداختی کاربر : <code>$count_payment</code> عدد\n▫️حجم کل کانفیگ های فعال : <code>$total_trafic</code> GB\n▫️حجم مصرف شده از کانفیگ های فعال : <code>$used_trafic</code> GB", $manage_user);
         } else {
             sendMessage($from_id, "‼ کاربر <code>$text</code> عضو ربات نیست !", $back_panel);
@@ -2081,7 +2109,7 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
     // ----------- manage setting ----------- //
     elseif ($text == 'غیر فعال یا فعال سازی دکمه شارژ') {
         change_charge_account_button_visibility($from_id);
-    }elseif ($text == $texts['change_visibility_account_status_changer_button']) {
+    } elseif ($text == $texts['change_visibility_account_status_changer_button']) {
         change_account_status_changer_button_visibility($from_id);
     } elseif ($text == '◽بخش ها') {
         sendMessage($from_id, "🔰این بخش تکمیل نشده است !");
