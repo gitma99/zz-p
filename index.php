@@ -425,7 +425,8 @@ if ($data == 'join') {
             // // exit();
             if ($service_status == 'active') {
                 $status = '🟢';
-            } elseif ($service_status == 'disabled') {
+            } elseif (in_array($service_status, array("disabled", "limited"))) {
+                // } elseif ($service_status == 'disabled') {
                 $status = '🔴';
             } else {
                 $status = '❌';
@@ -439,9 +440,9 @@ if ($data == 'join') {
         if ($total_items < 90) {
             $service_keys = json_encode(['inline_keyboard' => $all_service_keys]);
             if (isset($text)) {
-                sendMessage($from_id, sprintf($texts['my_services'], $services->num_rows,1), $service_keys);
+                sendMessage($from_id, sprintf($texts['my_services'], $services->num_rows, 1), $service_keys);
             } else {
-                editMessage($from_id, sprintf($texts['my_services'], $services->num_rows,1), $message_id, $service_keys);
+                editMessage($from_id, sprintf($texts['my_services'], $services->num_rows, 1), $message_id, $service_keys);
             }
         } else {
             $start_i = 0;
@@ -457,9 +458,9 @@ if ($data == 'join') {
 
                 $service_keys = json_encode(['inline_keyboard' => $current_list_buttons]);
                 $list_number += 1;
-                if ($list_number == 1){
-                    $reply_msg = sprintf($texts['my_services'], $services->num_rows,$list_number);
-                }else{
+                if ($list_number == 1) {
+                    $reply_msg = sprintf($texts['my_services'], $services->num_rows, $list_number);
+                } else {
                     $reply_msg = "لیست : {$list_number}";
                 }
                 if (isset($text)) {
@@ -469,7 +470,6 @@ if ($data == 'join') {
                 }
             }
         }
-        
     } else {
         if (isset($text)) {
             sendMessage($from_id, $texts['my_services_not_found'], $start_key);
@@ -907,7 +907,8 @@ if ($data == 'join') {
             // exit();
             if ($service_status == 'active') {
                 $count_all_active = $count_all_active + 1;
-            } elseif ($service_status == 'disabled') {
+                // } elseif ($service_status == 'disabled') {
+            } elseif (in_array($service_status, array("disabled", "limited"))) {
                 $count_all_inactive = $count_all_inactive + 1;
             }
         }
