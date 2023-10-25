@@ -425,7 +425,7 @@ if ($data == 'join') {
             // // exit();
             if ($service_status == 'active') {
                 $status = '🟢';
-            } elseif (in_array($service_status, array("disabled", "limited"))) {
+            } elseif (in_array($service_status, array("disabled", "limited", "expired"))) {
                 // } elseif ($service_status == 'disabled') {
                 $status = '🔴';
             } else {
@@ -908,7 +908,7 @@ if ($data == 'join') {
             if ($service_status == 'active') {
                 $count_all_active = $count_all_active + 1;
                 // } elseif ($service_status == 'disabled') {
-            } elseif (in_array($service_status, array("disabled", "limited"))) {
+            } elseif (in_array($service_status, array("disabled", "limited", "expired"))) {
                 $count_all_inactive = $count_all_inactive + 1;
             }
         }
@@ -2038,7 +2038,7 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
                     $service_status = $marzban_res['status'];
                     if ($service_status == 'active') {
                         $count_all_active = $count_all_active + 1;
-                    } elseif (in_array($service_status, array("disabled", "limited"))) {
+                    } elseif (in_array($service_status, array("disabled", "limited", "expired"))) {
                         $count_all_inactive = $count_all_inactive + 1;
                     }
                 }
