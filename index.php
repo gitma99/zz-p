@@ -2026,8 +2026,8 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
 
             $count_all_active = 0;
             $count_all_inactive = 0;
-            $count_all = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'")->num_rows;
-            $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'");
+            $count_all = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'")->num_rows;
+            $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'");
             if ($services->num_rows > 0) {
                 while ($row = $services->fetch_assoc()) {
                     $service_base_name = $row['code'];
