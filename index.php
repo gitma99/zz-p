@@ -908,8 +908,7 @@ if ($data == 'join') {
             if ($service_status == 'active') {
                 $count_all_active = $count_all_active + 1;
             } elseif ($service_status == 'disabled') {
-                $count_all_inactive = $count_all_inactive = $count_all_inactive + 1;
-            } else {;
+                $count_all_inactive = $count_all_inactive + 1;
             }
         }
     }
