@@ -2023,12 +2023,33 @@ if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
             $count_service = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'")->num_rows ?? 0;
             // $count_service = $info['count_service'] ?? 0;
             $count_payment = $info['count_charge'] ?? 0;
+
+            $count_all_active = 0;
+            $count_all_inactive = 0;
+            $count_all = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'")->num_rows;
+            $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'");
+            if ($services->num_rows > 0) {
+                while ($row = $services->fetch_assoc()) {
+                    $service_base_name = $row['code'];
+                    $service_name = $row['code'] . "_" . $from_id;
+                    $service_location = $row['location'];
+                    $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();;
+                    $marzban_res = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
+                    $service_status = $marzban_res['status'];
+                    if ($service_status == 'active') {
+                        $count_all_active = $count_all_active + 1;
+                    } elseif (in_array($service_status, array("disabled", "limited"))) {
+                        $count_all_inactive = $count_all_inactive + 1;
+                    }
+                }
+            }
+
             $user_usage = get_users_usage($text);
             $total_trafic = $user_usage['total_traffic_bought'];
             $used_trafic = $user_usage['total_traffic_used'];
 
 
-            sendMessage($from_id, "⭕️ اطلاعات کاربر [ <code>$text</code> ] با موفقیت دریافت شد.\n\n▫️یوزرنیم کاربر : $username\n▫️نام کاربر : <b>$first_name</b>\n▫️موجودی کاربر : <code>$coin</code> تومان\n▫️ تعدادی سرویس کاربر : <code>$count_service</code> عدد\n▫️تعداد پرداختی کاربر : <code>$count_payment</code> عدد\n▫️حجم کل کانفیگ های فعال : <code>$total_trafic</code> GB\n▫️حجم مصرف شده از کانفیگ های فعال : <code>$used_trafic</code> GB", $manage_user);
+            sendMessage($from_id, "⭕️ اطلاعات کاربر [ <code>$text</code> ] با موفقیت دریافت شد.\n\n▫️یوزرنیم کاربر : $username\n▫️نام کاربر : <b>$first_name</b>\n▫️موجودی کاربر : <code>$coin</code> تومان\n\n▫️ تعدادی سرویس کاربر : <code>$count_service</code> عدد\n🟢 سرویس های فعال : <code>$count_all_active</code> عدد\n🔴 سرویس های غیرفعال : <code>$count_all_inactive</code> عدد\n\n▫️تعداد پرداختی کاربر : <code>$count_payment</code> عدد\n▫️حجم کل کانفیگ های فعال : <code>$total_trafic</code> GB\n▫️حجم مصرف شده از کانفیگ های فعال : <code>$used_trafic</code> GB", $manage_user);
         } else {
             sendMessage($from_id, "‼ کاربر <code>$text</code> عضو ربات نیست !", $back_panel);
         }
