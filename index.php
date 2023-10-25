@@ -902,9 +902,9 @@ if ($data == 'join') {
             $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();;
             $marzban_res = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
             $service_status = $marzban_res['status'];
-            // $t = json_encode($service_name, 448);
-            // sendMessage($from_id, "test : $t");
-            // // exit();
+            $t = json_encode($service_name, 448);
+            sendMessage($from_id, "test : $t  :$service_status");
+            // exit();
             if ($service_status == 'active') {
                 $count_all_active = $count_all_active + 1;
             } elseif ($service_status == 'disabled') {
