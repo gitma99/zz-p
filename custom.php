@@ -331,7 +331,13 @@ function marzban_renewal_service($username, $new_traffic_limit, $new_expire_time
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $token, 'Content-Type: application/json'));
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(array('expire' => $new_expire_time, 'data_limit' => $new_traffic_limit)));
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(
+            array(
+                'expire' => $new_expire_time,
+                'data_limit' => $new_traffic_limit,
+                'status' => "active"
+            ))
+        );
         $response = curl_exec($ch);
         curl_close($ch);
         return $response;
