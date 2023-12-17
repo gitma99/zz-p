@@ -319,7 +319,7 @@ function write_renewal_json($user_id, $user_array)
     file_put_contents($json_file_name, $user_json);
 }
 
-function marzban_renewal_service($username, $new_traffic_limit, $new_expire_time, $token, $url)
+function marzban_renewal_api($username, $new_traffic_limit, $new_expire_time, $token, $url)
 {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url . "/api/user/$username");
@@ -500,7 +500,7 @@ function renewal_service($text, $from_id)
         }
         # ---------------- check database ----------------#
         if ($get_plan->num_rows == 0) {
-            sendmessage($from_id, sprintf($texts['create_error'], 0), $start_key);
+            sendmessage($from_id, sprintf($texts['create_error'], 0), $start_key); 
             exit();
         }
         # ---------------- create service proccess ---------------- #
@@ -508,7 +508,9 @@ function renewal_service($text, $from_id)
             # ---------------- create service ---------------- #
             $token = get_marzban_panel_token($panel['name']);
             // $token = loginPanel($panel['login_link'], $panel['username'], $panel['password'])['access_token'];
-            $renewal_service = marzban_renewal_service($name, convertToBytes($limit . 'GB'), strtotime("+ $date day"), $token, $panel['login_link']);
+            for ($i = 0; $i < 2; $i++) {
+                $renewal_service = marzban_renewal_api($name, convertToBytes($limit . 'GB'), strtotime("+ $date day"), $token, $panel['login_link']);
+            };
             $renewal_status = json_decode($renewal_service, true);
 
             # ---------------- check errors ---------------- #
