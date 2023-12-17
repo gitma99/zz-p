@@ -508,8 +508,10 @@ function renewal_service($text, $from_id)
             # ---------------- create service ---------------- #
             $token = get_marzban_panel_token($panel['name']);
             // $token = loginPanel($panel['login_link'], $panel['username'], $panel['password'])['access_token'];
-            for ($i = 0; $i < 2; $i++) {
+            // for ($i = 0; $i < 2; $i++) {
+            foreach ([1,2] as $tttt) {
                 $renewal_service = marzban_renewal_api($name, convertToBytes($limit . 'GB'), strtotime("+ $date day"), $token, $panel['login_link']);
+                sleep(2);
             };
             $renewal_status = json_decode($renewal_service, true);
 
