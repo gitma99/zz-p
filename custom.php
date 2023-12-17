@@ -321,29 +321,27 @@ function write_renewal_json($user_id, $user_array)
 
 function marzban_renewal_service($username, $new_traffic_limit, $new_expire_time, $token, $url)
 {
-    function new_limit($username, $new_traffic_limit, $new_expire_time, $token, $url)
-    {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url . "/api/user/$username");
-        // curl_setopt($ch, CURLOPT_PUT, true);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $token, 'Content-Type: application/json'));
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(
-            array(
-                'expire' => $new_expire_time,
-                'data_limit' => $new_traffic_limit,
-                'status' => "active"
-            ))
-        );
-        $response = curl_exec($ch);
-        curl_close($ch);
-        return $response;
-    };
-    function reset_data_usage($username, $token, $url)
-    {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url . "/api/user/$username");
+    // curl_setopt($ch, CURLOPT_PUT, true);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $token, 'Content-Type: application/json'));
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(
+        array(
+            'expire' => $new_expire_time,
+            'data_limit' => $new_traffic_limit,
+            'data_limit_reset_strategy' => 'no_reset',
+            'status' => 'active'
+        ))
+    );
+    $new_limit_response = curl_exec($ch);
+    curl_close($ch);
+
+    $new_limit_response = json_decode($new_limit_response, true);
+    if (isset($new_limit_response['username'])) {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url . "/api/user/$username/reset");
         curl_setopt($ch, CURLOPT_POST, true);
@@ -351,18 +349,10 @@ function marzban_renewal_service($username, $new_traffic_limit, $new_expire_time
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $token, 'Content-Type: application/json'));
-        $response = curl_exec($ch);
+        $reset_data_usage_response = curl_exec($ch);
         curl_close($ch);
-        return $response;
-    };
-
-    $new_limit_response = new_limit($username, $new_traffic_limit, $new_expire_time, $token, $url);
-    $new_limit_response = json_decode($new_limit_response, true);
-    if (isset($new_limit_response['username'])) {
-        $reset_data_usage_response = reset_data_usage($username, $token, $url);
         return $reset_data_usage_response;
     } else {
-        return isset($new_limit_response['username']);
         return $new_limit_response;
     }
 }
