@@ -22,6 +22,14 @@ ini_set('error_log', 'error.log'); // Specify the path to the error log file
 error_reporting(E_ALL); // Set the error reporting level as needed
 
 
+// // =========== temporary code ================== START //
+// $debug_array = array(
+//     "message" => sprintf($texts['my_services'], $services->num_rows, 1),
+//     "keys" => $all_service_keys,
+// );
+// send_debug_data_to_dev($from_id, json_encode($debug_array, 448));
+// // =========== temporary code ================== END //
+
 // sendMessage($from_id, "Start");
 // sendMessage($from_id, "1");
 
@@ -437,13 +445,6 @@ if ($data == 'join') {
         }
         $all_service_keys = array_chunk($key, 1);
         $total_items = count($all_service_keys);
-        // =========== temporary code ================== START //
-        $debug_array = array(
-            "message" => sprintf($texts['my_services'], $services->num_rows, 1),
-            "keys" => $all_service_keys,
-        );
-        send_debug_data_to_dev($from_id, json_encode($debug_array, 448));
-        // =========== temporary code ================== END //
         if ($total_items < 90) {
             $service_keys = json_encode(['inline_keyboard' => $all_service_keys]);
             if (isset($text)) {
@@ -456,7 +457,7 @@ if ($data == 'join') {
             $end_i = 0;
             $list_number = 0;
             while ($end_i != $total_items) {
-                $end_i += 90;
+                $end_i += 60;
                 if ($end_i > $total_items) {
                     $end_i = $total_items;
                 }
