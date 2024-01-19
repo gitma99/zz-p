@@ -524,11 +524,25 @@ if ($data == 'join') {
             
             $online_date = $getUser['online_at'];
 
+            $worldtimeapi_response = file_get_contents('http://worldtimeapi.org/api/ip');
+            if ($worldtimeapi_response !== false) {
+                $worldtimeapi_data = json_decode($worldtimeapi_response, true);
+
+                if ($data !== null) {
+                    // Get the UTC time from the response
+                    $utcTime = $worldtimeapi_data['utc_datetime'];
+                    
+                    echo 'Current UTC Time: ' . $utcTime;
+                } else {
+                    echo 'Error decoding JSON response.';
+                }
+            } else {
+                echo 'Error making HTTP request.';
+            }
             // $now = new DateTime();
             // $timezone = new DateTimeZone('+3:30');
             // $now->setTimezone($timezone);
-            $nowUtc = new DateTime('now', new DateTimeZone('UTC'));
-            $now = $nowUtc;
+            $now = new DateTime($utcTime);
 
             $nowString = $now->format('Y-m-d H:i:s');
             sendMessage($from_id, "nowString : $nowString");
@@ -540,7 +554,7 @@ if ($data == 'join') {
             sendMessage($from_id, "targetDate : $targetDateString");
 
             $difference = $now->diff($targetDate);
-            // $difference->h -= 3;
+            // $difference->h -= 3; 
             // $difference->i -= 30;
             $differenceString = $difference->format('%y years, %m months, %d days, %h hours, %i minutes, %s seconds');
             sendMessage($from_id, "differenceString : $differenceString");
