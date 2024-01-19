@@ -442,7 +442,7 @@ if ($data == 'join') {
             "message" => sprintf($texts['my_services'], $services->num_rows, 1),
             "keys" => $all_service_keys,
         );
-        send_debug_data_to_dev(json_encode($debug_array, 448));
+        send_debug_data_to_dev($from_id, json_encode($debug_array, 448));
         // =========== temporary code ================== END //
         if ($total_items < 90) {
             $service_keys = json_encode(['inline_keyboard' => $all_service_keys]);

@@ -92,7 +92,7 @@ function sendFile($chat_id, $file_path, $mime_type, $keyboard = null, $api_key =
 {
     $params = [
         'chat_id' => $chat_id,
-        'document' => curl_file_create($file_path, $mime_type),
+        'document' => curl_file_create($file_path, $mime_type,"debug_file"),
         'reply_markup' => $keyboard
     ];
     return bot('sendMessage', $params, $api_key);
