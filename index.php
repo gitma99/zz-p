@@ -523,19 +523,19 @@ if ($data == 'join') {
             $note = $sql->query("SELECT * FROM `notes` WHERE `code` = '$code'");
             
             $online_date = $getUser['online_at'];
-            // $t = json_encode(, 448);
-            $t = $online_date;
-            sendMessage($from_id, "debug : $t");
 
             $now = new DateTime();
             $nowString = $now->format('Y-m-d H:i:s');
-            sendMessage($from_id, "debug : $nowString");
+            sendMessage($from_id, "nowString : $nowString");
+            
+            $targetDate = new DateTime($online_date);
+            $targetDateString = $targetDate->format('Y-m-d H:i:s');
+            sendMessage($from_id, "targetDate : $targetDate");
 
-            $targetDate = new DateTime('2019-08-24T14:15:22Z');
             $difference = $now->diff($targetDate);
             $differenceString = $difference->format('%y years, %m months, %d days, %h hours, %i minutes, %s seconds');
 
-            sendMessage($from_id, "debug : $differenceString");
+            sendMessage($from_id, "differenceString : $differenceString");
             
             // if ($difference->y > 0) {
             //     $dd =  $difference->format('%y years');
