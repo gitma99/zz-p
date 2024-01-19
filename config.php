@@ -97,7 +97,8 @@ function sendFile($chat_id, $file_path, $file_name, $mime_type, $api_key = API_K
     return bot('sendDocument', $params, $api_key);
 }
 
-function sendMessage($chat_id, $text, $keyboard = null, $mrk = 'html', $api_key = API_KEY)
+function sendMessage($chat_id, $text, $keyboard = null, $mrk = 'html')
+// function sendMessage($chat_id, $text, $keyboard = null, $mrk = 'html', $api_key = API_KEY)
 {
     $params = [
         'chat_id' => $chat_id,
@@ -106,7 +107,8 @@ function sendMessage($chat_id, $text, $keyboard = null, $mrk = 'html', $api_key 
         'disable_web_page_preview' => true,
         'reply_markup' => $keyboard
     ];
-    return bot('sendMessage', $params, $api_key);
+    return bot('sendMessage', $params);
+    // return bot('sendMessage', $params, $api_key);
 }
 
 function forwardMessage($from, $to, $message_id, $mrk = 'html')
