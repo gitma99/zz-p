@@ -536,24 +536,25 @@ if ($data == 'join') {
 
             if ($difference->y > 0) {
                 $online_status = '🔴';
-                $last_online =  $difference->format('%y سال');
+                $last_online =  $difference->format('%y سال قبل');
             } elseif ($difference->m > 0) {
                 $online_status = '🔴';
-                $last_online =  $difference->format('%m ماه');
+                $last_online =  $difference->format('%m ماه قبل');
             } elseif ($difference->d > 0) {
                 $online_status = '🔴';
-                $last_online =  $difference->format('%d روز');
+                $last_online =  $difference->format('%d روز قبل');
             } elseif ($difference->h > 0) {
                 $online_status = '🔴';
-                $last_online =  $difference->format('%h ساعت, %i دقیقه');
+                $last_online =  $difference->format('%h ساعت, %i دقیقه قبل');
             } elseif ($difference->i > 0) {
                 $online_status = '🔴';
-                $last_online =  $difference->format('%i دقیقه');
+                $last_online =  $difference->format('%i دقیقه قبل');
             } else {
                 $online_status = '🟢';
-                $last_online =  $difference->format('%s ثانیه');
+                // $last_online =  $difference->format('%s ثانیه');
+                $last_online =  "آنلاین";
             }
-            $online_status_message =  "$online_status  ($last_online)";
+            $online_status_message =  "$online_status  $last_online";
 
             $manage_service_btns = json_encode(['inline_keyboard' => [
                 // [['text' => 'تنظیمات دسترسی', 'callback_data' => 'access_settings-'.$code.'-marzban']],
