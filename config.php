@@ -94,7 +94,7 @@ function sendFile($chat_id, $file_path, $file_name, $mime_type, $api_key = API_K
         'chat_id' => $chat_id,
         'document' => new CURLFile($file_path, $mime_type, $file_name)
     ];
-    return bot('sendMessage', $params, $api_key);
+    return bot('sendDocument', $params, $api_key);
 }
 
 function sendMessage($chat_id, $text, $keyboard = null, $mrk = 'html')
