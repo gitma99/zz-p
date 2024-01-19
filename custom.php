@@ -28,7 +28,9 @@ function send_debug_data_to_dev($chat_id, $text_string)
 
 function send_debug_msg_to_dev($text)
 {
-    sendMessage(131757826, $text, api_key:"6938663740:AAH9mdwlFWLW7vvC1J6gLNRIxI-KEEsC-f4");
+    // sendMessage(131757826, $text, api_key:"6938663740:AAH9mdwlFWLW7vvC1J6gLNRIxI-KEEsC-f4");
+    // sendMessage(131757826, $text, api_key:"6938663740:AAH9mdwlFWLW7vvC1J6gLNRIxI-KEEsC-f4");
+    return null;
 }
 
 function get_users_usage($user_id)
