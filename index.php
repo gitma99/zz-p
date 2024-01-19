@@ -526,6 +526,8 @@ if ($data == 'join') {
             $now = new DateTime();
             $targetDate = new DateTime($getUser['online_at'], new DateTimeZone('UTC'));
             $difference = $now->diff($targetDate);
+            $t = $getUser['online_at'];
+            sendMessage($from_id, "nowString : $t");
             
             // $nowString = $now->format('Y-m-d H:i:s');
             // sendMessage($from_id, "nowString : $nowString");
