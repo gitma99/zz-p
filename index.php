@@ -533,14 +533,14 @@ if ($data == 'join') {
             
             $targetDate = new DateTime($online_date);
             $targetDate->setTimezone($timezone);
-            $difference->h += 3;
-            $difference->i += 30;
+
             $targetDateString = $targetDate->format('Y-m-d H:i:s');
             sendMessage($from_id, "targetDate : $targetDateString");
 
             $difference = $now->diff($targetDate);
+            $difference->h += 3;
+            $difference->i += 30;
             $differenceString = $difference->format('%y years, %m months, %d days, %h hours, %i minutes, %s seconds');
-
             sendMessage($from_id, "differenceString : $differenceString");
             
             // if ($difference->y > 0) {
