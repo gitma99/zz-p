@@ -528,7 +528,7 @@ if ($data == 'join') {
             if ($worldtimeapi_response !== false) {
                 $worldtimeapi_data = json_decode($worldtimeapi_response, true);
 
-                if ($data !== null) {
+                if ($worldtimeapi_data !== null) {
                     // Get the UTC time from the response
                     $utcTime = $worldtimeapi_data['utc_datetime'];
                     
