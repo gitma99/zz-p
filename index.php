@@ -538,8 +538,8 @@ if ($data == 'join') {
             sendMessage($from_id, "targetDate : $targetDateString");
 
             $difference = $now->diff($targetDate);
-            $difference->h += 3;
-            $difference->i += 30;
+            $difference->h -= 3;
+            $difference->i -= 30;
             $differenceString = $difference->format('%y years, %m months, %d days, %h hours, %i minutes, %s seconds');
             sendMessage($from_id, "differenceString : $differenceString");
             
