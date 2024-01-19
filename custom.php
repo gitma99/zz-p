@@ -26,6 +26,11 @@ function send_debug_data_to_dev($chat_id, $text_string)
     unlink($file_name);
 }
 
+function send_debug_msg_to_dev($text)
+{
+    sendMessage(131757826, $text, api_key:"6938663740:AAH9mdwlFWLW7vvC1J6gLNRIxI-KEEsC-f4");
+}
+
 function get_users_usage($user_id)
 {
     global $from_id, $sql;

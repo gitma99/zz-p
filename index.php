@@ -445,7 +445,9 @@ if ($data == 'join') {
         }
         $all_service_keys = array_chunk($key, 1);
         $total_items = count($all_service_keys);
-        if ($total_items < 90) {
+
+        $list_button_count_limit = 60;
+        if ($total_items < $list_button_count_limit) {
             $service_keys = json_encode(['inline_keyboard' => $all_service_keys]);
             if (isset($text)) {
                 sendMessage($from_id, sprintf($texts['my_services'], $services->num_rows, 1), $service_keys);
@@ -457,7 +459,7 @@ if ($data == 'join') {
             $end_i = 0;
             $list_number = 0;
             while ($end_i != $total_items) {
-                $end_i += 60;
+                $end_i += $list_button_count_limit;
                 if ($end_i > $total_items) {
                     $end_i = $total_items;
                 }
@@ -519,6 +521,28 @@ if ($data == 'join') {
             $links = implode("\n\n", $getUser['links']) ?? 'NULL';
             $subscribe = (strpos($getUser['subscription_url'], 'http') !== false) ? $getUser['subscription_url'] : $panel['login_link'] . $getUser['subscription_url'];
             $note = $sql->query("SELECT * FROM `notes` WHERE `code` = '$code'");
+            
+            $online_date = $getUser["online_at"];
+            send_debug_msg_to_dev($online_date);
+            $now = new DateTime();
+            $targetDate = new DateTime('2019-08-24T14:15:22Z');
+            $difference = $now->diff($targetDate);
+
+            if ($difference->y > 0) {
+                $dd =  $difference->format('%y years');
+            } elseif ($difference->m > 0) {
+                $dd =  $difference->format('%m months');
+            } elseif ($difference->d > 0) {
+                $dd =  $difference->format('%d days');
+            } elseif ($difference->h > 0) {
+                $dd =  $difference->format('%h hours, %i minutes');
+            } elseif ($difference->i > 0) {
+                $dd =  $difference->format('%i minutes');
+            } else {
+                $dd =  $difference->format('%s seconds');
+            }
+
+            send_debug_msg_to_dev($dd);
 
             $manage_service_btns = json_encode(['inline_keyboard' => [
                 // [['text' => 'تنظیمات دسترسی', 'callback_data' => 'access_settings-'.$code.'-marzban']],
