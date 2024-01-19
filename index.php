@@ -522,7 +522,10 @@ if ($data == 'join') {
             $subscribe = (strpos($getUser['subscription_url'], 'http') !== false) ? $getUser['subscription_url'] : $panel['login_link'] . $getUser['subscription_url'];
             $note = $sql->query("SELECT * FROM `notes` WHERE `code` = '$code'");
             
-            // $online_date = $getUser['online_at'];
+            $online_date = $getUser['online_at'];
+            // $t = json_encode(, 448);
+            $t = $online_date;
+            sendMessage($from_id, "debug : $t");
             // send_debug_msg_to_dev($online_date);
             // $now = new DateTime();
             // $targetDate = new DateTime('2019-08-24T14:15:22Z');
