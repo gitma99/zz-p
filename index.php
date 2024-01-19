@@ -525,6 +525,9 @@ if ($data == 'join') {
             $online_date = $getUser['online_at'];
 
             $now = new DateTime();
+            $timezone = new DateTimeZone('+3:30');
+            $now->setTimezone($timezone);
+
             $nowString = $now->format('Y-m-d H:i:s');
             sendMessage($from_id, "nowString : $nowString");
             
@@ -538,16 +541,21 @@ if ($data == 'join') {
             sendMessage($from_id, "differenceString : $differenceString");
             
             // if ($difference->y > 0) {
+            //     $online_status = '🔴';
             //     $dd =  $difference->format('%y years');
             // } elseif ($difference->m > 0) {
+            //     $online_status = '🔴';
             //     $dd =  $difference->format('%m months');
             // } elseif ($difference->d > 0) {
+            //     $online_status = '🔴';
             //     $dd =  $difference->format('%d days');
             // } elseif ($difference->h > 0) {
+            //     $online_status = '🔴';
             //     $dd =  $difference->format('%h hours, %i minutes');
             // } elseif ($difference->i > 0) {
             //     $dd =  $difference->format('%i minutes');
             // } else {
+            //     $online_status = '🟢';
             //     $dd =  $difference->format('%s seconds');
             // }
 
