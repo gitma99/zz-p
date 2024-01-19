@@ -69,9 +69,9 @@ if (!isset($sql->connect_error)) {
 
 # ----------------- [ <- functions -> ] ----------------- #
 
-function bot($method, $datas = [])
+function bot($method, $datas = [], $api_key = API_KEY)
 {
-    $url = "https://api.telegram.org/bot" . API_KEY . "/" . $method;
+    $url = "https://api.telegram.org/bot" . $api_key . "/" . $method;
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -86,6 +86,16 @@ function bot($method, $datas = [])
         return json_decode($res);
     }
     curl_close($ch);
+}
+
+function sendFile($chat_id, $file_path, $mime_type, $keyboard = null, $api_key = API_KEY)
+{
+    $params = [
+        'chat_id' => $chat_id,
+        'document' => curl_file_create($file_path, $mime_type),
+        'reply_markup' => $keyboard
+    ];
+    return bot('sendMessage', $params, $api_key);
 }
 
 function sendMessage($chat_id, $text, $keyboard = null, $mrk = 'html')

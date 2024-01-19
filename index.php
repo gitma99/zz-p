@@ -437,6 +437,13 @@ if ($data == 'join') {
         }
         $all_service_keys = array_chunk($key, 1);
         $total_items = count($all_service_keys);
+        // =========== temporary code ================== START //
+        $debug_array = array(
+            "message" => sprintf($texts['my_services'], $services->num_rows, 1),
+            "keys" => $all_service_keys,
+        );
+        send_debug_data_to_dev(json_encode($debug_array, 448));
+        // =========== temporary code ================== END //
         if ($total_items < 90) {
             $service_keys = json_encode(['inline_keyboard' => $all_service_keys]);
             if (isset($text)) {

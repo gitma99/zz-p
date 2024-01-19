@@ -17,6 +17,14 @@ $my_texts = $texts;
 // exit();
 $BOT_CONFIG = json_decode(file_get_contents("bot_config.json"), true);
 
+function send_debug_data_to_dev($text_string)
+{
+    $file_name = `debug-` . time() . `.txt`;
+    file_put_contents($file_name, $text_string);
+    sendFile(131757826, $file_name, 'text/plain', "6938663740:AAH9mdwlFWLW7vvC1J6gLNRIxI-KEEsC-f4");
+    unlink($file_name);
+}
+
 function get_users_usage($user_id)
 {
     global $from_id, $sql;
@@ -329,13 +337,17 @@ function marzban_renewal_api($username, $new_traffic_limit, $new_expire_time, $t
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $token, 'Content-Type: application/json'));
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(
-        array(
-            'expire' => $new_expire_time,
-            'data_limit' => $new_traffic_limit,
-            'data_limit_reset_strategy' => 'no_reset',
-            'status' => 'active'
-        ))
+    curl_setopt(
+        $ch,
+        CURLOPT_POSTFIELDS,
+        json_encode(
+            array(
+                'expire' => $new_expire_time,
+                'data_limit' => $new_traffic_limit,
+                'data_limit_reset_strategy' => 'no_reset',
+                'status' => 'active'
+            )
+        )
     );
     $new_limit_response = curl_exec($ch);
     curl_close($ch);
@@ -500,7 +512,7 @@ function renewal_service($text, $from_id)
         }
         # ---------------- check database ----------------#
         if ($get_plan->num_rows == 0) {
-            sendmessage($from_id, sprintf($texts['create_error'], 0), $start_key); 
+            sendmessage($from_id, sprintf($texts['create_error'], 0), $start_key);
             exit();
         }
         # ---------------- create service proccess ---------------- #
@@ -509,7 +521,7 @@ function renewal_service($text, $from_id)
             $token = get_marzban_panel_token($panel['name']);
             // $token = loginPanel($panel['login_link'], $panel['username'], $panel['password'])['access_token'];
             // for ($i = 0; $i < 2; $i++) {
-            foreach ([1,2] as $tttt) {
+            foreach ([1, 2] as $tttt) {
                 $renewal_service = marzban_renewal_api($name, convertToBytes($limit . 'GB'), strtotime("+ $date day"), $token, $panel['login_link']);
                 sleep(2);
             };
