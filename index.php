@@ -538,14 +538,14 @@ if ($data == 'join') {
             } else {
                 echo 'Error making HTTP request.';
             }
-            $timezone = new DateTimeZone('+3:30');
-            $now = new DateTime($utcTime);
-            $now->setTimezone($timezone);
+            // $timezone = new DateTimeZone('+3:30');
+            // $now = new DateTime($utcTime);
+            date_default_timezone_set("UTC");
+            $now =new DateTime();
             $nowString = $now->format('Y-m-d H:i:s');
             sendMessage($from_id, "nowString : $nowString");
             
-            $targetDate = new DateTime($online_date);
-            $targetDate->setTimezone($timezone);
+            $targetDate = new DateTime($online_date, new DateTimeZone('UTC'));
             $targetDateString = $targetDate->format('Y-m-d H:i:s');
             sendMessage($from_id, "targetDate : $targetDateString");
 
