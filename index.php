@@ -521,58 +521,39 @@ if ($data == 'join') {
             $links = implode("\n\n", $getUser['links']) ?? 'NULL';
             $subscribe = (strpos($getUser['subscription_url'], 'http') !== false) ? $getUser['subscription_url'] : $panel['login_link'] . $getUser['subscription_url'];
             $note = $sql->query("SELECT * FROM `notes` WHERE `code` = '$code'");
-            
-            $online_date = $getUser['online_at'];
 
-            $worldtimeapi_response = file_get_contents('http://worldtimeapi.org/api/ip');
-            if ($worldtimeapi_response !== false) {
-                $worldtimeapi_data = json_decode($worldtimeapi_response, true);
-
-                if ($worldtimeapi_data !== null) {
-                    $utcTime = $worldtimeapi_data['utc_datetime'];
-                    
-                    echo 'Current UTC Time: ' . $utcTime;
-                } else {
-                    echo 'Error decoding JSON response.';
-                }
-            } else {
-                echo 'Error making HTTP request.';
-            }
-            // $timezone = new DateTimeZone('+3:30');
-            // $now = new DateTime($utcTime);
             date_default_timezone_set("UTC");
-            $now =new DateTime();
-            $nowString = $now->format('Y-m-d H:i:s');
-            sendMessage($from_id, "nowString : $nowString");
-            
-            $targetDate = new DateTime($online_date, new DateTimeZone('UTC'));
-            $targetDateString = $targetDate->format('Y-m-d H:i:s');
-            sendMessage($from_id, "targetDate : $targetDateString");
-
+            $now = new DateTime();
+            $targetDate = new DateTime($getUser['online_at'], new DateTimeZone('UTC'));
             $difference = $now->diff($targetDate);
-            $differenceString = $difference->format('%y years, %m months, %d days, %h hours, %i minutes, %s seconds');
-            sendMessage($from_id, "differenceString : $differenceString");
             
-            // if ($difference->y > 0) {
-            //     $online_status = '🔴';
-            //     $dd =  $difference->format('%y years');
-            // } elseif ($difference->m > 0) {
-            //     $online_status = '🔴';
-            //     $dd =  $difference->format('%m months');
-            // } elseif ($difference->d > 0) {
-            //     $online_status = '🔴';
-            //     $dd =  $difference->format('%d days');
-            // } elseif ($difference->h > 0) {
-            //     $online_status = '🔴';
-            //     $dd =  $difference->format('%h hours, %i minutes');
-            // } elseif ($difference->i > 0) {
-            //     $dd =  $difference->format('%i minutes');
-            // } else {
-            //     $online_status = '🟢';
-            //     $dd =  $difference->format('%s seconds');
-            // }
+            // $nowString = $now->format('Y-m-d H:i:s');
+            // sendMessage($from_id, "nowString : $nowString");
+            // $targetDateString = $targetDate->format('Y-m-d H:i:s');
+            // sendMessage($from_id, "targetDate : $targetDateString");
+            // $differenceString = $difference->format('%y years, %m months, %d days, %h hours, %i minutes, %s seconds');
+            // sendMessage($from_id, "differenceString : $differenceString");
 
-            // send_debug_msg_to_dev($dd);
+            if ($difference->y > 0) {
+                $online_status = '🔴';
+                $last_online =  $difference->format('%y سال');
+            } elseif ($difference->m > 0) {
+                $online_status = '🔴';
+                $last_online =  $difference->format('%m ماه');
+            } elseif ($difference->d > 0) {
+                $online_status = '🔴';
+                $last_online =  $difference->format('%d روز');
+            } elseif ($difference->h > 0) {
+                $online_status = '🔴';
+                $last_online =  $difference->format('%h ساعت, %i دقیقه');
+            } elseif ($difference->i > 0) {
+                $online_status = '🔴';
+                $last_online =  $difference->format('%i دقیقه');
+            } else {
+                $online_status = '🟢';
+                $last_online =  $difference->format('%s ثانیه');
+            }
+            $online_status_message =  "$online_status  ($last_online)";
 
             $manage_service_btns = json_encode(['inline_keyboard' => [
                 // [['text' => 'تنظیمات دسترسی', 'callback_data' => 'access_settings-'.$code.'-marzban']],
@@ -588,7 +569,7 @@ if ($data == 'join') {
             }
             // $_config_used_traffic = intval($getUser['used_traffic']) / 1024 /1024;
             if ($note->num_rows == 0) {
-                editMessage($from_id, sprintf($texts['your_service'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $getService['location'], $code_base, Conversion($getUser['used_traffic'], 'GB'), Conversion($getUser['data_limit'], 'GB'), date('Y-m-d H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
+                editMessage($from_id, sprintf($texts['your_service'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $online_status_message, $getService['location'], $code_base, Conversion($getUser['used_traffic'], 'GB'), Conversion($getUser['data_limit'], 'GB'), date('Y-m-d H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
                 // editMessage($from_id, sprintf($texts['your_service'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $getService['location'], $code_base, Conversion(number_format($getUser['used_traffic']), 'GB'), Conversion($getUser['data_limit'], 'GB'), date('Y-m-d H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
                 // editMessage($from_id, sprintf($texts['your_service'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $getService['location'], base64_encode($code), Conversion($getUser['used_traffic'], 'GB'), Conversion($getUser['data_limit'], 'GB'), date('Y-d-m H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
             } else {
@@ -622,7 +603,7 @@ if ($data == 'join') {
             ]]);
 
             if ($note->num_rows == 0) {
-                editMessage($from_id, sprintf($texts['your_service'], ($getUser['result']['enable'] == true) ? '🟢 فعال' : '🔴 غیرفعال', $getService['location'], base64_encode($code), Conversion($getUser['result']['up'] + $getUser['result']['down'], 'GB'), ($getUser['result']['total'] == 0) ? 'نامحدود' : Conversion($getUser['result']['total'], 'GB') . ' MB', date('Y-d-m H:i:s',  $getUser['result']['expiryTime']), $link), $message_id, $manage_service_btns);
+                editMessage($from_id, sprintf($texts['your_service'], ($getUser['result']['enable'] == true) ? '🟢 فعال' : '🔴 غیرفعال', null, $getService['location'], base64_encode($code), Conversion($getUser['result']['up'] + $getUser['result']['down'], 'GB'), ($getUser['result']['total'] == 0) ? 'نامحدود' : Conversion($getUser['result']['total'], 'GB') . ' MB', date('Y-d-m H:i:s',  $getUser['result']['expiryTime']), $link), $message_id, $manage_service_btns);
             } else {
                 $note = $note->fetch_assoc();
                 editMessage($from_id, sprintf($texts['your_service_with_note'], ($getUser['result']['enable'] == true) ? '🟢 فعال' : '🔴 غیرفعال', $note['note'], $getService['location'], base64_encode($code), Conversion($getUser['result']['up'] + $getUser['result']['down'], 'GB'), ($getUser['result']['total'] == 0) ? 'نامحدود' : Conversion($getUser['result']['total'], 'GB') . ' MB', date('Y-d-m H:i:s',  $getUser['result']['expiryTime']), $link), $message_id, $manage_service_btns);
