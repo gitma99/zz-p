@@ -522,8 +522,8 @@ if ($data == 'join') {
             $subscribe = (strpos($getUser['subscription_url'], 'http') !== false) ? $getUser['subscription_url'] : $panel['login_link'] . $getUser['subscription_url'];
             $note = $sql->query("SELECT * FROM `notes` WHERE `code` = '$code'");
             
-            $online_date = $getUser["online_at"];
-            send_debug_msg_to_dev($online_date);
+            // $online_date = $getUser['online_at'];
+            // send_debug_msg_to_dev($online_date);
             // $now = new DateTime();
             // $targetDate = new DateTime('2019-08-24T14:15:22Z');
             // $difference = $now->diff($targetDate);
