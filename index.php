@@ -528,11 +528,14 @@ if ($data == 'join') {
             sendMessage($from_id, "debug : $t");
 
             $now = new DateTime();
-            sendMessage($from_id, "debug : $now");
+            $nowString = $now->format('Y-m-d H:i:s');
+            sendMessage($from_id, "debug : $nowString");
 
             $targetDate = new DateTime('2019-08-24T14:15:22Z');
             $difference = $now->diff($targetDate);
-            sendMessage($from_id, "debug : $difference");
+            $differenceString = $difference->format('%y years, %m months, %d days, %h hours, %i minutes, %s seconds');
+
+            sendMessage($from_id, "debug : $differenceString");
             
             // if ($difference->y > 0) {
             //     $dd =  $difference->format('%y years');
