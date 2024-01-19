@@ -530,7 +530,7 @@ if ($data == 'join') {
             
             $targetDate = new DateTime($online_date);
             $targetDateString = $targetDate->format('Y-m-d H:i:s');
-            sendMessage($from_id, "targetDate : $targetDate");
+            sendMessage($from_id, "targetDate : $targetDateString");
 
             $difference = $now->diff($targetDate);
             $differenceString = $difference->format('%y years, %m months, %d days, %h hours, %i minutes, %s seconds');
