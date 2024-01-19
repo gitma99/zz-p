@@ -524,25 +524,25 @@ if ($data == 'join') {
             
             $online_date = $getUser["online_at"];
             send_debug_msg_to_dev($online_date);
-            $now = new DateTime();
-            $targetDate = new DateTime('2019-08-24T14:15:22Z');
-            $difference = $now->diff($targetDate);
+            // $now = new DateTime();
+            // $targetDate = new DateTime('2019-08-24T14:15:22Z');
+            // $difference = $now->diff($targetDate);
 
-            if ($difference->y > 0) {
-                $dd =  $difference->format('%y years');
-            } elseif ($difference->m > 0) {
-                $dd =  $difference->format('%m months');
-            } elseif ($difference->d > 0) {
-                $dd =  $difference->format('%d days');
-            } elseif ($difference->h > 0) {
-                $dd =  $difference->format('%h hours, %i minutes');
-            } elseif ($difference->i > 0) {
-                $dd =  $difference->format('%i minutes');
-            } else {
-                $dd =  $difference->format('%s seconds');
-            }
+            // if ($difference->y > 0) {
+            //     $dd =  $difference->format('%y years');
+            // } elseif ($difference->m > 0) {
+            //     $dd =  $difference->format('%m months');
+            // } elseif ($difference->d > 0) {
+            //     $dd =  $difference->format('%d days');
+            // } elseif ($difference->h > 0) {
+            //     $dd =  $difference->format('%h hours, %i minutes');
+            // } elseif ($difference->i > 0) {
+            //     $dd =  $difference->format('%i minutes');
+            // } else {
+            //     $dd =  $difference->format('%s seconds');
+            // }
 
-            send_debug_msg_to_dev($dd);
+            // send_debug_msg_to_dev($dd);
 
             $manage_service_btns = json_encode(['inline_keyboard' => [
                 // [['text' => 'تنظیمات دسترسی', 'callback_data' => 'access_settings-'.$code.'-marzban']],
