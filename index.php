@@ -556,7 +556,7 @@ if ($data == 'join') {
                     // $last_online =  $difference->format('%s ثانیه');
                     $last_online =  "آنلاین";
                 }
-                $online_status_message = "$online_status ";
+                $online_status_message = "$online_status $last_online";
 
             } else {
                 $online_status_message = "⚠️ عدم وجود اطلاعات";
