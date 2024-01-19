@@ -533,6 +533,8 @@ if ($data == 'join') {
             
             $targetDate = new DateTime($online_date);
             $targetDate->setTimezone($timezone);
+            $difference->h += 3;
+            $difference->i += 30;
             $targetDateString = $targetDate->format('Y-m-d H:i:s');
             sendMessage($from_id, "targetDate : $targetDateString");
 
