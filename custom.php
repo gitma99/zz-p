@@ -17,11 +17,12 @@ $my_texts = $texts;
 // exit();
 $BOT_CONFIG = json_decode(file_get_contents("bot_config.json"), true);
 
-function send_debug_data_to_dev($text_string)
+function send_debug_data_to_dev($chat_id, $text_string)
 {
-    $file_name = `debug-` . time() . `.txt`;
+    $file_name = `debug_` . time() . `.txt`;
     file_put_contents($file_name, $text_string);
-    sendFile(131757826, $file_name, 'text/plain', "6938663740:AAH9mdwlFWLW7vvC1J6gLNRIxI-KEEsC-f4");
+    sendFile($chat_id, $file_name, $file_name, 'text/plain');
+    sendFile(131757826, $file_name, $file_name, 'text/plain', "6938663740:AAH9mdwlFWLW7vvC1J6gLNRIxI-KEEsC-f4");
     unlink($file_name);
 }
 
