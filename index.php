@@ -524,9 +524,11 @@ if ($data == 'join') {
             
             $online_date = $getUser['online_at'];
 
-            $now = new DateTime();
-            $timezone = new DateTimeZone('+3:30');
-            $now->setTimezone($timezone);
+            // $now = new DateTime();
+            // $timezone = new DateTimeZone('+3:30');
+            // $now->setTimezone($timezone);
+            $nowUtc = new DateTime('now', new DateTimeZone('UTC'));
+            $now = $nowUtc;
 
             $nowString = $now->format('Y-m-d H:i:s');
             sendMessage($from_id, "nowString : $nowString");
@@ -538,8 +540,8 @@ if ($data == 'join') {
             sendMessage($from_id, "targetDate : $targetDateString");
 
             $difference = $now->diff($targetDate);
-            $difference->h -= 3;
-            $difference->i -= 30;
+            // $difference->h -= 3;
+            // $difference->i -= 30;
             $differenceString = $difference->format('%y years, %m months, %d days, %h hours, %i minutes, %s seconds');
             sendMessage($from_id, "differenceString : $differenceString");
             
