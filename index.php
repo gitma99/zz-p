@@ -526,11 +526,14 @@ if ($data == 'join') {
             // $t = json_encode(, 448);
             $t = $online_date;
             sendMessage($from_id, "debug : $t");
-            // send_debug_msg_to_dev($online_date);
-            // $now = new DateTime();
-            // $targetDate = new DateTime('2019-08-24T14:15:22Z');
-            // $difference = $now->diff($targetDate);
 
+            $now = new DateTime();
+            sendMessage($from_id, "debug : $now");
+
+            $targetDate = new DateTime('2019-08-24T14:15:22Z');
+            $difference = $now->diff($targetDate);
+            sendMessage($from_id, "debug : $difference");
+            
             // if ($difference->y > 0) {
             //     $dd =  $difference->format('%y years');
             // } elseif ($difference->m > 0) {
