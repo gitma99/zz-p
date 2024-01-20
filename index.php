@@ -439,7 +439,6 @@ if ($data == 'join') {
         ]
     ];
     if (isset($text)) {
-
         sendMessage($from_id, $texts['my_services'], json_encode(['inline_keyboard' => $key]));
     } else {
         editMessage($from_id, $texts['my_services'], $message_id,  json_encode(['inline_keyboard' => $key]));
@@ -499,7 +498,6 @@ if ($data == 'join') {
     }
 } elseif (in_array($data, array('back_all_services', 'all_services'))) {
     $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'");
-    $key[] = ['text' => '🔙 بازگشت', 'callback_data' => 'back_my_services_menu'];
     if ($services->num_rows > 0) {
         while ($row = $services->fetch_assoc()) {
             $service_base_name = $row['code'];
@@ -519,6 +517,7 @@ if ($data == 'join') {
             };
             $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code'] . "-back_all_services"];
         }
+        $key[] = ['text' => '🔙 بازگشت', 'callback_data' => 'back_my_services_menu'];
         $all_service_keys = array_chunk($key, 1);
         $total_items = count($all_service_keys);
 
