@@ -418,7 +418,8 @@ if ($data == 'join') {
     } else {
         sendMessage($from_id, $texts['already_test_account'], $start_key);
     }
-} elseif ($text == '🛍 سرویس های من') {
+} elseif ($text == '🛍 سرویس های من' or in_array($data, array('back_my_services_menu'))) {
+    step('none');
     $key = [
         [
             [
@@ -434,6 +435,17 @@ if ($data == 'join') {
         ]
     ];
     sendMessage($from_id, $texts['my_services'], json_encode(['inline_keyboard' => $key]));
+} elseif (in_array($data, array('search_service'))) {
+    $key = [
+        [
+            [
+                'text' => '🔙 بازگشت',
+                'callback_data' => 'back_my_services_menu'
+            ]
+        ],
+    ];
+    sendMessage($from_id, $texts['service_search'], json_encode(['inline_keyboard' => $key]));
+    step('search-service');
 } elseif (in_array($data, array('back_all_services', 'all_services'))) {
     $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'");
     if ($services->num_rows > 0) {
@@ -482,15 +494,16 @@ if ($data == 'join') {
                 $list_number += 1;
                 if ($list_number == 1) {
                     $reply_msg = sprintf($texts['all_services'], $services->num_rows, $list_number);
+                    if (isset($text)) {
+                        sendMessage($from_id, $reply_msg, $service_keys);
+                    } else {
+                        editMessage($from_id, $reply_msg, $message_id, $service_keys);
+                    }
                 } else {
                     $reply_msg = "لیست : {$list_number}";
+                    sendMessage($from_id, $reply_msg, $service_keys);
                 }
 
-                if (isset($text) or $list_number != 0) {
-                    sendMessage($from_id, $reply_msg, $service_keys);
-                } else {
-                    editMessage($from_id, $reply_msg, $message_id, $service_keys);
-                }
             }
         }
     } else {
