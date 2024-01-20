@@ -50,6 +50,7 @@ if ($text == $texts['back_to_menu_button']) {
     sendMessage($from_id, $texts['back_to_menu'], $start_key);
     exit(0);
 } elseif ($data == 'back_to_home') {
+    sendMessage($from_id, "fname : $first_name");
     step('none');
     deleteMessage($from_id, $message_id);
     sendMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $start_key);
