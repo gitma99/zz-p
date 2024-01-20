@@ -450,6 +450,7 @@ if ($data == 'join') {
     $service_base_name = $text;
     $services = $sql->query("SELECT * FROM `orders` WHERE `code` = '$service_base_name'");
     if ($services->num_rows > 0) {
+        sendMessage($from_id, json_encode($services, 448)); // =========================
         step('none');
         while ($row = $services->fetch_assoc()) {
             $service_base_name = $row['code'];
@@ -471,6 +472,7 @@ if ($data == 'join') {
         }
         $found_services_keys = array_chunk($key, 1);
         $found_services_count = count($found_services_keys);
+        sendMessage($from_id, json_encode($found_services_keys, 448)); // =========================
         sendMessage($from_id, sprintf($texts['service_search_result'], $found_services_count), $found_services_keys);
     } else {
         if (isset($text)) {
