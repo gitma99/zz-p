@@ -74,7 +74,11 @@ if ($data == 'join') {
     sendMessage($from_id, $texts['block']);
 } elseif ($text == '/start' or $text == '🔙 بازگشت' or $text == '/back' or $data == "back_to_home") {
     step('none');
-    sendMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $start_key);
+    if (isset($text)) {
+        sendMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $start_key);
+    } else {
+        editMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $message_id, $start_key);
+    }
 } elseif ($text == '❌  انصراف' and $user['step'] == 'confirm_service') {
     step('none');
     foreach ([$from_id . '-location.txt', $from_id . '-protocol.txt'] as $file) if (file_exists($file)) unlink($file);
@@ -427,7 +431,7 @@ if ($data == 'join') {
                 'callback_data' => 'search_service'
             ],
             [
-                'text' => 'نمایش کاربران 🫂',
+                'text' => 'نمایش سرویس ها 👥',
                 'callback_data' => 'all_services'
             ]
         ],
@@ -438,7 +442,12 @@ if ($data == 'join') {
             ]
         ]
     ];
-    sendMessage($from_id, $texts['my_services'], json_encode(['inline_keyboard' => $key]));
+    if (isset($text)) {
+
+        sendMessage($from_id, $texts['my_services'], json_encode(['inline_keyboard' => $key]));
+    } else {
+        editMessage($from_id, $texts['my_services'], $message_id,  json_encode(['inline_keyboard' => $key]));
+    }
 } elseif (in_array($data, array('search_service'))) {
     $key = [
         [
@@ -478,9 +487,8 @@ if ($data == 'join') {
         }
         $found_services_keys = array_chunk($key, 1);
         $found_services_keyboard = json_encode(['inline_keyboard' => $found_services_keys]);
-        $found_services_count = count($found_services_keys);
 
-        sendMessage($from_id, sprintf($texts['service_search_result'], $found_services_count), $found_services_keyboard);
+        sendMessage($from_id, $texts['service_search_result'], $found_services_keyboard);
     } else {
         $key = [
             [
