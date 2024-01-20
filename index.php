@@ -446,6 +446,41 @@ if ($data == 'join') {
     ];
     sendMessage($from_id, $texts['service_search'], json_encode(['inline_keyboard' => $key]));
     step('search-service');
+} elseif ($user['step'] == 'search-service') {
+    $service_base_name = $text;
+    $services = $sql->query("SELECT * FROM `orders` WHERE `code` = '$service_base_name'");
+    if ($services->num_rows > 0) {
+        step('none');
+        while ($row = $services->fetch_assoc()) {
+            $service_base_name = $row['code'];
+            $service_name = $row['code'] . "_" . $from_id;
+            $service_location = $row['location'];
+            $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();;
+            $marzban_res = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
+            $service_status = $marzban_res['status'];
+            // $t = json_encode($service_name, 448);
+            // sendMessage($from_id, "test : $t");
+            if ($service_status == 'active') {
+                $status = '🟢';
+            } elseif (in_array($service_status, array("disabled", "limited", "expired"))) {
+                $status = '🔴';
+            } else {
+                $status = '❌';
+            }
+            $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code']];
+        }
+        $found_services_keys = array_chunk($key, 1);
+        $found_services_count = count($found_services_keys);
+        sendMessage($from_id, sprintf($texts['service_search_result'], $found_services_count), $found_services_keys);
+    } else {
+        if (isset($text)) {
+            sendMessage($from_id, $texts['my_services_not_found'], $start_key);
+        } else {
+            editMessage($from_id, $texts['my_services_not_found'], $message_id, $start_key);
+        }
+        step('search-service');
+    }
+    step('search-service');
 } elseif (in_array($data, array('back_all_services', 'all_services'))) {
     $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'");
     if ($services->num_rows > 0) {
@@ -503,7 +538,6 @@ if ($data == 'join') {
                     $reply_msg = "لیست : {$list_number}";
                     sendMessage($from_id, $reply_msg, $service_keys);
                 }
-
             }
         }
     } else {
