@@ -37,8 +37,8 @@ if (isset($update->message)) {
     $from_id = $update->callback_query->from->id;
     $query_id = $update->callback_query->id;
     $message_id = $update->callback_query->message->message_id;
-    $first_name = isset($update->callback_query->message->from->first_name) ? $update->callback_query->message->from->first_name : '❌';
-    $username = isset($update->callback_query->from->username) ? '@' . $update->callback_query->from->username : "ندارد";
+    $first_name = isset($update->callback_query->message->chat->first_name) ? $update->callback_query->message->chat->first_name : '❌';
+    $username = isset($update->callback_query->chat->username) ? '@' . $update->callback_query->chat->username : "ندارد";
     $chat_id = $update->callback_query->message->chat->id;
     $data = $update->callback_query->data;
 }
