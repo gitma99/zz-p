@@ -387,7 +387,7 @@ function renewal_service($text, $from_id)
 
     if ($text == '➕ تمدید سرویس') {
         step('renewal_service_get_service_name');
-        $_renewal_keyboard_keys  = [[['text' => '🔙 بازگشت']]];
+        $_renewal_keyboard_keys  = [[['text' => "⬅️ بازگشت به صفحه اصلی"]]];
         $_renewal_keyboard = json_encode(['keyboard' => $_renewal_keyboard_keys, 'resize_keyboard' => true]);
         sendMessage($from_id, $my_texts['renewal_service_config_name'], $_renewal_keyboard);
     } elseif ($user['step'] == 'renewal_service_get_service_name') {
