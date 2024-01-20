@@ -499,6 +499,7 @@ if ($data == 'join') {
     }
 } elseif (in_array($data, array('back_all_services', 'all_services'))) {
     $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'");
+    $key[] = ['text' => '🔙 بازگشت', 'callback_data' => 'back_my_services_menu'];
     if ($services->num_rows > 0) {
         while ($row = $services->fetch_assoc()) {
             $service_base_name = $row['code'];
@@ -519,13 +520,6 @@ if ($data == 'join') {
             $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code'] . "-back_all_services"];
         }
         $all_service_keys = array_chunk($key, 1);
-        $back_inline_button = [
-            [
-                'text' => '🔙 بازگشت',
-                'callback_data' => 'back_my_services_menu'
-            ]
-        ];
-        array_unshift($all_service_keys, $back_inline_button);
         $total_items = count($all_service_keys);
 
         $list_button_count_limit = 60;

@@ -27,18 +27,20 @@ if (file_exists('texts.json')) $texts = json_decode(file_get_contents('texts.jso
 $update = json_decode(file_get_contents('php://input'));
 
 if (isset($update->message)) {
+    $from_id = $update->message->from->id;
     $message_id = $update->message->message_id;
     $first_name = isset($update->message->from->first_name) ? $update->message->from->first_name : '❌';
     $username = isset($update->message->from->username) ? '@' . $update->message->from->username : '❌';
-    $from_id = $update->message->from->id;
     $chat_id = $update->message->chat->id;
     $text = $update->message->text;
 } elseif (isset($update->callback_query)) {
     $from_id = $update->callback_query->from->id;
-    $data = $update->callback_query->data;
     $query_id = $update->callback_query->id;
     $message_id = $update->callback_query->message->message_id;
+    $first_name = isset($update->callback_query->message->from->first_name) ? $update->callback_query->message->from->first_name : '❌';
     $username = isset($update->callback_query->from->username) ? '@' . $update->callback_query->from->username : "ندارد";
+    $chat_id = $update->callback_query->message->chat->id;
+    $data = $update->callback_query->data;
 }
 
 # ----------------- [ <- others -> ] ----------------- #
