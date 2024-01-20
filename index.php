@@ -538,7 +538,7 @@ if ($data == 'join') {
             $service_keys = json_encode(['inline_keyboard' => $all_service_keys]);
             if (isset($text)) {
                 sendMessage($from_id, sprintf($texts['all_services'], $services->num_rows, 1), $service_keys);
-            } elseif ($data == "back_all_services") {
+            } else {
                 editMessage($from_id, sprintf($texts['all_services'], $services->num_rows, 1), $message_id, $service_keys);
             }
         } else {
@@ -559,7 +559,7 @@ if ($data == 'join') {
                     $reply_msg = sprintf($texts['all_services'], $services->num_rows, $list_number);
                     if (isset($text)) {
                         sendMessage($from_id, $reply_msg, $service_keys);
-                    } elseif ($data == "back_all_services") {
+                    } else {
                         editMessage($from_id, $reply_msg, $message_id, $service_keys);
                     }
                 } else {
