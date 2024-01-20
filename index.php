@@ -448,7 +448,7 @@ if ($data == 'join') {
     step('search-service');
 } elseif ($user['step'] == 'search-service') {
     $service_base_name = $text;
-    $services = $sql->query("SELECT * FROM `orders` WHERE `code` = '$service_base_name'");
+    $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id' AND `code` = '$service_base_name'");
     if ($services->num_rows > 0) {
         // sendMessage($from_id, json_encode($services, 448)); // =========================
         step('none');
@@ -469,7 +469,7 @@ if ($data == 'join') {
             $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code']];
         }
         $found_services_keys = array_chunk($key, 1);
-        $found_services_keyboard = json_encode(['inline_keyboard' => $all_service_keys]);
+        $found_services_keyboard = json_encode(['inline_keyboard' => $found_services_keys]);
         $found_services_count = count($found_services_keys);
 
         sendMessage($from_id, sprintf($texts['service_search_result'], $found_services_count), $found_services_keyboard);
