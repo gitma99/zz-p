@@ -24,7 +24,7 @@ error_reporting(E_ALL); // Set the error reporting level as needed
 
 // // =========== temporary code ================== START //
 // $debug_array = array(
-//     "message" => sprintf($texts['my_services'], $services->num_rows, 1),
+//     "message" => sprintf($texts['all_services'], $services->num_rows, 1),
 //     "keys" => $all_service_keys,
 // );
 // send_debug_data_to_dev($from_id, json_encode($debug_array, 448));
@@ -418,7 +418,23 @@ if ($data == 'join') {
     } else {
         sendMessage($from_id, $texts['already_test_account'], $start_key);
     }
-} elseif ($text == '🛍 سرویس های من' or $data == 'back_services') {
+} elseif ($text == '🛍 سرویس های من') {
+    $key = [
+        [
+            [
+                'text' => 'جستجو 🔍',
+                'callback_data' => 'search_service'
+            ]
+        ],
+        [
+            [
+                'text' => 'نمایش تمامی کاربران 🫂',
+                'callback_data' => 'all_services'
+            ]
+        ]
+    ];
+    sendMessage($from_id, $texts['my_services'], json_encode(['inline_keyboard' => $key]));
+} elseif (in_array($data, array('back_all_services', 'all_services'))) {
     $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'");
     if ($services->num_rows > 0) {
         while ($row = $services->fetch_assoc()) {
@@ -430,18 +446,14 @@ if ($data == 'join') {
             $service_status = $marzban_res['status'];
             // $t = json_encode($service_name, 448);
             // sendMessage($from_id, "test : $t");
-            // // exit();
             if ($service_status == 'active') {
                 $status = '🟢';
             } elseif (in_array($service_status, array("disabled", "limited", "expired"))) {
-                // } elseif ($service_status == 'disabled') {
                 $status = '🔴';
             } else {
                 $status = '❌';
             }
-
             $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code']];
-            // $key[] = ['text' => $status . base64_encode($row['code']) . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code']];
         }
         $all_service_keys = array_chunk($key, 1);
         $total_items = count($all_service_keys);
@@ -450,9 +462,9 @@ if ($data == 'join') {
         if ($total_items < $list_button_count_limit) {
             $service_keys = json_encode(['inline_keyboard' => $all_service_keys]);
             if (isset($text)) {
-                sendMessage($from_id, sprintf($texts['my_services'], $services->num_rows, 1), $service_keys);
+                sendMessage($from_id, sprintf($texts['all_services'], $services->num_rows, 1), $service_keys);
             } else {
-                editMessage($from_id, sprintf($texts['my_services'], $services->num_rows, 1), $message_id, $service_keys);
+                editMessage($from_id, sprintf($texts['all_services'], $services->num_rows, 1), $message_id, $service_keys);
             }
         } else {
             $start_i = 0;
@@ -469,12 +481,12 @@ if ($data == 'join') {
                 $service_keys = json_encode(['inline_keyboard' => $current_list_buttons]);
                 $list_number += 1;
                 if ($list_number == 1) {
-                    $reply_msg = sprintf($texts['my_services'], $services->num_rows, $list_number);
+                    $reply_msg = sprintf($texts['all_services'], $services->num_rows, $list_number);
                 } else {
                     $reply_msg = "لیست : {$list_number}";
                 }
 
-                if (isset($text) || $list_number != 0) {
+                if (isset($text) or $list_number != 0) {
                     sendMessage($from_id, $reply_msg, $service_keys);
                 } else {
                     editMessage($from_id, $reply_msg, $message_id, $service_keys);
@@ -568,7 +580,7 @@ if ($data == 'join') {
                 // [['text' => 'خرید حجم اضافه', 'callback_data' => 'buy_extra_volume-' . $code_base . '-marzban'], ['text' => 'افزایش اعتبار زمانی', 'callback_data' => 'buy_extra_time-' . $code_base . '-marzban']],
                 // [['text' => 'نوشتن یادداشت', 'callback_data' => 'write_note-' . $code_base . '-marzban'], ['text' => 'دریافت QrCode', 'callback_data' => 'getQrCode-' . $code_base . '-marzban']],
                 [['text' => 'دریافت QrCode', 'callback_data' => 'getQrCode-' . $code_base . '-marzban']],
-                [['text' => '🔙 بازگشت', 'callback_data' => 'back_services']]
+                [['text' => '🔙 بازگشت', 'callback_data' => 'back_all_services']]
             ]]);
 
 
@@ -601,7 +613,7 @@ if ($data == 'join') {
                 // [['text' => 'خرید حجم اضافه', 'callback_data' => 'buy_extra_volume-' . $code . '-sanayi'], ['text' => 'افزایش اعتبار زمانی', 'callback_data' => 'buy_extra_time-' . $code . '-sanayi']],
                 // [['text' => 'نوشتن یادداشت', 'callback_data' => 'write_note-' . $code . '-sanayi'], ['text' => 'دریافت QrCode', 'callback_data' => 'getQrCode-' . $code . '-sanayi']],
                 [['text' => 'دریافت QrCode', 'callback_data' => 'getQrCode-' . $code . '-sanayi']],
-                [['text' => '🔙 بازگشت', 'callback_data' => 'back_services']]
+                [['text' => '🔙 بازگشت', 'callback_data' => 'back_all_services']]
             ]]);
 
             if ($note->num_rows == 0) {
