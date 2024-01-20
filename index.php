@@ -450,7 +450,7 @@ if ($data == 'join') {
     $service_base_name = $text;
     $services = $sql->query("SELECT * FROM `orders` WHERE `code` = '$service_base_name'");
     if ($services->num_rows > 0) {
-        sendMessage($from_id, json_encode($services, 448)); // =========================
+        // sendMessage($from_id, json_encode($services, 448)); // =========================
         step('none');
         while ($row = $services->fetch_assoc()) {
             $service_base_name = $row['code'];
@@ -459,8 +459,6 @@ if ($data == 'join') {
             $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();;
             $marzban_res = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
             $service_status = $marzban_res['status'];
-            // $t = json_encode($service_name, 448);
-            // sendMessage($from_id, "test : $t");
             if ($service_status == 'active') {
                 $status = '🟢';
             } elseif (in_array($service_status, array("disabled", "limited", "expired"))) {
@@ -471,15 +469,20 @@ if ($data == 'join') {
             $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code']];
         }
         $found_services_keys = array_chunk($key, 1);
+        $found_services_keyboard = json_encode(['inline_keyboard' => $all_service_keys]);
         $found_services_count = count($found_services_keys);
-        sendMessage($from_id, json_encode($found_services_keys, 448)); // =========================
-        sendMessage($from_id, sprintf($texts['service_search_result'], $found_services_count), $found_services_keys);
+
+        sendMessage($from_id, sprintf($texts['service_search_result'], $found_services_count), $found_services_keyboard);
     } else {
-        if (isset($text)) {
-            sendMessage($from_id, $texts['my_services_not_found'], $start_key);
-        } else {
-            editMessage($from_id, $texts['my_services_not_found'], $message_id, $start_key);
-        }
+        $key = [
+            [
+                [
+                    'text' => '🔙 بازگشت',
+                    'callback_data' => 'back_my_services_menu'
+                ]
+            ],
+        ];
+        sendMessage($from_id, $texts['service_search_retry'], json_encode(['inline_keyboard' => $key]));
         step('search-service');
     }
     step('search-service');
