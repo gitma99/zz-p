@@ -636,8 +636,6 @@ if ($data == 'join') {
                 $online_status_message = "⚠️ عدم وجود اطلاعات";
             };
 
-            sendMessage($from_id, "nowString : $callback_parts[2]");
-
             $manage_service_btns = json_encode(
                 ['inline_keyboard' => [
                     [['text' => 'دریافت QrCode', 'callback_data' => 'getQrCode-' . $code_base . '-marzban']],
