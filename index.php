@@ -72,7 +72,7 @@ if ($data == 'join') {
     joinSend($from_id);
 } elseif ($user['status'] == 'inactive' and $from_id != $config['dev']) {
     sendMessage($from_id, $texts['block']);
-} elseif ($text == '/start' or $text == '🔙 بازگشت' or $text == '/back') {
+} elseif ($text == '/start' or $text == '🔙 بازگشت' or $text == '/back' or $data == "back_to_home") {
     step('none');
     sendMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $start_key);
 } elseif ($text == '❌  انصراف' and $user['step'] == 'confirm_service') {
@@ -425,12 +425,16 @@ if ($data == 'join') {
             [
                 'text' => 'جستجو 🔍',
                 'callback_data' => 'search_service'
+            ],
+            [
+                'text' => 'نمایش کاربران 🫂',
+                'callback_data' => 'all_services'
             ]
         ],
         [
             [
-                'text' => 'نمایش تمامی کاربران 🫂',
-                'callback_data' => 'all_services'
+                'text' => '🔙 بازگشت',
+                'callback_data' => 'back_to_home'
             ]
         ]
     ];
@@ -444,7 +448,11 @@ if ($data == 'join') {
             ]
         ],
     ];
-    sendMessage($from_id, $texts['service_search'], json_encode(['inline_keyboard' => $key]));
+    if (isset($text)) {
+        sendMessage($from_id, $texts['service_search'], json_encode(['inline_keyboard' => $key]));
+    } else {
+        editMessage($from_id, $texts['service_search'], $message_id, json_encode(['inline_keyboard' => $key]));
+    }
     step('search-service');
 } elseif ($user['step'] == 'search-service') {
     $service_base_name = $text;
@@ -466,7 +474,7 @@ if ($data == 'join') {
             } else {
                 $status = '❌';
             }
-            $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code']];
+            $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code'] . "-back_my_services_menu"];
         }
         $found_services_keys = array_chunk($key, 1);
         $found_services_keyboard = json_encode(['inline_keyboard' => $found_services_keys]);
@@ -504,7 +512,7 @@ if ($data == 'join') {
             } else {
                 $status = '❌';
             }
-            $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code']];
+            $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code'] . "-back_all_services"];
         }
         $all_service_keys = array_chunk($key, 1);
         $total_items = count($all_service_keys);
@@ -552,8 +560,9 @@ if ($data == 'join') {
         }
     }
 } elseif (strpos($data, 'service_status-') !== false) {
+    $callback_parts = explode('-', $data);
     // $code = explode('-', $data)[1];
-    $code_base = explode('-', $data)[1];
+    $code_base = $callback_parts[1];
     $code = $code_base . '_' . $from_id;
     $getService = $sql->query("SELECT * FROM `orders` WHERE `code` = '$code_base'")->fetch_assoc();
     if ($getService['type'] == 'marzban') {
@@ -623,16 +632,17 @@ if ($data == 'join') {
                 $online_status_message = "$online_status $last_online";
             } else {
                 $online_status_message = "⚠️ عدم وجود اطلاعات";
-            }
+            };
 
 
-            $manage_service_btns = json_encode(['inline_keyboard' => [
-                // [['text' => 'تنظیمات دسترسی', 'callback_data' => 'access_settings-'.$code.'-marzban']],
-                // [['text' => 'خرید حجم اضافه', 'callback_data' => 'buy_extra_volume-' . $code_base . '-marzban'], ['text' => 'افزایش اعتبار زمانی', 'callback_data' => 'buy_extra_time-' . $code_base . '-marzban']],
-                // [['text' => 'نوشتن یادداشت', 'callback_data' => 'write_note-' . $code_base . '-marzban'], ['text' => 'دریافت QrCode', 'callback_data' => 'getQrCode-' . $code_base . '-marzban']],
-                [['text' => 'دریافت QrCode', 'callback_data' => 'getQrCode-' . $code_base . '-marzban']],
-                [['text' => '🔙 بازگشت', 'callback_data' => 'back_all_services']]
-            ]]);
+            $manage_service_btns = json_encode(
+                [
+                    'inline_keyboard' => [
+                        [['text' => 'دریافت QrCode', 'callback_data' => 'getQrCode-' . $code_base . '-marzban']],
+                        [['text' => '🔙 بازگشت', 'callback_data' => $callback_parts[2]]]
+                    ]
+                ]
+            );
 
 
             // $_config_used_traffic = intval($getUser['used_traffic']) / 1024 /1024;
@@ -660,11 +670,8 @@ if ($data == 'join') {
             $link = $order['link'];
 
             $manage_service_btns = json_encode(['inline_keyboard' => [
-                // [['text' => 'تنظیمات دسترسی', 'callback_data' => 'access_settings-'.$code.'-sanayi']],
-                // [['text' => 'خرید حجم اضافه', 'callback_data' => 'buy_extra_volume-' . $code . '-sanayi'], ['text' => 'افزایش اعتبار زمانی', 'callback_data' => 'buy_extra_time-' . $code . '-sanayi']],
-                // [['text' => 'نوشتن یادداشت', 'callback_data' => 'write_note-' . $code . '-sanayi'], ['text' => 'دریافت QrCode', 'callback_data' => 'getQrCode-' . $code . '-sanayi']],
                 [['text' => 'دریافت QrCode', 'callback_data' => 'getQrCode-' . $code . '-sanayi']],
-                [['text' => '🔙 بازگشت', 'callback_data' => 'back_all_services']]
+                [['text' => '🔙 بازگشت', 'callback_data' => $callback_parts[2]]]
             ]]);
 
             if ($note->num_rows == 0) {
