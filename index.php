@@ -485,7 +485,6 @@ if ($data == 'join') {
         sendMessage($from_id, $texts['service_search_retry'], json_encode(['inline_keyboard' => $key]));
         step('search-service');
     }
-    step('search-service');
 } elseif (in_array($data, array('back_all_services', 'all_services'))) {
     $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'");
     if ($services->num_rows > 0) {
