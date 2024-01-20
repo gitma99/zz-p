@@ -49,12 +49,6 @@ if ($text == $texts['back_to_menu_button']) {
     step('none');
     sendMessage($from_id, $texts['back_to_menu'], $start_key);
     exit(0);
-} elseif ($data == 'back_to_home') {
-    sendMessage($from_id, "fname : $first_name");
-    step('none');
-    deleteMessage($from_id, $message_id);
-    sendMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $start_key);
-    exit(0);
 } elseif ($text == $texts['back_to_bot_management_button']) {
     step('panel');
     sendMessage($from_id, "👮‍♂️ - سلام ادمین [ <b>$first_name</b> ] عزیز !\n\n⚡️به پنل مدیریت ربات خوش آمدید.\n🗃 ورژن فعلی ربات : <code>{$config['version']}</code>\n\n⚙️ جهت مدیریت ربات ، یکی از گزینه های زیر را انتخاب کنید.", $bot_management_keyboard);
@@ -78,7 +72,7 @@ if ($data == 'join') {
     joinSend($from_id);
 } elseif ($user['status'] == 'inactive' and $from_id != $config['dev']) {
     sendMessage($from_id, $texts['block']);
-} elseif ($text == '/start' or $text == '🔙 بازگشت' or $text == '/back') {
+} elseif ($text == '/start' or $text == '🔙 بازگشت' or $text == '/back' or $data == 'back_to_home') {
     step('none');
     sendMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $start_key);
 } elseif ($text == '❌  انصراف' and $user['step'] == 'confirm_service') {
@@ -521,7 +515,7 @@ if ($data == 'join') {
                 $status = '🔴';
             } else {
                 $status = '❌';
-            }
+            };
             $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code'] . "-back_all_services"];
         }
         $all_service_keys = array_chunk($key, 1);
@@ -649,6 +643,7 @@ if ($data == 'join') {
                 $online_status_message = "⚠️ عدم وجود اطلاعات";
             };
 
+            sendMessage($from_id, "nowString : $callback_parts[2]");
 
             $manage_service_btns = json_encode(
                 ['inline_keyboard' => [
