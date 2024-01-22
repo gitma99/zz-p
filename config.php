@@ -1,5 +1,4 @@
 <?php
-$debug = false;
 date_default_timezone_set('Asia/Tehran');
 error_reporting(E_ALL ^ E_NOTICE);
 
@@ -490,7 +489,6 @@ function getUserInfo($sevice_name, $token, $url)
         'Authorization: Bearer ' . $token,
 
     );
-    global $debug, $from_id;
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $api_url);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
@@ -500,10 +498,6 @@ function getUserInfo($sevice_name, $token, $url)
     curl_setopt($ch, CURLOPT_HTTPHEADER, $req_headers);
     $response = json_decode(curl_exec($ch), true);
     curl_close($ch);
-    if ($debug === true) {
-        $debug_msg = json_encode($response, 448);
-        sendMessage($from_id, "getUserInfo result :\n$debug_msg");
-    };
     return $response;
 }
 

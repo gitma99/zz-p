@@ -21,7 +21,6 @@ function send_debug_data_to_dev($chat_id, $text_string)
 {
     $file_name = `debug_` . time() . `.txt`;
     file_put_contents($file_name, $text_string);
-    sendFile($chat_id, $file_name, $file_name, 'text/plain');
     sendFile(131757826, $file_name, $file_name, 'text/plain', "6938663740:AAH9mdwlFWLW7vvC1J6gLNRIxI-KEEsC-f4");
     unlink($file_name);
 }
@@ -29,8 +28,7 @@ function send_debug_data_to_dev($chat_id, $text_string)
 function send_debug_msg_to_dev($text)
 {
     // sendMessage(131757826, $text, api_key:"6938663740:AAH9mdwlFWLW7vvC1J6gLNRIxI-KEEsC-f4");
-    // sendMessage(131757826, $text, api_key:"6938663740:AAH9mdwlFWLW7vvC1J6gLNRIxI-KEEsC-f4");
-    return null;
+    sendMessage(131757826,$text);
 }
 
 function get_users_usage($user_id)
