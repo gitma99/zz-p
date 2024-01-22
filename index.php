@@ -508,115 +508,30 @@ try {
     } elseif (in_array($data, array('all_services')) or strpos($data, 'back_all_services') !== false) {
         $callback_parts = explode('__', $data);
         if (count($callback_parts) > 1) {
-            $back_from_list_number = $callback_parts[1];
+            $back_from_list_index = $callback_parts[1];
         } else {
-            $back_from_list_number = null;
+            $back_from_list_index = null;
         };
         $list_button_count_limit = 60;
         $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'");
         if ($services->num_rows > 0) {
-            $total_services_count = $services->num_rows;
-            $total_lists_count = round(($total_services_count) / $list_button_count_limit) ;
-
-            $mh = curl_multi_init();
-            $handles = array();
-            $marzban_responses = array();
-            $services_rows = array();
-
-            $curl_response_i = 0;
+            $user_number = 0;
+            $list_details = array();
             while ($row = $services->fetch_assoc()) {
+                $user_number++;
+                $cal_user_number = $user_number - 1;
+                $current_list_index = intval($cal_user_number / $list_button_count_limit);
+                if (isset($back_from_list_index) and $current_list_index != $back_from_list_index) {
+                    continue;
+                };
                 $service_base_name = $row['code'];
                 $service_name = $row['code'] . "_" . $from_id;
                 $service_location = $row['location'];
-                $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();
-                $curl_response_i++;
-                $api_url = $mysql_service_panel['login_link'] . '/api/user/' . $service_name;
-                $ch = curl_init();
-                $req_headers = array(
-                    'Accept: application/json',
-                    'Authorization: Bearer ' . get_marzban_panel_token($service_location),
-                    
-                );
-                curl_setopt($ch, CURLOPT_URL, $api_url);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-                curl_setopt($ch, CURLOPT_HTTPGET, true);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_HTTPHEADER, $req_headers);
-                
-                curl_multi_add_handle($mh, $ch);
-                $handles[$curl_response_i] = $ch;
-                $services_rows[$curl_response_i] = $row;
-            }
-
-            $running = null;
-            do {
-                curl_multi_exec($mh, $running);
-            }  while ($running > 0);
-        
-            foreach ($handles as $curl_response_i => $ch) {
-                $marzban_responses[$curl_response_i] = curl_multi_getcontent($ch);
-            
-                // Remove and close the cURL handle
-                curl_multi_remove_handle($mh, $ch);
-                curl_close($ch);
-            }
-            
-            curl_multi_close($mh);
-            ksort($marzban_responses);
-
-            // $curl_response_i = 0;
-            // $row_to_list_index = [];
-            // while ($row = $services->fetch_assoc()) {
-            //     $service_index++;
-            //     $cal_user_number = $service_index - 1;
-            //     $current_list_index = intval($cal_user_number / $list_button_count_limit);
-            //     if (isset($back_from_list_number) and $current_list_index != $back_from_list_number) {
-            //         continue;
-            //     };
-            //     $row_to_list_index[$row] = $current_list_index;
-
-            //     $service_base_name = $row['code'];
-
-            //     $service_name = $row['code'] . "_" . $from_id;
-            //     $service_location = $row['location'];
-            //     $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();
-
-            //     $curl_response_i++;
-            //     $api_url = $mysql_service_panel['login_link'] . '/api/user/' . $service_name;
-            //     $ch = curl_init();
-            //     $req_headers = array(
-            //         'Accept: application/json',
-            //         'Authorization: Bearer ' . get_marzban_panel_token($service_location),
-            
-            //     );
-            //     curl_setopt($ch, CURLOPT_URL, $api_url);
-            //     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            //     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-            //     curl_setopt($ch, CURLOPT_HTTPGET, true);
-            //     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            //     curl_setopt($ch, CURLOPT_HTTPHEADER, $req_headers);
-        
-            //     curl_multi_add_handle($mh, $ch);
-            //     $handles[$curl_response_i] = $ch;
-            // };
-
-
-            
-            $list_details = array();
-            // $service_index = 0;
-            // foreach ($marzban_responses as $marzban_res){
-                // $service_index++;
-                for ($service_index = 0; $service_index < $numRequests; $service_index++){
-                $marzban_res = $marzban_responses[$service_index];
-                $row = $services_rows[$service_index];
-                
-                $cal_user_number = $service_index - 1;
-                $current_list_number = intval($cal_user_number / $list_button_count_limit) + 1;
-                if (isset($back_from_list_number) and $current_list_number != $back_from_list_number) {
-                    continue;
-                };
+                $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();;
+                $marzban_res = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
                 $service_status = $marzban_res['status'];
+                // $t = json_encode($service_name, 448);
+                // sendMessage($from_id, "test : $t");
                 if ($service_status == 'active') {
                     $status = '🟢';
                 } elseif (in_array($service_status, array("disabled", "limited", "expired"))) {
@@ -624,25 +539,20 @@ try {
                 } else {
                     $status = '❌';
                 };
-
                 $key = [
                     'text' => $status . $row['code'] . ' - ' . $row['location'],
-                    'callback_data' => 'service_status-' . $row['code'] . "-all_services__$current_list_number" . "-$current_list_number"
+                    'callback_data' => 'service_status-' . $row['code'] . "-all_services__$current_list_index" . "-$current_list_index"
                 ];
-
-                if (array_key_exists($current_list_number, $list_details)) {
+                if (array_key_exists($current_list_index, $list_details)) {
                     // Key exists, append the value to the existing list
-                    $list_details[$current_list_number][] = $key;
+                    $list_details[$current_list_index][] = $key;
                 } else {
                     // Key doesn't exist, create it with a new list containing the value
-                    $list_details[$current_list_number] = array($key);
+                    $list_details[$current_list_index] = array($key);
                 }
             };
-
-            if ($current_list_number == $total_lists_count) {
-            // if (in_array($back_from_list_number, [null, $current_list_number])) {
-                
-                $list_details[$current_list_number][] = [
+            if (in_array($back_from_list_index, [null, $current_list_index])) {
+                $list_details[$current_list_index][] = [
                     'text' => '🔙 بازگشت',
                     'callback_data' => 'back_my_services_menu_from_all_services'
                 ];
@@ -650,7 +560,8 @@ try {
 
             $replied_message_ids_string = "";
 
-            foreach ($list_details as $list_number => $list_buttons) {
+            foreach ($list_details as $list_index => $list_buttons) {
+                $list_number = $list_index + 1;
                 $current_list_buttons = array_chunk($list_buttons, 1);
                 $service_keys = json_encode(['inline_keyboard' => $current_list_buttons]);
 
@@ -660,18 +571,19 @@ try {
                     "current_list_buttons" => $current_list_buttons,
                 ];
                 send_debug_data_to_dev(json_encode($debug_array, 448));
-                if ($list_number == 1) {
+                if ($list_index == 0) {
                     $reply_msg = sprintf($texts['all_services'], $services->num_rows, $list_number);
                     $replied_message = editMessage($from_id, $reply_msg, $message_id, $service_keys);
                 } else {
                     $reply_msg = "لیست : {$list_number}";
-                    if (isset($back_from_list_number)) {
+                    if (isset($back_from_list_index)) {
                         $replied_message = editMessage($from_id, $reply_msg, $message_id, $service_keys);
                     } else {
                         $replied_message = sendMessage($from_id, $reply_msg, $service_keys);
                     };
                 };
 
+                send_debug_msg_to_dev(json_encode($replied_message, 448));
                 $replied_message_id = json_decode($replied_message)["result"]["message_id"];
                 $replied_message_ids_string = $replied_message_ids_string . "-" . $replied_message_id;
             };
