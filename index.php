@@ -558,6 +558,7 @@ try {
                     $reply_msg = "لیست : {$list_number}";
                     $replied_message = sendMessage($from_id, $reply_msg, $service_keys);
                 }
+                send_debug_msg_to_dev(json_encode($replied_message, 448));
                 $replied_message_id = $replied_message["result"]["message_id"];
                 $replied_message_ids_string = $replied_message_ids_string . "-" . $replied_message_id;
             };
