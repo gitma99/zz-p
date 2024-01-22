@@ -17,7 +17,7 @@ $my_texts = $texts;
 // exit();
 $BOT_CONFIG = json_decode(file_get_contents("bot_config.json"), true);
 
-function send_debug_data_to_dev($chat_id, $text_string)
+function send_debug_data_to_dev($text_string)
 {
     $file_name = `debug_` . time() . `.txt`;
     file_put_contents($file_name, $text_string);
