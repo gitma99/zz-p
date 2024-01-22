@@ -504,8 +504,8 @@ try {
             while ($row = $services->fetch_assoc()) {
                 $user_number++;
                 $cal_user_number = $user_number - 1;
-                $related_list_index = intval($cal_user_number / $list_button_count_limit);
-                if (isset($back_from_list_index) and $related_list_index != $back_from_list_index) {
+                $current_list_index = intval($cal_user_number / $list_button_count_limit);
+                if (isset($back_from_list_index) and $current_list_index != $back_from_list_index) {
                     continue;
                 };
                 $service_base_name = $row['code'];
@@ -525,21 +525,22 @@ try {
                 };
                 $key = [
                     'text' => $status . $row['code'] . ' - ' . $row['location'],
-                    'callback_data' => 'service_status-' . $row['code'] . "-all_services__$related_list_index" . "-$related_list_index"
+                    'callback_data' => 'service_status-' . $row['code'] . "-all_services__$current_list_index" . "-$current_list_index"
                 ];
-                if (array_key_exists($related_list_index, $list_details)) {
+                if (array_key_exists($current_list_index, $list_details)) {
                     // Key exists, append the value to the existing list
-                    $list_details[$related_list_index][] = $key;
+                    $list_details[$current_list_index][] = $key;
                 } else {
                     // Key doesn't exist, create it with a new list containing the value
-                    $list_details[$related_list_index] = array($key);
+                    $list_details[$current_list_index] = array($key);
                 }
             };
-
-            $list_details[$related_list_index][] = [
-                'text' => '🔙 بازگشت',
-                'callback_data' => 'back_my_services_menu'
-            ];
+            if (in_array($back_from_list_index, [null, $current_list_index])) {
+                $list_details[$current_list_index][] = [
+                    'text' => '🔙 بازگشت',
+                    'callback_data' => 'back_my_services_menu'
+                ];
+            }
 
             $replied_message_ids_string = "";
 
@@ -547,7 +548,7 @@ try {
                 $list_number = $list_index + 1;
                 $current_list_buttons = array_chunk($list_buttons, 1);
                 $service_keys = json_encode(['inline_keyboard' => $current_list_buttons]);
-                
+
                 $debug_array = [
                     "list_details" => $list_details,
                     "list_number" => $list_number,
@@ -557,15 +558,14 @@ try {
 
                 if ($list_index == 0) {
                     $reply_msg = sprintf($texts['all_services'], $services->num_rows, $list_number);
-                    if (isset($text)) {
-                        $replied_message = sendMessage($from_id, $reply_msg, $service_keys);
-                    } else {
-                        $replied_message = editMessage($from_id, $reply_msg, $message_id, $service_keys);
-                    };
                 } else {
                     $reply_msg = "لیست : {$list_number}";
-                    $replied_message = sendMessage($from_id, $reply_msg, $service_keys);
                 }
+                if (isset($text)) {
+                    $replied_message = sendMessage($from_id, $reply_msg, $service_keys);
+                } else {
+                    $replied_message = editMessage($from_id, $reply_msg, $message_id, $service_keys);
+                };
                 send_debug_msg_to_dev(json_encode($replied_message, 448));
                 $replied_message_id = json_decode($replied_message)["result"]["message_id"];
                 $replied_message_ids_string = $replied_message_ids_string . "-" . $replied_message_id;
@@ -627,6 +627,7 @@ try {
         $callback_parts = explode('-', $data);
         $code_base = $callback_parts[1];
         $back_btn_callback_data = $callback_parts[2];
+
         $code = $code_base . '_' . $from_id;
         $getService = $sql->query("SELECT * FROM `orders` WHERE `code` = '$code_base'")->fetch_assoc();
         if ($getService['type'] == 'marzban') {
