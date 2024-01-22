@@ -503,7 +503,8 @@ try {
             $list_details = array();
             while ($row = $services->fetch_assoc()) {
                 $user_number++;
-                $related_list_index = intval($user_number - 1 / $list_button_count_limit);
+                $cal_user_number = $user_number - 1;
+                $related_list_index = intval($cal_user_number / $list_button_count_limit);
                 if (isset($back_from_list_index) and $related_list_index != $back_from_list_index) {
                     continue;
                 };
