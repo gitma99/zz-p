@@ -555,17 +555,18 @@ try {
                     "current_list_buttons" => $current_list_buttons,
                 ];
                 send_debug_data_to_dev(json_encode($debug_array, 448));
-
                 if ($list_index == 0) {
                     $reply_msg = sprintf($texts['all_services'], $services->num_rows, $list_number);
+                    $replied_message = editMessage($from_id, $reply_msg, $message_id, $service_keys);
                 } else {
                     $reply_msg = "لیست : {$list_number}";
-                }
-                if (isset($text)) {
-                    $replied_message = sendMessage($from_id, $reply_msg, $service_keys);
-                } else {
-                    $replied_message = editMessage($from_id, $reply_msg, $message_id, $service_keys);
+                    if (isset($back_from_list_index)){
+                        $replied_message = editMessage($from_id, $reply_msg, $message_id, $service_keys);
+                    } else {
+                        $replied_message = sendMessage($from_id, $reply_msg, $service_keys);
+                    };
                 };
+
                 send_debug_msg_to_dev(json_encode($replied_message, 448));
                 $replied_message_id = json_decode($replied_message)["result"]["message_id"];
                 $replied_message_ids_string = $replied_message_ids_string . "-" . $replied_message_id;
