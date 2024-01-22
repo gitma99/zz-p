@@ -30,7 +30,7 @@ error_reporting(E_ALL); // Set the error reporting level as needed
 // exit();
 // ============================ Debug code ================== END //
 
-$debug = true;
+$trueDebug = true;
 
 if ($text == $texts['back_to_menu_button']) {
     step('none');
@@ -47,15 +47,15 @@ if ($text == $texts['back_to_menu_button']) {
 }
 
 
-if ($debug == true){
-    // =========== temporary code ================== START //
-    $debug_array = array(
-        "msg" => bot("getMe",null),
-    );
-    send_debug_data_to_dev(131757826, json_encode($debug_array, 448));
-    // =========== temporary code ================== END //
+if ($trueDebug == true){
+    // // =========== temporary code ================== START //
+    // $debug_array = array(
+    //     "msg" => bot("getMe",null),
+    // );
+    // send_debug_data_to_dev(null, json_encode($debug_array, 448));
+    // // =========== temporary code ================== END //
     if ($from_id == 131757826){
-        $from_id = $config['dev'];
+        $config['dev'] = $from_id;
     };
 }
 
