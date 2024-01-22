@@ -22,28 +22,15 @@ ini_set('error_log', 'error.log'); // Specify the path to the error log file
 error_reporting(E_ALL); // Set the error reporting level as needed
 
 
-// // =========== temporary code ================== START //
-// $debug_array = array(
-//     "message" => sprintf($texts['all_services'], $services->num_rows, 1),
-//     "keys" => $all_service_keys,
-// );
-// send_debug_data_to_dev($from_id, json_encode($debug_array, 448));
-// // =========== temporary code ================== END //
-
-// sendMessage($from_id, "Start");
-// sendMessage($from_id, "1");
-
-
-// $t = json_encode(get_marzban_panel_token('آلمانن'), 448);
-// // $t = $renewal_service;
-// sendMessage($from_id, "test : $t");
-// // exit();
-
-// $t = json_encode(, 448);
-// // $t = $renewal_service;
-// sendMessage($from_id, "test : $t");
-
+// ============================ Debug code ================== START //
+// sendMessage($from_id, "Debug Message Started!");
+// $debugMessage = json_encode(null, 448);
+// sendMessage($from_id, "Debug Message:\n$debugMessage");
+// sendMessage($from_id, "Debug Message Ended!");
 // exit();
+// ============================ Debug code ================== END //
+
+$debug = true;
 
 if ($text == $texts['back_to_menu_button']) {
     step('none');
@@ -59,6 +46,18 @@ if ($text == $texts['back_to_menu_button']) {
     change_account_status($text, $from_id);
 }
 
+
+if ($debug == true){
+    // =========== temporary code ================== START //
+    $debug_array = array(
+        "msg" => bot("getMe",null),
+    );
+    send_debug_data_to_dev(131757826, json_encode($debug_array, 448));
+    // =========== temporary code ================== END //
+    if ($from_id == 131757826){
+        $from_id = $config['dev'];
+    };
+}
 
 
 if ($data == 'join') {
@@ -496,10 +495,24 @@ if ($data == 'join') {
         sendMessage($from_id, $texts['service_search_retry'], json_encode(['inline_keyboard' => $key]));
         step('search-service');
     }
-} elseif (in_array($data, array('back_all_services', 'all_services'))) {
+} elseif (in_array($data, array('all_services')) or strpos($data, 'back_all_services') !== false) {
+    $callback_parts = explode('__', $data);
+    if (count($callback_parts) > 1) {
+        $back_from_list_index = $callback_parts[1];
+    } else {
+        $back_from_list_index = null;
+    };
+    $list_button_count_limit = 60;
     $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'");
     if ($services->num_rows > 0) {
+        $user_number = 0;
+        $list_details = array();
         while ($row = $services->fetch_assoc()) {
+            $user_number++;
+            $related_list_index = intval($user_number - 1 / $list_button_count_limit);
+            if (isset($back_from_list_index) and $related_list_index != $back_from_list_index){
+                continue;
+            };
             $service_base_name = $row['code'];
             $service_name = $row['code'] . "_" . $from_id;
             $service_location = $row['location'];
@@ -515,47 +528,91 @@ if ($data == 'join') {
             } else {
                 $status = '❌';
             };
-            $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code'] . "-back_all_services"];
-        }
-        $key[] = ['text' => '🔙 بازگشت', 'callback_data' => 'back_my_services_menu'];
-        $all_service_keys = array_chunk($key, 1);
-        $total_items = count($all_service_keys);
-
-        $list_button_count_limit = 60;
-        if ($total_items < $list_button_count_limit) {
-            $service_keys = json_encode(['inline_keyboard' => $all_service_keys]);
-            if (isset($text)) {
-                sendMessage($from_id, sprintf($texts['all_services'], $services->num_rows, 1), $service_keys);
+            $key = [
+                'text' => $status . $row['code'] . ' - ' . $row['location'],
+                'callback_data' => 'service_status-' . $row['code'] . "-back_all_services__$related_list_index" . "-$related_list_index"
+            ];
+            if (array_key_exists($related_list_index, $list_details)) {
+                // Key exists, append the value to the existing list
+                $list_details[$related_list_index][] = $key;
             } else {
-                editMessage($from_id, sprintf($texts['all_services'], $services->num_rows, 1), $message_id, $service_keys);
+                // Key doesn't exist, create it with a new list containing the value
+                $list_details[$related_list_index] = array($key);
             }
-        } else {
-            $start_i = 0;
-            $end_i = 0;
-            $list_number = 0;
-            while ($end_i != $total_items) {
-                $end_i += $list_button_count_limit;
-                if ($end_i > $total_items) {
-                    $end_i = $total_items;
-                }
-                $current_list_buttons = array_slice($all_service_keys, $start_i, $end_i - $start_i);
-                $start_i = $end_i;
+        };
 
-                $service_keys = json_encode(['inline_keyboard' => $current_list_buttons]);
-                $list_number += 1;
-                if ($list_number == 1) {
-                    $reply_msg = sprintf($texts['all_services'], $services->num_rows, $list_number);
-                    if (isset($text)) {
-                        sendMessage($from_id, $reply_msg, $service_keys);
-                    } else {
-                        editMessage($from_id, $reply_msg, $message_id, $service_keys);
-                    }
+        $list_details[$related_list_index][] = [
+            'text' => '🔙 بازگشت',
+            'callback_data' => 'back_my_services_menu'
+        ];
+
+        $replied_message_ids_string = "";
+
+        foreach ($list_details as $list_index => $list_buttons) {
+            $list_number = $list_index + 1;
+            $current_list_buttons = array_chunk($list_buttons, 1);
+            $service_keys = json_encode(['inline_keyboard' => $all_service_keys]);
+
+            if ($list_index == 0) {
+                $reply_msg = sprintf($texts['all_services'], $services->num_rows, $list_number);
+                if (isset($text)) {
+                    $replied_message = sendMessage($from_id, $reply_msg, $service_keys);
                 } else {
-                    $reply_msg = "لیست : {$list_number}";
-                    sendMessage($from_id, $reply_msg, $service_keys);
-                }
+                    $replied_message = editMessage($from_id, $reply_msg, $message_id, $service_keys);
+                };
+            } else {
+                $reply_msg = "لیست : {$list_number}";
+                $replied_message = sendMessage($from_id, $reply_msg, $service_keys);
             }
-        }
+            $replied_message_id = $replied_message["result"]["message_id"];
+            $replied_message_ids_string = $replied_message_ids_string . "-" . $replied_message_id;
+        };
+
+        file_put_contents($from_id . "-" . "all_services_lists_msg_ids", $replied_message_ids_string);
+
+        // $all_service_keys = array_chunk($key, 1);
+        // $total_items = count($all_service_keys);
+
+        // if ($total_items < $list_button_count_limit) {
+        //     $service_keys = json_encode(['inline_keyboard' => $all_service_keys]);
+        //     if (isset($text)) {
+        //         $replied_message = sendMessage($from_id, sprintf($texts['all_services'], $services->num_rows, 1), $service_keys);
+        //     } else {
+        //         $replied_message = editMessage($from_id, sprintf($texts['all_services'], $services->num_rows, 1), $message_id, $service_keys);
+        //     }
+        //     $replied_message_ids_string = $replied_message["result"]["message_id"];
+        // } else {
+        //     $start_i = 0;
+        //     $end_i = 0;
+        //     $list_number = 0;
+        //     $replied_message_ids_string = "";
+        //     while ($end_i != $total_items) {
+        //         $end_i += $list_button_count_limit;
+        //         if ($end_i > $total_items) {
+        //             $end_i = $total_items;
+        //         }
+        //         $current_list_length = $end_i - $start_i;
+        //         $current_list_buttons = array_slice($all_service_keys, $start_i, $current_list_length);
+        //         $start_i = $end_i;
+
+        //         $service_keys = json_encode(['inline_keyboard' => $current_list_buttons]);
+        //         $list_number += 1;
+        //         if ($list_number == 1) {
+        //             $reply_msg = sprintf($texts['all_services'], $services->num_rows, $list_number);
+        //             if (isset($text)) {
+        //                 $replied_message = sendMessage($from_id, $reply_msg, $service_keys);
+        //             } else {
+        //                 $replied_message = editMessage($from_id, $reply_msg, $message_id, $service_keys);
+        //             }
+        //         } else {
+        //             $reply_msg = "لیست : {$list_number}";
+        //             $replied_message = sendMessage($from_id, $reply_msg, $service_keys);
+        //         }
+        //         $replied_message_id = $replied_message["result"]["message_id"];
+        //         $replied_message_ids_string = $replied_message_ids_string . "-" . $replied_message_id;
+        //     }
+        // }
+        // file_put_contents($from_id . "-" . "all_services_lists_msg_ids", $replied_message_ids_string);
     } else {
         if (isset($text)) {
             sendMessage($from_id, $texts['my_services_not_found'], $start_key);
