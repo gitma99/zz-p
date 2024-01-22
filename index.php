@@ -546,7 +546,13 @@ try {
                 $list_number = $list_index + 1;
                 $current_list_buttons = array_chunk($list_buttons, 1);
                 $service_keys = json_encode(['inline_keyboard' => $current_list_buttons]);
-                send_debug_msg_to_dev(json_encode($service_keys, 448));
+                
+                $debug_array = [
+                    "list_details" => $list_details,
+                    "list_number" => $list_number,
+                    "current_list_buttons" => $current_list_buttons,
+                ];
+                send_debug_data_to_dev(json_encode($debug_array, 448));
 
                 if ($list_index == 0) {
                     $reply_msg = sprintf($texts['all_services'], $services->num_rows, $list_number);
@@ -560,7 +566,7 @@ try {
                     $replied_message = sendMessage($from_id, $reply_msg, $service_keys);
                 }
                 send_debug_msg_to_dev(json_encode($replied_message, 448));
-                $replied_message_id = $replied_message["result"]["message_id"];
+                $replied_message_id = json_decode($replied_message)["result"]["message_id"];
                 $replied_message_ids_string = $replied_message_ids_string . "-" . $replied_message_id;
             };
 
