@@ -68,9 +68,13 @@ try {
         joinSend($from_id);
     } elseif ($user['status'] == 'inactive' and $from_id != $config['dev']) {
         sendMessage($from_id, $texts['block']);
-    } elseif ($text == '/start' or $text == '🔙 بازگشت' or $text == '/back' or $data == 'back_to_home') {
+    } elseif ($text == '/start' or $text == '🔙 بازگشت' or $text == '/back') {
         step('none');
         sendMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $start_key);
+    } elseif ($data == 'back_to_home') {
+        step('none');
+        sendMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $start_key);
+        deleteMessage($from_id, $message_id);
     } elseif ($text == '❌  انصراف' and $user['step'] == 'confirm_service') {
         step('none');
         foreach ([$from_id . '-location.txt', $from_id . '-protocol.txt'] as $file) if (file_exists($file)) unlink($file);
@@ -411,7 +415,7 @@ try {
         } else {
             sendMessage($from_id, $texts['already_test_account'], $start_key);
         }
-    } elseif ($text == '🛍 سرویس های من' or in_array($data, array('back_my_services_menu'))) {
+    } elseif ($text == '🛍 سرویس های من' or in_array($data, array('back_my_services_menu', 'back_my_services_menu_from_all_services'))) {
         step('none');
         $key = [
             [
@@ -435,6 +439,18 @@ try {
             sendMessage($from_id, $texts['my_services'], json_encode(['inline_keyboard' => $key]));
         } else {
             editMessage($from_id, $texts['my_services'], $message_id,  json_encode(['inline_keyboard' => $key]));
+            if ($data == 'back_my_services_menu_from_all_services') {
+                $file_name = $from_id . "-" . "all_services_lists_msg_ids";
+                $remaining_service_lists_msg_ids_string = file_get_contents($file_name);
+                $remaining_service_lists_msg_ids = explode('-', $remaining_service_lists_msg_ids_string);
+                if (($key = array_search($message_id, $remaining_service_lists_msg_ids)) !== false) {
+                    unset($remaining_service_lists_msg_ids[$key]);
+                }
+                foreach ($remaining_service_lists_msg_ids as $service_list_msg_id) {
+                    deleteMessage($from_id, $service_list_msg_id);
+                };
+                unlink($file_name);
+            }
         }
     } elseif (in_array($data, array('search_service'))) {
         $key = [
@@ -538,7 +554,7 @@ try {
             if (in_array($back_from_list_index, [null, $current_list_index])) {
                 $list_details[$current_list_index][] = [
                     'text' => '🔙 بازگشت',
-                    'callback_data' => 'back_my_services_menu'
+                    'callback_data' => 'back_my_services_menu_from_all_services'
                 ];
             }
 
@@ -560,7 +576,7 @@ try {
                     $replied_message = editMessage($from_id, $reply_msg, $message_id, $service_keys);
                 } else {
                     $reply_msg = "لیست : {$list_number}";
-                    if (isset($back_from_list_index)){
+                    if (isset($back_from_list_index)) {
                         $replied_message = editMessage($from_id, $reply_msg, $message_id, $service_keys);
                     } else {
                         $replied_message = sendMessage($from_id, $reply_msg, $service_keys);
