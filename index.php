@@ -545,7 +545,8 @@ try {
             foreach ($list_details as $list_index => $list_buttons) {
                 $list_number = $list_index + 1;
                 $current_list_buttons = array_chunk($list_buttons, 1);
-                $service_keys = json_encode(['inline_keyboard' => $all_service_keys]);
+                $service_keys = json_encode(['inline_keyboard' => $current_list_buttons]);
+                send_debug_msg_to_dev(json_encode($service_keys, 448));
 
                 if ($list_index == 0) {
                     $reply_msg = sprintf($texts['all_services'], $services->num_rows, $list_number);
