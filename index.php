@@ -471,7 +471,7 @@ try {
                 } else {
                     $status = '❌';
                 }
-                $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code'] . "-back_my_services_menu"];
+                $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code'] . "-my_services_menu"];
             }
             $found_services_keys = array_chunk($key, 1);
             $found_services_keyboard = json_encode(['inline_keyboard' => $found_services_keys]);
@@ -525,7 +525,7 @@ try {
                 };
                 $key = [
                     'text' => $status . $row['code'] . ' - ' . $row['location'],
-                    'callback_data' => 'service_status-' . $row['code'] . "-back_all_services__$related_list_index" . "-$related_list_index"
+                    'callback_data' => 'service_status-' . $row['code'] . "-all_services__$related_list_index" . "-$related_list_index"
                 ];
                 if (array_key_exists($related_list_index, $list_details)) {
                     // Key exists, append the value to the existing list
@@ -626,6 +626,7 @@ try {
     } elseif (strpos($data, 'service_status-') !== false) {
         $callback_parts = explode('-', $data);
         $code_base = $callback_parts[1];
+        $back_btn_callback_data = $callback_parts[2];
         $code = $code_base . '_' . $from_id;
         $getService = $sql->query("SELECT * FROM `orders` WHERE `code` = '$code_base'")->fetch_assoc();
         if ($getService['type'] == 'marzban') {
@@ -699,7 +700,7 @@ try {
                 $manage_service_btns = json_encode(
                     ['inline_keyboard' => [
                         [['text' => 'دریافت QrCode', 'callback_data' => 'getQrCode-' . $code_base . '-marzban']],
-                        [['text' => '🔙 بازگشت', 'callback_data' => $callback_parts[2]]]
+                        [['text' => '🔙 بازگشت', 'callback_data' => "back_$back_btn_callback_data"]]
                     ]]
                 );
 
