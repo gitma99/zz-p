@@ -74,7 +74,7 @@ send_backup(){
         fi
     else
         echo -e "\n"
-        colorized_echo red "The ZanborPanelBot folder was not found for the backup process, install the bot first!"
+        colorized_echo red "The BotPanel folder was not found for the backup process, install the bot first!"
         echo -e "\n"
         exit 1
     fi

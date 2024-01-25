@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# Written By: ZanborPanel
-# Channel: @ZanborPanel
-# Group: @ZanborPanelGap
-
 GITHUB_REPO_ADDRESS='https://github.com/gitma99/zz-p.git'
 CONFIG_JSON='/var/www/html/ZanborPanelBot/bot_config.json'
 
@@ -100,15 +96,14 @@ do
 
                             curl --location "https://${domain}/ZanborPanelBot/sql/sql.php?db_password=${db_password}&db_name=${db_name}&db_username=${db_username}"
                             echo -e "\n"
-                            TEXT_MESSAGE="✅ ربات شما با موفقیت به آخرین نسخه آپدیت شد."$'\n\n'"#️⃣ اطلاعات ربات :"$'\n\n'"▫️token: <code>${token}</code>"$'\n'"▫️admin: <code>${dev}</code> "$'\n'"▫️domain: <code>${domain}</code>"$'\n'"▫️db_name: <code>${db_name}</code>"$'\n'"▫️db_username: <code>${db_username}</code>"$'\n'"▫️db_password: <code>${db_password}</code>"$'\n\n'"🔎 - @ZanborPanel | @ZanborPanelGap"
+                            TEXT_MESSAGE="✅ ربات شما با موفقیت به آخرین نسخه آپدیت شد."$'\n\n'"#️⃣ اطلاعات ربات :"$'\n\n'"▫️token: <code>${token}</code>"$'\n'"▫️admin: <code>${dev}</code> "$'\n'"▫️domain: <code>${domain}</code>"$'\n'"▫️db_name: <code>${db_name}</code>"$'\n'"▫️db_username: <code>${db_username}</code>"$'\n'"▫️db_password: <code>${db_password}</code>"
                             curl -s -X POST "https://api.telegram.org/bot${token}/sendMessage" -d chat_id="${dev}" -d text="${TEXT_MESSAGE}" -d parse_mode="html"
 
 
                             sleep 2
                             clear
                             echo -e "\n\n"
-                            colorized_echo green "[+] The ZanborPanel Bot Has Been Successfully Updated"
-                            colorized_echo green "[+] Telegram channel: @ZanborPanel || Telegram group: @ZanborPanelGap\n\n"
+                            colorized_echo green "[+] The BotPanel Bot Has Been Successfully Updated"
                             colorized_echo green "Your Bot Information:\n"
                             colorized_echo blue "[+] token: ${token}"
                             colorized_echo blue "[+] admin: ${dev}"
@@ -119,19 +114,19 @@ do
                             echo -e "\n"
                         else
                             echo -e "\n"
-                            colorized_echo red "The zanbor.install file is empty!"
+                            colorized_echo red "The BotPanel.install file is empty!"
                             echo -e "\n"
                             exit 1
                         fi
                     else
                         echo -e "\n"
-                        colorized_echo red "The zanbor.install file was not found and the update process was canceled!"
+                        colorized_echo red "The BotPanel.install file was not found and the update process was canceled!"
                         echo -e "\n"
                         exit 1
                     fi
                 else
                     echo -e "\n"
-                    colorized_echo red "The ZanborPanelBot folder was not found for the update process, install the bot first!"
+                    colorized_echo red "The BotPanel folder was not found for the update process, install the bot first!"
                     echo -e "\n"
                     exit 1
                 fi
@@ -153,17 +148,16 @@ do
 
                     sleep 2
 
-                    TEXT_MESSAGE="❌ The ZanborPanel Bot Has Been Successfully Deleted -> @ZanborPanel | @ZanborPanelGap"
+                    TEXT_MESSAGE="❌ The BotPanel Bot Has Been Successfully Deleted"
                     curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" -d chat_id="${CHAT_ID}" -d text="${TEXT_MESSAGE}"
 
                     sleep 2
                     echo -e "\n"
-                    colorized_echo green "[+] The ZanborPanel Bot Has Been Successfully Deleted"
-                    colorized_echo green "[+] Telegram channel: @ZanborPanel || Telegram group: @ZanborPanelGap"
+                    colorized_echo green "[+] The BotPanel Bot Has Been Successfully Deleted"
                     echo -e "\n"
                 else
                     echo -e "\n"
-                    colorized_echo red "The ZanborPanelBot folder was not found for the update process, install the bot first!"
+                    colorized_echo red "The BotPanel folder was not found for the update process, install the bot first!"
                     echo -e "\n"
                     exit 1
                 fi

@@ -681,15 +681,15 @@ try {
                     $expireDate = new DateTime("@$expireDateTimeStamp", new DateTimeZone('UTC'));
                     $diffLastOnlineDateTillNow = $expireDate->diff($now);
                     if ($diffLastOnlineDateTillNow->y > 0) {
-                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%y سال بعد');
+                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%y سال دیگر');
                     } elseif ($diffLastOnlineDateTillNow->m > 0) {
-                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%m ماه بعد');
+                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%m ماه دیگر');
                     } elseif ($diffLastOnlineDateTillNow->d > 0) {
-                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%d روز بعد');
+                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%d روز دیگر');
                     } elseif ($diffLastOnlineDateTillNow->h > 0) {
-                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%h ساعت و %i دقیقه بعد');
+                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%h ساعت و %i دقیقه دیگر');
                     } elseif ($diffLastOnlineDateTillNow->i > 0) {
-                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%i دقیقه بعد');
+                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%i دقیقه دیگر');
                     } else {
                         $diffLastOnlineDateTillNowString =  "به زودی";
                     };
@@ -1152,17 +1152,17 @@ try {
             step('panel');
             sendMessage($from_id, "👮‍♂️ - سلام ادمین [ <b>$first_name</b> ] عزیز !\n\n⚡️به پنل مدیریت ربات خوش آمدید.\n🗃 ورژن فعلی ربات : <code>{$config['version']}</code>\n\n⚙️ جهت مدیریت ربات ، یکی از گزینه های زیر را انتخاب کنید.", $bot_management_keyboard);
         } elseif ($text == '👥 مدیریت آمار ربات') {
-            sendMessage($from_id, "👋 به مدیریت آمار کلی ربات خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید:\n\n◽️@ZanborPanel", $manage_statistics);
+            sendMessage($from_id, "👋 به مدیریت آمار کلی ربات خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید:", $manage_statistics);
         } elseif ($text == '🌐 مدیریت سرور') {
-            sendMessage($from_id, "⚙️ به مدیریت پلن ها خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :\n\n◽️@ZanborPanel", $manage_server);
+            sendMessage($from_id, "⚙️ به مدیریت پلن ها خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :", $manage_server);
         } elseif ($text == '👤 مدیریت کاربران') {
-            sendMessage($from_id, "👤 به مدیریت کاربران خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :\n\n◽️@ZanborPanel", $manage_user);
+            sendMessage($from_id, "👤 به مدیریت کاربران خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :", $manage_user);
         } elseif ($text == '📤 مدیریت پیام') {
-            sendMessage($from_id, "📤 به مدیریت پیام خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :\n\n◽️@ZanborPanel", $manage_message);
+            sendMessage($from_id, "📤 به مدیریت پیام خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :", $manage_message);
         } elseif ($text == '👮‍♂️مدیریت ادمین') {
-            sendMessage($from_id, "👮‍♂️ به مدیریت ادمین خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :\n\n◽️@ZanborPanel", $manage_admin);
+            sendMessage($from_id, "👮‍♂️ به مدیریت ادمین خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :", $manage_admin);
         } elseif ($text == '⚙️ تنظیمات') {
-            sendMessage($from_id, "⚙️️ به تنظیمات ربات خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :\n\n◽️@ZanborPanel", $manage_setting);
+            sendMessage($from_id, "⚙️️ به تنظیمات ربات خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :", $manage_setting);
         }
 
 
@@ -1241,14 +1241,14 @@ try {
             $state2 = $sql->query("SELECT `status` FROM `users` WHERE `status` = 'inactive'")->num_rows;
             $state3 = $sql->query("SELECT `status` FROM `users` WHERE `status` = 'active'")->num_rows;
             $state4 = $sql->query("SELECT `status` FROM `factors` WHERE `status` = 'yes'")->num_rows;
-            sendMessage($from_id, "⚙️ آمار ربات شما به شرح زیر می‌باشد :↓\n\n▫️تعداد کل کاربر ربات : <code>$state1</code> عدد\n▫️تعداد کاربر های مسدود : <code>$state2</code> عدد\n▫️تعداد کاربر های آزاد : <code>$state3</code> عدد\n\n🔢 تعداد کل پرداختی : <code>$state4</code> عدد\n\n🤖 @ZanborPanel", $manage_statistics);
+            sendMessage($from_id, "⚙️ آمار ربات شما به شرح زیر می‌باشد :↓\n\n▫️تعداد کل کاربر ربات : <code>$state1</code> عدد\n▫️تعداد کاربر های مسدود : <code>$state2</code> عدد\n▫️تعداد کاربر های آزاد : <code>$state3</code> عدد\n\n🔢 تعداد کل پرداختی : <code>$state4</code> عدد", $manage_statistics);
         }
 
         // ----------- manage servers ----------- //
         elseif ($text == '❌ انصراف و بازگشت') {
             step('none');
             if (file_exists('add_panel.txt')) unlink('add_panel.txt');
-            sendMessage($from_id, "⚙️ به مدیریت پلن ها خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :\n\n◽️@ZanborPanel", $manage_server);
+            sendMessage($from_id, "⚙️ به مدیریت پلن ها خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :", $manage_server);
         } elseif ($data == 'close_panel') {
             step('none');
             editMessage($from_id, "✅ پنل مدیریت سرور ها با موفقیت بسته شد !", $message_id);
@@ -1257,9 +1257,9 @@ try {
             // sendMessage($from_id, "{$test_account_setting['status']} - {$test_account_setting['panel']} - {$test_account_setting['volume']} - {$test_account_setting['time']}");
             // exit();
             if (isset($text)) {
-                sendMessage($from_id, "⏱ به تنظیمات اکانت تست خوش آمدید.\n\n🟢 حجم را به صورت GB به ربات ارسال کنید | برای مثال 200 مگ : 0.2\n🟢 زمان را به صورت ساعت ارسال کنید | برای مثال 5 ساعت : 5\n\n👇🏻 یکی از گزینه های زیر را انتخاب کنید :\n◽️@ZanborPanel", $manage_test_account);
+                sendMessage($from_id, "⏱ به تنظیمات اکانت تست خوش آمدید.\n\n🟢 حجم را به صورت GB به ربات ارسال کنید | برای مثال 200 مگ : 0.2\n🟢 زمان را به صورت ساعت ارسال کنید | برای مثال 5 ساعت : 5\n\n👇🏻 یکی از گزینه های زیر را انتخاب کنید :", $manage_test_account);
             } else {
-                editMessage($from_id, "⏱ به تنظیمات اکانت تست خوش آمدید.\n\n🟢 حجم را به صورت GB به ربات ارسال کنید | برای مثال 200 مگ : 0.2\n🟢 زمان را به صورت ساعت ارسال کنید | برای مثال 5 ساعت : 5\n\n👇🏻 یکی از گزینه های زیر را انتخاب کنید :\n◽️@ZanborPanel", $message_id, $manage_test_account);
+                editMessage($from_id, "⏱ به تنظیمات اکانت تست خوش آمدید.\n\n🟢 حجم را به صورت GB به ربات ارسال کنید | برای مثال 200 مگ : 0.2\n🟢 زمان را به صورت ساعت ارسال کنید | برای مثال 5 ساعت : 5\n\n👇🏻 یکی از گزینه های زیر را انتخاب کنید :", $message_id, $manage_test_account);
             }
         } elseif ($data == 'null') {
             alert('#️⃣ این دکمه نمایشی است !');
@@ -1277,7 +1277,7 @@ try {
                 [['text' => $test_account_setting['volume'] . ' GB', 'callback_data' => 'change_test_account_volume'], ['text' => '▫️حجم :', 'callback_data' => 'null']],
                 [['text' => $test_account_setting['time'] . ' ساعت', 'callback_data' => 'change_test_account_time'], ['text' => '▫️زمان :', 'callback_data' => 'null']],
             ]]);
-            editMessage($from_id, "⏱ به تنظیمات اکانت تست خوش آمدید.\n\n👇🏻 یکی از گزینه های زیر را انتخاب کنید :\n◽️@ZanborPanel", $message_id, $manage_test_account);
+            editMessage($from_id, "⏱ به تنظیمات اکانت تست خوش آمدید.\n\n👇🏻 یکی از گزینه های زیر را انتخاب کنید :", $message_id, $manage_test_account);
         } elseif ($data == 'change_test_account_volume') {
             step('change_test_account_volume');
             editMessage($from_id, "🆕 مقدار جدید را به صورت عدد صحیح ارسال کنید :", $message_id, $back_account_test);
@@ -1293,7 +1293,7 @@ try {
                         [['text' => $text . ' GB', 'callback_data' => 'change_test_account_volume'], ['text' => '▫️حجم :', 'callback_data' => 'null']],
                         [['text' => $test_account_setting['time'] . ' ساعت', 'callback_data' => 'change_test_account_time'], ['text' => '▫️زمان :', 'callback_data' => 'null']],
                     ]]);
-                    sendMessage($from_id, "✅ عملیات تغییرات با موفقیت انجام شد.\n\n👇🏻 یکی از گزینه های زیر را انتخاب کنید .\n◽️@ZanborPanel", $manage_test_account);
+                    sendMessage($from_id, "✅ عملیات تغییرات با موفقیت انجام شد.\n\n👇🏻 یکی از گزینه های زیر را انتخاب کنید .", $manage_test_account);
                 } else {
                     sendMessage($from_id, "❌ ورودی ارسالی اشتباه است !", $back_account_test);
                 }
@@ -1313,7 +1313,7 @@ try {
                         [['text' => $test_account_setting['volume'] . ' GB', 'callback_data' => 'change_test_account_volume'], ['text' => '▫️حجم :', 'callback_data' => 'null']],
                         [['text' => $text . ' ساعت', 'callback_data' => 'change_test_account_time'], ['text' => '▫️زمان :', 'callback_data' => 'null']],
                     ]]);
-                    sendMessage($from_id, "✅ عملیات تغییرات با موفقیت انجام شد.\n\n👇🏻 یکی از گزینه های زیر را انتخاب کنید .\n◽️@ZanborPanel", $manage_test_account);
+                    sendMessage($from_id, "✅ عملیات تغییرات با موفقیت انجام شد.\n\n👇🏻 یکی از گزینه های زیر را انتخاب کنید ", $manage_test_account);
                 } else {
                     sendMessage($from_id, "❌ ورودی ارسالی اشتباه است !", $back_account_test);
                 }
@@ -1344,7 +1344,7 @@ try {
                     [['text' => $test_account_setting['volume'] . ' GB', 'callback_data' => 'change_test_account_volume'], ['text' => '▫️حجم :', 'callback_data' => 'null']],
                     [['text' => $test_account_setting['time'] . ' ساعت', 'callback_data' => 'change_test_account_time'], ['text' => '▫️زمان :', 'callback_data' => 'null']],
                 ]]);
-                editMessage($from_id, "✅ عملیات تغییرات با موفقیت انجام شد.\n\n👇🏻 یکی از گزینه های زیر را انتخاب کنید .\n◽️@ZanborPanel", $message_id, $manage_test_account);
+                editMessage($from_id, "✅ عملیات تغییرات با موفقیت انجام شد.\n\n👇🏻 یکی از گزینه های زیر را انتخاب کنید", $message_id, $manage_test_account);
             } else {
                 alert('❌ پنل مورد نظر یافت نشد !');
             }
@@ -2342,9 +2342,9 @@ try {
             sendMessage($from_id, "🔰این بخش تکمیل نشده است !");
         } elseif ($text == '🚫 مدیریت ضد اسپم' or $data == 'back_spam') {
             if (isset($text)) {
-                sendMessage($from_id, "🚫 به بخش مدیریت ضد اسپم ربات خوش آمدید!\n\n✏️ با کلیک بر روی هر کدام از دکمه های سمت چپ, میتوانید مقدار فعلی را تغییر دهید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : \n◽️@ZanborPanel", $manage_spam);
+                sendMessage($from_id, "🚫 به بخش مدیریت ضد اسپم ربات خوش آمدید!\n\n✏️ با کلیک بر روی هر کدام از دکمه های سمت چپ, میتوانید مقدار فعلی را تغییر دهید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : ", $manage_spam);
             } else {
-                editMessage($from_id, "🚫 به بخش مدیریت ضد اسپم ربات خوش آمدید!\n\n✏️ با کلیک بر روی هر کدام از دکمه های سمت چپ, میتوانید مقدار فعلی را تغییر دهید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : \n◽️@ZanborPanel", $message_id, $manage_spam);
+                editMessage($from_id, "🚫 به بخش مدیریت ضد اسپم ربات خوش آمدید!\n\n✏️ با کلیک بر روی هر کدام از دکمه های سمت چپ, میتوانید مقدار فعلی را تغییر دهید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : ", $message_id, $manage_spam);
             }
         } elseif ($data == 'change_status_spam') {
             $status = $sql->query("SELECT * FROM `spam_setting`")->fetch_assoc()['status'];
@@ -2359,7 +2359,7 @@ try {
                 [['text' => $spam_setting['time'] . ' ثانیه', 'callback_data' => 'change_time_spam'], ['text' => '▫️زمان : ', 'callback_data' => 'null']],
                 [['text' => $spam_setting['count_message'] . ' عدد', 'callback_data' => 'change_count_spam'], ['text' => '▫️تعداد پیام : ', 'callback_data' => 'null']],
             ]]);
-            editMessage($from_id, "🚫 به بخش مدیریت ضد اسپم ربات خوش آمدید!\n\n✏️ با کلیک بر روی هر کدام از دکمه های سمت چپ, میتوانید مقدار فعلی را تغییر دهید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : \n◽️@ZanborPanel", $message_id, $manage_spam);
+            editMessage($from_id, "🚫 به بخش مدیریت ضد اسپم ربات خوش آمدید!\n\n✏️ با کلیک بر روی هر کدام از دکمه های سمت چپ, میتوانید مقدار فعلی را تغییر دهید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : ", $message_id, $manage_spam);
         } elseif ($data == 'change_type_spam') {
             $type = $sql->query("SELECT * FROM `spam_setting`")->fetch_assoc()['type'];
             if ($type == 'ban') {
@@ -2373,7 +2373,7 @@ try {
                 [['text' => $spam_setting['time'] . ' ثانیه', 'callback_data' => 'change_time_spam'], ['text' => '▫️زمان : ', 'callback_data' => 'null']],
                 [['text' => $spam_setting['count_message'] . ' عدد', 'callback_data' => 'change_count_spam'], ['text' => '▫️تعداد پیام : ', 'callback_data' => 'null']],
             ]]);
-            editMessage($from_id, "🚫 به بخش مدیریت ضد اسپم ربات خوش آمدید!\n\n✏️ با کلیک بر روی هر کدام از دکمه های سمت چپ, میتوانید مقدار فعلی را تغییر دهید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : \n◽️@ZanborPanel", $message_id, $manage_spam);
+            editMessage($from_id, "🚫 به بخش مدیریت ضد اسپم ربات خوش آمدید!\n\n✏️ با کلیک بر روی هر کدام از دکمه های سمت چپ, میتوانید مقدار فعلی را تغییر دهید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : ", $message_id, $manage_spam);
         } elseif ($data == 'change_count_spam') {
             step('change_count_spam');
             editMessage($from_id, "🆙 مقدار جدید را به صورت عدد صحیح و درست ارسال کنید :", $message_id, $back_spam);
@@ -2387,7 +2387,7 @@ try {
                     [['text' => $spam_setting['time'] . ' ثانیه', 'callback_data' => 'change_time_spam'], ['text' => '▫️زمان : ', 'callback_data' => 'null']],
                     [['text' => $text . ' عدد', 'callback_data' => 'change_count_spam'], ['text' => '▫️تعداد پیام : ', 'callback_data' => 'null']],
                 ]]);
-                sendMEssage($from_id, "✅ تغییرات با موفقیت انجام شد !\n🚫 به بخش مدیریت ضد اسپم ربات خوش آمدید!\n\n✏️ با کلیک بر روی هر کدام از دکمه های سمت چپ, میتوانید مقدار فعلی را تغییر دهید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : \n◽️@ZanborPanel", $manage_spam);
+                sendMEssage($from_id, "✅ تغییرات با موفقیت انجام شد !\n🚫 به بخش مدیریت ضد اسپم ربات خوش آمدید!\n\n✏️ با کلیک بر روی هر کدام از دکمه های سمت چپ, میتوانید مقدار فعلی را تغییر دهید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : ", $manage_spam);
             } else {
                 sendMessage($from_id, "❌ عدد ارسالی شما اشتباه است !", $back_spam);
             }
@@ -2404,7 +2404,7 @@ try {
                     [['text' => $text . ' ثانیه', 'callback_data' => 'change_time_spam'], ['text' => '▫️زمان : ', 'callback_data' => 'null']],
                     [['text' => $spam_setting['count_message'] . ' عدد', 'callback_data' => 'change_count_spam'], ['text' => '▫️تعداد پیام : ', 'callback_data' => 'null']],
                 ]]);
-                sendMEssage($from_id, "✅ تغییرات با موفقیت انجام شد !\n🚫 به بخش مدیریت ضد اسپم ربات خوش آمدید!\n\n✏️ با کلیک بر روی هر کدام از دکمه های سمت چپ, میتوانید مقدار فعلی را تغییر دهید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : \n◽️@ZanborPanel", $manage_spam);
+                sendMEssage($from_id, "✅ تغییرات با موفقیت انجام شد !\n🚫 به بخش مدیریت ضد اسپم ربات خوش آمدید!\n\n✏️ با کلیک بر روی هر کدام از دکمه های سمت چپ, میتوانید مقدار فعلی را تغییر دهید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : ", $manage_spam);
             } else {
                 sendMessage($from_id, "❌ عدد ارسالی شما اشتباه است !", $back_spam);
             }
@@ -2569,9 +2569,9 @@ try {
         elseif ($text == '🎁 مدیریت کد تخفیف' or $data == 'back_copen') {
             step('none');
             if (isset($text)) {
-                sendMessage($from_id, "🎁 به بخش مدیریت کد تخفیف ربات خوش آمدید!\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : \n◽️@ZanborPanel", $manage_copens);
+                sendMessage($from_id, "🎁 به بخش مدیریت کد تخفیف ربات خوش آمدید!\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : ", $manage_copens);
             } else {
-                editMessage($from_id, "🎁 به بخش مدیریت کد تخفیف ربات خوش آمدید!\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : \n◽️@ZanborPanel", $message_id, $manage_copens);
+                editMessage($from_id, "🎁 به بخش مدیریت کد تخفیف ربات خوش آمدید!\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : ", $message_id, $manage_copens);
             }
         } elseif ($data == 'add_copen') {
             step('add_copen');
@@ -2608,7 +2608,7 @@ try {
                 }
                 $key[] = [['text' => '🔙 بازگشت', 'callback_data' => 'back_copen']];
                 $key = json_encode(['inline_keyboard' => $key]);
-                editMessage($from_id, "✏️ لیست همه ک تخفیف ها به شرح زیر است :\n\n⬅️ با کلیک بر روی هر کدام میتوانید مقدار فعلیشان را تغییر دهید.\n◽️@ZanborPanel", $message_id, $key);
+                editMessage($from_id, "✏️ لیست همه ک تخفیف ها به شرح زیر است :\n\n⬅️ با کلیک بر روی هر کدام میتوانید مقدار فعلیشان را تغییر دهید.", $message_id, $key);
             } else {
                 alert('❌ هیچ کد تخفیفی در ربات ثبت نشده است !');
             }
@@ -2624,7 +2624,7 @@ try {
                 }
                 $key[] = [['text' => '🔙 بازگشت', 'callback_data' => 'back_copen']];
                 $key = json_encode(['inline_keyboard' => $key]);
-                editMessage($from_id, "✏️ لیست همه ک تخفیف ها به شرح زیر است :\n\n⬅️ با کلیک بر روی هر کدام میتوانید مقدار فعلیشان را تغییر دهید.\n◽️@ZanborPanel", $message_id, $key);
+                editMessage($from_id, "✏️ لیست همه ک تخفیف ها به شرح زیر است :\n\n⬅️ با کلیک بر روی هر کدام میتوانید مقدار فعلیشان را تغییر دهید.", $message_id, $key);
             } else {
                 editMessage($from_id, "❌ هیچ کد تخفیف دیگری وجود ندارد.", $message_id, $manage_copens);
             }
@@ -2650,7 +2650,7 @@ try {
                 }
                 $key[] = [['text' => '🔙 بازگشت', 'callback_data' => 'back_copen']];
                 $key = json_encode(['inline_keyboard' => $key]);
-                editMessage($from_id, "✏️ لیست همه ک تخفیف ها به شرح زیر است :\n\n⬅️ با کلیک بر روی هر کدام میتوانید مقدار فعلیشان را تغییر دهید.\n◽️@ZanborPanel", $message_id, $key);
+                editMessage($from_id, "✏️ لیست همه ک تخفیف ها به شرح زیر است :\n\n⬅️ با کلیک بر روی هر کدام میتوانید مقدار فعلیشان را تغییر دهید.", $message_id, $key);
             } else {
                 editMessage($from_id, "❌ هیچ کد تخفیف دیگری وجود ندارد.", $message_id, $manage_copens);
             }

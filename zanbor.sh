@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# Written By: ZanborPanel
-# Channel: @ZanborPanel
-# Group: @ZanborPanelGap
-
 GITHUB_REPO_ADDRESS='https://github.com/gitma99/zz-p.git'
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -97,7 +93,7 @@ sudo systemctl start apache2
 ufw allow 'Apache Full'
 sudo systemctl restart apache2
 
-colorized_echo green "Installing Zanbor . . ."
+colorized_echo green "Installing BotPanel . . ."
 
 sleep 2
 
@@ -153,9 +149,9 @@ randdbdb=$(pwgen -A 8 1)
 randdbname=$(openssl rand -base64 8 | tr -dc 'a-zA-Z0-9' | head -c 4)
 dbname="ZanborPanel_${randdbpass}"
 
-# ======================= Zanboor Database Config ===========================
+# ======================= Database Config ===========================
 
-colorized_echo green "Please enter zanboor/phpmyadmin database username (For Default -> Enter) :"
+colorized_echo green "Please enter phpmyadmin database username (For Default -> Enter) :"
 printf "[+] Default username is [${randdbdb}] :"
 read dbuser
 if [ "$dbuser" = "" ]; then
@@ -164,7 +160,7 @@ else
     dbuser=$dbuser
 fi
 
-colorized_echo green "Please enter zanboor/phpmyadmin database password (For Default -> Enter) :"
+colorized_echo green "Please enter phpmyadmin database password (For Default -> Enter) :"
 printf "[+] Default password is [${randdbpass}] :"
 read dbpass
 if [ "$dbpass" = "" ]; then
@@ -243,11 +239,10 @@ colorized_echo blue "\n\nSet Webhook Status:"
 curl -F "url=https://${DOMAIN}/ZanborPanelBot/index.php" "https://api.telegram.org/bot${TOKEN}/setWebhook"
 
 colorized_echo blue "\n\nSend Message Status:"
-TEXT_MESSAGE="✅ The ZanborPanel Bot Has Been Successfully Installed !"
+TEXT_MESSAGE="✅ The BotPanel Bot Has Been Successfully Installed !"
 curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" -d chat_id="${CHAT_ID}" -d text="${TEXT_MESSAGE}"
 echo -e "\n\n"
 
 sleep 1
-colorized_echo green "[+] The ZanborPanel Bot Has Been Successfully Installed"
-colorized_echo green "[+] Telegram channel: @ZanborPanel || Telegram group: @ZanborPanelGap"
+colorized_echo green "[+] The BotPanel Bot Has Been Successfully Installed"
 echo -e "\n"
