@@ -675,39 +675,59 @@ try {
             if (isset($getUser['links']) and $getUser != false) {
                 $links = implode("\n\n", $getUser['links']) ?? 'NULL';
                 $subscribe = (strpos($getUser['subscription_url'], 'http') !== false) ? $getUser['subscription_url'] : $panel['login_link'] . $getUser['subscription_url'];
+                $now = new DateTime();
+                $expireDateString = $getUser['expire'];
+                if (isset($expireDateString)){
+                    $expireDate = new DateTime($expireDateString, new DateTimeZone('UTC'));
+                    $diffLastOnlineDateTillNow = $expireDate->diff($now);
+                    if ($diffLastOnlineDateTillNow->y > 0) {
+                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%y سال بعد');
+                    } elseif ($diffLastOnlineDateTillNow->m > 0) {
+                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%m ماه بعد');
+                    } elseif ($diffLastOnlineDateTillNow->d > 0) {
+                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%d روز بعد');
+                    } elseif ($diffLastOnlineDateTillNow->h > 0) {
+                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%h ساعت و %i دقیقه بعد');
+                    } elseif ($diffLastOnlineDateTillNow->i > 0) {
+                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%i دقیقه بعد');
+                    } else {
+                        $diffLastOnlineDateTillNowString =  "به زودی";
+                    };
+                } else {
+                    $diffLastOnlineDateTillNowString = "⚠️ عدم وجود اطلاعات";
+                };
 
-                $last_online_date = $getUser['online_at'];
-                if (isset($last_online_date)) {
+                $lastOnlineDateString = $getUser['online_at'];
+                if (isset($lastOnlineDateString)) {
                     date_default_timezone_set("UTC");
-                    $now = new DateTime();
-                    $targetDate = new DateTime($getUser['online_at'], new DateTimeZone('UTC'));
-                    $difference = $now->diff($targetDate);
+                    $lastOnlineDate = new DateTime($lastOnlineDateString, new DateTimeZone('UTC'));
+                    $diffLastOnlineDateTillNow = $now->diff($lastOnlineDate);
 
                     // $nowString = $now->format('Y-m-d H:i:s');
                     // sendMessage($from_id, "nowString : $nowString");
-                    // $targetDateString = $targetDate->format('Y-m-d H:i:s');
-                    // sendMessage($from_id, "targetDate : $targetDateString");
-                    // $differenceString = $difference->format('%y years, %m months, %d days, %h hours, %i minutes, %s seconds');
-                    // sendMessage($from_id, "differenceString : $differenceString");
+                    // $lastOnlineDateString = $lastOnlineDate->format('Y-m-d H:i:s');
+                    // sendMessage($from_id, "lastOnlineDate : $lastOnlineDateString");
+                    // $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNow->format('%y years, %m months, %d days, %h hours, %i minutes, %s seconds');
+                    // sendMessage($from_id, "differenceString : $diffLastOnlineDateTillNowString");
 
-                    if ($difference->y > 0) {
+                    if ($diffLastOnlineDateTillNow->y > 0) {
                         $online_status = '🔴';
-                        $last_online =  $difference->format('%y سال قبل');
-                    } elseif ($difference->m > 0) {
+                        $last_online =  $diffLastOnlineDateTillNow->format('%y سال قبل');
+                    } elseif ($diffLastOnlineDateTillNow->m > 0) {
                         $online_status = '🔴';
-                        $last_online =  $difference->format('%m ماه قبل');
-                    } elseif ($difference->d > 0) {
+                        $last_online =  $diffLastOnlineDateTillNow->format('%m ماه قبل');
+                    } elseif ($diffLastOnlineDateTillNow->d > 0) {
                         $online_status = '🔴';
-                        $last_online =  $difference->format('%d روز قبل');
-                    } elseif ($difference->h > 0) {
+                        $last_online =  $diffLastOnlineDateTillNow->format('%d روز قبل');
+                    } elseif ($diffLastOnlineDateTillNow->h > 0) {
                         $online_status = '🔴';
-                        $last_online =  $difference->format('%h ساعت و %i دقیقه قبل');
-                    } elseif ($difference->i > 0) {
+                        $last_online =  $diffLastOnlineDateTillNow->format('%h ساعت و %i دقیقه قبل');
+                    } elseif ($diffLastOnlineDateTillNow->i > 0) {
                         $online_status = '🔴';
-                        $last_online =  $difference->format('%i دقیقه قبل');
+                        $last_online =  $diffLastOnlineDateTillNow->format('%i دقیقه قبل');
                     } else {
                         $online_status = '🟢';
-                        // $last_online =  $difference->format('%s ثانیه');
+                        // $last_online =  $diffLastOnlineDateTillNow->format('%s ثانیه');
                         $last_online =  "آنلاین";
                     }
                     $online_status_message = "$online_status $last_online";
@@ -721,8 +741,8 @@ try {
                         [['text' => '🔙 بازگشت', 'callback_data' => "back_$back_btn_callback_data"]]
                     ]]
                 );
-
-                editMessage($from_id, sprintf($texts['your_service'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $online_status_message, $getService['location'], $code_base, Conversion($getUser['used_traffic'], 'GB'), Conversion($getUser['data_limit'], 'GB'), date('Y-m-d H:i:s',  $getUser['expire']), ''), $message_id, $manage_service_btns);
+                // $diffLastOnlineDateTillNowString = date('Y-m-d H:i:s',  $getUser['expire']);
+                editMessage($from_id, sprintf($texts['your_service'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $online_status_message, $getService['location'], $code_base, Conversion($getUser['used_traffic'], 'GB'), Conversion($getUser['data_limit'], 'GB'), $diffLastOnlineDateTillNowString, ''), $message_id, $manage_service_btns);
             } else {
                 alert($my_texts['error_show_service__server_not_found_internally']);
                 $sql->query("DELETE FROM `orders` WHERE `code` = '$code_base'");
