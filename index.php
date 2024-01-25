@@ -676,10 +676,9 @@ try {
                 $links = implode("\n\n", $getUser['links']) ?? 'NULL';
                 $subscribe = (strpos($getUser['subscription_url'], 'http') !== false) ? $getUser['subscription_url'] : $panel['login_link'] . $getUser['subscription_url'];
                 $now = new DateTime();
-                $expireDateString = $getUser['expire'];
-                if (isset($expireDateString)) {
-                    send_debug_msg_to_dev(json_encode($expireDateString), true);
-                    $expireDate = new DateTime($expireDateString, new DateTimeZone('UTC'));
+                $expireDateTimeStamp = $getUser['expire'];
+                if (isset($expireDateTimeStamp)) {
+                    $expireDate = new DateTime("@$expireDateTimeStamp", new DateTimeZone('UTC'));
                     $diffLastOnlineDateTillNow = $expireDate->diff($now);
                     if ($diffLastOnlineDateTillNow->y > 0) {
                         $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%y سال بعد');
