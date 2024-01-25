@@ -147,7 +147,7 @@ read -p "[+] Enter the [root (MySql)] user passord: " ROOT_PASSWORD
 randdbpass=$(openssl rand -base64 8 | tr -dc 'a-zA-Z0-9' | head -c 10)
 randdbdb=$(pwgen -A 8 1)
 randdbname=$(openssl rand -base64 8 | tr -dc 'a-zA-Z0-9' | head -c 4)
-dbname="ZanborPanel_${randdbpass}"
+dbname="BotPanel_${randdbpass}"
 
 # ======================= Database Config ===========================
 
