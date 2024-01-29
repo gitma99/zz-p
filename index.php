@@ -679,7 +679,7 @@ try {
                 $expireDateTimeStamp = $getUser['expire'];
                 if (isset($expireDateTimeStamp)) {
                     $expireDate = new DateTime("@$expireDateTimeStamp", new DateTimeZone('UTC'));
-                    $diffLastOnlineDateTillNow = $expireDate->diff($now);
+                    $diffLastOnlineDateTillNow = $now->diff($expireDate);
                     if ($diffLastOnlineDateTillNow->y > 0) {
                         $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%y سال و %m ماه دیگر');
                     } elseif ($diffLastOnlineDateTillNow->m > 0) {
@@ -696,14 +696,14 @@ try {
                 } else {
                     $diffLastOnlineDateTillNowString = "⚠️ عدم وجود اطلاعات";
                 };
-                $debug_array = [
-                    "now" =>$now,
-                    "expireDateTimeStamp" => $expireDateTimeStamp,
-                    "expireDate" => $expireDate,
-                    '$expireDate->diff($now)' => $expireDate->diff($now)->format('%y-%m-%d %h:%i:%s'),
-                    '$expireDate->diff($now)' => $now->diff($expireDate)->format('%y-%m-%d %h:%i:%s')
-                ];
-                send_debug_msg_to_dev(json_encode($debug_array, 448));
+                // $debug_array = [
+                //     "now" =>$now,
+                //     "expireDateTimeStamp" => $expireDateTimeStamp,
+                //     "expireDate" => $expireDate,
+                //     '$expireDate->diff($now)' => $expireDate->diff($now)->format('%y-%m-%d %h:%i:%s'),
+                //     '$expireDate->diff($now)' => $now->diff($expireDate)->format('%y-%m-%d %h:%i:%s')
+                // ];
+                // send_debug_msg_to_dev(json_encode($debug_array, 448));
                 $lastOnlineDateString = $getUser['online_at'];
                 if (isset($lastOnlineDateString)) {
                     $lastOnlineDate = new DateTime($lastOnlineDateString, new DateTimeZone('UTC'));
