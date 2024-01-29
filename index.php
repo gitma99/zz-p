@@ -700,7 +700,8 @@ try {
                     "now" =>$now,
                     "expireDateTimeStamp" => $expireDateTimeStamp,
                     "expireDate" => $expireDate,
-                    "sttring" => $diffLastOnlineDateTillNow->format('%y-%m-%d %h:%i:%s')
+                    '$expireDate->diff($now)' => $expireDate->diff($now)->format('%y-%m-%d %h:%i:%s'),
+                    '$expireDate->diff($now)' => $now->diff($expireDate)->format('%y-%m-%d %h:%i:%s')
                 ];
                 send_debug_msg_to_dev(json_encode($debug_array, 448));
                 $lastOnlineDateString = $getUser['online_at'];
