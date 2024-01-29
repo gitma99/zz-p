@@ -106,5 +106,6 @@
   "account_status_changer_service_failed_to_change_status":"تلاش برای تغییر وضعیت سرویس ناموفق بود ❌.",
   "forbidden_section": "عدم دسترسی",
   "back_to_menu_button":"⬅️ بازگشت به صفحه اصلی",
-  "back_to_bot_management_button":"⬅️ بازگشت به مدیریت"
+  "back_to_bot_management_button":"⬅️ بازگشت به مدیریت",
+  "error_encounter_msg":"⚠خطای ربات لطفا به مدیر ربات اطلاع رسانی کنید.⚠"
 }

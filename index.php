@@ -21,14 +21,10 @@ date_default_timezone_set("UTC");
 
 
 // ============================ Debug code ================== START //
-// sendMessage($from_id, "Debug Message Started!");
-// $debugMessage = json_encode(null, 448);
-// sendMessage($from_id, "Debug Message:\n$debugMessage");
-// sendMessage($from_id, "Debug Message Ended!");
-// exit();
+// $debug_array = [];
+// send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448));
 // ============================ Debug code ================== END //
 
-$trueDebug = true;
 try {
     if ($text == $texts['back_to_menu_button']) {
         step('none');
@@ -43,20 +39,6 @@ try {
         renewal_service($text, $from_id);
         change_account_status($text, $from_id);
     }
-
-
-    if ($trueDebug == true) {
-        // // =========== temporary code ================== START //
-        // $debug_array = array(
-        //     "msg" => bot("getMe",null),
-        // );
-        // send_debug_data_to_dev(null, json_encode($debug_array, 448));
-        // // =========== temporary code ================== END //
-        if ($from_id == 131757826) {
-            $config['dev'] = $from_id;
-        };
-    }
-
 
     if ($data == 'join') {
         if (isJoin($from_id)) {
@@ -571,7 +553,8 @@ try {
                 //     "list_number" => $list_number,
                 //     "current_list_buttons" => $current_list_buttons,
                 // ];
-                // send_debug_data_to_dev(json_encode($debug_array, 448));
+                // send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448));
+
                 if ($list_index == 0) {
                     $reply_msg = sprintf($texts['all_services'], $services->num_rows, $list_number);
                     $replied_message = editMessage($from_id, $reply_msg, $message_id, $service_keys);
@@ -589,50 +572,6 @@ try {
             };
 
             file_put_contents($from_id . "-" . "all_services_lists_msg_ids", $replied_message_ids_string);
-
-            // $all_service_keys = array_chunk($key, 1);
-            // $total_items = count($all_service_keys);
-
-            // if ($total_items < $list_button_count_limit) {
-            //     $service_keys = json_encode(['inline_keyboard' => $all_service_keys]);
-            //     if (isset($text)) {
-            //         $replied_message = sendMessage($from_id, sprintf($texts['all_services'], $services->num_rows, 1), $service_keys);
-            //     } else {
-            //         $replied_message = editMessage($from_id, sprintf($texts['all_services'], $services->num_rows, 1), $message_id, $service_keys);
-            //     }
-            //     $replied_message_ids_string = $replied_message["result"]["message_id"];
-            // } else {
-            //     $start_i = 0;
-            //     $end_i = 0;
-            //     $list_number = 0;
-            //     $replied_message_ids_string = "";
-            //     while ($end_i != $total_items) {
-            //         $end_i += $list_button_count_limit;
-            //         if ($end_i > $total_items) {
-            //             $end_i = $total_items;
-            //         }
-            //         $current_list_length = $end_i - $start_i;
-            //         $current_list_buttons = array_slice($all_service_keys, $start_i, $current_list_length);
-            //         $start_i = $end_i;
-
-            //         $service_keys = json_encode(['inline_keyboard' => $current_list_buttons]);
-            //         $list_number += 1;
-            //         if ($list_number == 1) {
-            //             $reply_msg = sprintf($texts['all_services'], $services->num_rows, $list_number);
-            //             if (isset($text)) {
-            //                 $replied_message = sendMessage($from_id, $reply_msg, $service_keys);
-            //             } else {
-            //                 $replied_message = editMessage($from_id, $reply_msg, $message_id, $service_keys);
-            //             }
-            //         } else {
-            //             $reply_msg = "لیست : {$list_number}";
-            //             $replied_message = sendMessage($from_id, $reply_msg, $service_keys);
-            //         }
-            //         $replied_message_id = $replied_message["result"]["message_id"];
-            //         $replied_message_ids_string = $replied_message_ids_string . "-" . $replied_message_id;
-            //     }
-            // }
-            // file_put_contents($from_id . "-" . "all_services_lists_msg_ids", $replied_message_ids_string);
         } else {
             if (isset($text)) {
                 sendMessage($from_id, $texts['my_services_not_found'], $start_key);
@@ -696,25 +635,10 @@ try {
                 } else {
                     $diffLastOnlineDateTillNowString = "⚠️ عدم وجود اطلاعات";
                 };
-                // $debug_array = [
-                //     "now" =>$now,
-                //     "expireDateTimeStamp" => $expireDateTimeStamp,
-                //     "expireDate" => $expireDate,
-                //     '$expireDate->diff($now)' => $expireDate->diff($now)->format('%y-%m-%d %h:%i:%s'),
-                //     '$expireDate->diff($now)' => $now->diff($expireDate)->format('%y-%m-%d %h:%i:%s')
-                // ];
-                // send_debug_msg_to_dev(json_encode($debug_array, 448));
                 $lastOnlineDateString = $getUser['online_at'];
                 if (isset($lastOnlineDateString)) {
                     $lastOnlineDate = new DateTime($lastOnlineDateString, new DateTimeZone('UTC'));
                     $diffLastOnlineDateTillNow = $now->diff($lastOnlineDate);
-
-                    // $nowString = $now->format('Y-m-d H:i:s');
-                    // sendMessage($from_id, "nowString : $nowString");
-                    // $lastOnlineDateString = $lastOnlineDate->format('Y-m-d H:i:s');
-                    // sendMessage($from_id, "lastOnlineDate : $lastOnlineDateString");
-                    // $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNow->format('%y years, %m months, %d days, %h hours, %i minutes, %s seconds');
-                    // sendMessage($from_id, "differenceString : $diffLastOnlineDateTillNowString");
 
                     if ($diffLastOnlineDateTillNow->y > 0) {
                         $online_status = '🔴';
@@ -2772,7 +2696,6 @@ try {
     }
 } catch (\Throwable $e) {
     $error_msg = 'Caught exception: ' . $e->getMessage() . ' on line ' . $e->getLine() . "\n";
-    send_debug_msg_to_dev($error_msg);
-    send_debug_msg_to_dev($error_msg);
-    sendMessage($from_id, "An Error Occured! Error Sent to Dev!");
+    send_debug_msg_to_maintainer($error_msg);
+    sendMessage($from_id, $texts['error_encounter_msg']);
 }
