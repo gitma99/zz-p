@@ -681,11 +681,11 @@ try {
                     $expireDate = new DateTime("@$expireDateTimeStamp", new DateTimeZone('UTC'));
                     $diffLastOnlineDateTillNow = $expireDate->diff($now);
                     if ($diffLastOnlineDateTillNow->y > 0) {
-                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%y سال دیگر');
+                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%y سال و %m ماه دیگر');
                     } elseif ($diffLastOnlineDateTillNow->m > 0) {
-                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%m ماه دیگر');
+                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%m ماه و %d روز دیگر');
                     } elseif ($diffLastOnlineDateTillNow->d > 0) {
-                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%d روز دیگر');
+                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%d روز و %h ساعت دیگر');
                     } elseif ($diffLastOnlineDateTillNow->h > 0) {
                         $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%h ساعت و %i دقیقه دیگر');
                     } elseif ($diffLastOnlineDateTillNow->i > 0) {
