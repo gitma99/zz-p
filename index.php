@@ -676,12 +676,6 @@ try {
                 $subscribe = (strpos($getUser['subscription_url'], 'http') !== false) ? $getUser['subscription_url'] : $panel['login_link'] . $getUser['subscription_url'];
                 $now = new DateTime();
                 $expireDateTimeStamp = $getUser['expire'];
-                $debug_array = [
-                    "now" =>$now,
-                    "expireDateTimeStamp" => $expireDateTimeStamp,
-                    "sttring" => $diffLastOnlineDateTillNow->format('%y-%m-%d %h:%i:%s')
-                ];
-                send_debug_msg_to_dev(json_encode($debug_array, 448));
                 if (isset($expireDateTimeStamp)) {
                     $expireDate = new DateTime("@$expireDateTimeStamp", new DateTimeZone('UTC'));
                     $diffLastOnlineDateTillNow = $expireDate->diff($now);
@@ -701,7 +695,12 @@ try {
                 } else {
                     $diffLastOnlineDateTillNowString = "⚠️ عدم وجود اطلاعات";
                 };
-
+                $debug_array = [
+                    "now" =>$now,
+                    "expireDateTimeStamp" => $expireDateTimeStamp,
+                    "sttring" => $diffLastOnlineDateTillNow->format('%y-%m-%d %h:%i:%s')
+                ];
+                send_debug_msg_to_dev(json_encode($debug_array, 448));
                 $lastOnlineDateString = $getUser['online_at'];
                 if (isset($lastOnlineDateString)) {
                     date_default_timezone_set("UTC");
