@@ -17,6 +17,7 @@ ini_set('display_errors', 0); // Disable error display on the screen
 ini_set('log_errors', 1); // Enable error logging to a file
 ini_set('error_log', 'error.log'); // Specify the path to the error log file
 error_reporting(E_ALL); // Set the error reporting level as needed
+date_default_timezone_set("UTC");
 
 
 // ============================ Debug code ================== START //
@@ -565,11 +566,11 @@ try {
                 $current_list_buttons = array_chunk($list_buttons, 1);
                 $service_keys = json_encode(['inline_keyboard' => $current_list_buttons]);
 
-                $debug_array = [
-                    "list_details" => $list_details,
-                    "list_number" => $list_number,
-                    "current_list_buttons" => $current_list_buttons,
-                ];
+                // $debug_array = [
+                //     "list_details" => $list_details,
+                //     "list_number" => $list_number,
+                //     "current_list_buttons" => $current_list_buttons,
+                // ];
                 // send_debug_data_to_dev(json_encode($debug_array, 448));
                 if ($list_index == 0) {
                     $reply_msg = sprintf($texts['all_services'], $services->num_rows, $list_number);
@@ -698,12 +699,12 @@ try {
                 $debug_array = [
                     "now" =>$now,
                     "expireDateTimeStamp" => $expireDateTimeStamp,
+                    "expireDate" => $expireDate,
                     "sttring" => $diffLastOnlineDateTillNow->format('%y-%m-%d %h:%i:%s')
                 ];
                 send_debug_msg_to_dev(json_encode($debug_array, 448));
                 $lastOnlineDateString = $getUser['online_at'];
                 if (isset($lastOnlineDateString)) {
-                    date_default_timezone_set("UTC");
                     $lastOnlineDate = new DateTime($lastOnlineDateString, new DateTimeZone('UTC'));
                     $diffLastOnlineDateTillNow = $now->diff($lastOnlineDate);
 
@@ -2770,6 +2771,7 @@ try {
     }
 } catch (\Throwable $e) {
     $error_msg = 'Caught exception: ' . $e->getMessage() . ' on line ' . $e->getLine() . "\n";
+    send_debug_msg_to_dev($error_msg);
     send_debug_msg_to_dev($error_msg);
     sendMessage($from_id, "An Error Occured! Error Sent to Dev!");
 }
