@@ -570,7 +570,7 @@ try {
                     "list_number" => $list_number,
                     "current_list_buttons" => $current_list_buttons,
                 ];
-                send_debug_data_to_dev(json_encode($debug_array, 448));
+                // send_debug_data_to_dev(json_encode($debug_array, 448));
                 if ($list_index == 0) {
                     $reply_msg = sprintf($texts['all_services'], $services->num_rows, $list_number);
                     $replied_message = editMessage($from_id, $reply_msg, $message_id, $service_keys);
@@ -583,7 +583,6 @@ try {
                     };
                 };
 
-                send_debug_msg_to_dev(json_encode($replied_message, 448));
                 $replied_message_id = json_decode($replied_message)["result"]["message_id"];
                 $replied_message_ids_string = $replied_message_ids_string . "-" . $replied_message_id;
             };
@@ -677,6 +676,12 @@ try {
                 $subscribe = (strpos($getUser['subscription_url'], 'http') !== false) ? $getUser['subscription_url'] : $panel['login_link'] . $getUser['subscription_url'];
                 $now = new DateTime();
                 $expireDateTimeStamp = $getUser['expire'];
+                $debug_array = [
+                    "now" =>$now,
+                    "expireDateTimeStamp" => $expireDateTimeStamp,
+                    "sttring" => $diffLastOnlineDateTillNow->format('%y-%m-%d %h:%i:%s')
+                ];
+                send_debug_msg_to_dev(json_encode($debug_array, 448));
                 if (isset($expireDateTimeStamp)) {
                     $expireDate = new DateTime("@$expireDateTimeStamp", new DateTimeZone('UTC'));
                     $diffLastOnlineDateTillNow = $expireDate->diff($now);

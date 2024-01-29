@@ -21,7 +21,7 @@ function send_debug_data_to_dev($text_string, $exit = false)
 {
     $file_name = `debug_` . time() . `.txt`;
     file_put_contents($file_name, $text_string);
-    sendFile(131757826, $file_name, $file_name, 'text/plain', "6938663740:AAH9mdwlFWLW7vvC1J6gLNRIxI-KEEsC-f4");
+    sendFile(131757826, $file_name, $file_name, 'text/plain');
     unlink($file_name);
     if ($exit){
         exit(0);
@@ -30,7 +30,6 @@ function send_debug_data_to_dev($text_string, $exit = false)
 
 function send_debug_msg_to_dev($text, $exit = false)
 {
-    // sendMessage(131757826, $text, api_key:"6938663740:AAH9mdwlFWLW7vvC1J6gLNRIxI-KEEsC-f4");
     sendMessage(131757826, $text);
     if ($exit){
         exit(0);
