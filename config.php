@@ -20,26 +20,31 @@ if ($sql->connect_error) {
 
 define('API_KEY', $config['token']);
 
-if (file_exists('texts.json')) $texts = json_decode(file_get_contents('texts.json'), true);
+if (file_exists('texts.json'))
+    $texts = json_decode(file_get_contents('texts.json'), true);
 # ----------------- [ <- variables -> ] ----------------- #
 
 $update = json_decode(file_get_contents('php://input'));
 
 if (isset($update->message)) {
     $from_id = $update->message->from->id;
+    $chat_id = $update->message->chat->id;
     $message_id = $update->message->message_id;
+    $query_id = null;
     $first_name = isset($update->message->from->first_name) ? $update->message->from->first_name : '❌';
     $username = isset($update->message->from->username) ? '@' . $update->message->from->username : '❌';
-    $chat_id = $update->message->chat->id;
     $text = $update->message->text;
+    // $data = null;
 } elseif (isset($update->callback_query)) {
     $from_id = $update->callback_query->from->id;
-    $query_id = $update->callback_query->id;
+    $chat_id = $update->callback_query->message->chat->id;
     $message_id = $update->callback_query->message->message_id;
+    $query_id = $update->callback_query->id;
     $first_name = isset($update->callback_query->message->chat->first_name) ? $update->callback_query->message->chat->first_name : '❌';
     $username = isset($update->callback_query->chat->username) ? '@' . $update->callback_query->chat->username : "ندارد";
-    $chat_id = $update->callback_query->message->chat->id;
+    $text = null;
     $data = $update->callback_query->data;
+    
 }
 
 # ----------------- [ <- others -> ] ----------------- #
@@ -70,7 +75,7 @@ if (!isset($sql->connect_error)) {
 
 # ----------------- [ <- functions -> ] ----------------- #
 
-function bot($method, $datas = [], $api_key = API_KEY)
+function bot($method, $datas = [], $api_key = API_KEY, $only_handler = false)
 {
     $url = "https://api.telegram.org/bot" . $api_key . "/" . $method;
     $ch = curl_init($url);
@@ -80,13 +85,18 @@ function bot($method, $datas = [], $api_key = API_KEY)
         CURLOPT_SSL_VERIFYHOST => false,
         CURLOPT_POSTFIELDS => $datas
     ]);
-    $res = curl_exec($ch);
-    if ($res === false) {
-        error_log('cURL Error: ' . curl_error($ch));
+    if ($only_handler == true) {
+        return $ch;
     } else {
-        return json_decode($res);
+        $res = curl_exec($ch);
+        curl_close($ch);
+        $curl_error = curl_error($ch);
+        if ($res === false) {
+            return $curl_error;
+        } else {
+            return json_decode($res, true);
+        }
     }
-    curl_close($ch);
 }
 
 function sendFile($chat_id, $file_path, $file_name, $mime_type, $api_key = API_KEY)
@@ -140,16 +150,32 @@ function editMessage($chat_id, $text, $message_id, $keyboard = null, $mrk = 'htm
         'disable_web_page_preview' => true,
         'reply_markup' => $keyboard
     ];
-    return bot('editMessageText', $params);
+    $bot_reply = bot('editMessageText', $params);
+    if ($bot_reply["ok"] == false and $bot_reply["description"] == "Bad Request: inline keyboard expected") {
+        deleteMessage($chat_id, $message_id);
+        $bot_reply = sendMessage($chat_id, $text, $keyboard, $mrk = 'html');
+        if ($bot_reply["ok"] == false) {
+            throw new Exception(json_encode($bot_reply,448));
+        }
+    }
+    return $bot_reply;
 }
 
-function deleteMessage($chat_id, $message_id)
+function deleteMessage($chat_id, $message_id, $only_handler = false)
 {
     $params = [
         'chat_id' => $chat_id,
         'message_id' => $message_id
     ];
-    return bot('deleteMessage', $params);
+    return bot('deleteMessage', $params, only_handler:$only_handler);
+}
+function deleteMessages($chat_id, $message_ids, $only_handler = false)
+{
+    $params = [
+        'chat_id' => $chat_id,
+        'message_ids' => json_encode($message_ids)
+    ];
+    return bot('deleteMessages', $params, only_handler:$only_handler);
 }
 
 function alert($text, $show = true)
@@ -319,24 +345,27 @@ function idpayGenerator($from_id, $price, $code)
 
     $data = json_encode($data);
     $curl = curl_init();
-    curl_setopt_array($curl, array(
-        CURLOPT_URL => 'https://api.idpay.ir/v1.1/payment',
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_SSL_VERIFYHOST => false,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_ENCODING => '',
-        CURLOPT_MAXREDIRS => 10,
-        CURLOPT_TIMEOUT => 0,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-        CURLOPT_CUSTOMREQUEST => 'POST',
-        CURLOPT_POSTFIELDS => $data,
-        CURLOPT_HTTPHEADER => array(
-            'Content-Type: application/json',
-            'X-API-KEY: ' . $payment_setting['idpay_token'],
-            'X-SANDBOX: 1'
-        ),
-    ));
+    curl_setopt_array(
+        $curl,
+        array(
+            CURLOPT_URL => 'https://api.idpay.ir/v1.1/payment',
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => $data,
+            CURLOPT_HTTPHEADER => array(
+                'Content-Type: application/json',
+                'X-API-KEY: ' . $payment_setting['idpay_token'],
+                'X-SANDBOX: 1'
+            ),
+        )
+    );
     $response = json_decode(curl_exec($curl), true);
     curl_close($curl);
     return $response['link'] ?? 'https://idpay.ir';
@@ -354,22 +383,25 @@ function nowPaymentGenerator($price_amount, $price_currency, $pay_currency, $ord
     );
     $fields = json_encode($fields);
     $curl = curl_init();
-    curl_setopt_array($curl, array(
-        CURLOPT_URL => 'https://api.nowpayments.io/v1/payment',
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_SSL_VERIFYHOST => false,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_ENCODING => '',
-        CURLOPT_MAXREDIRS => 10,
-        CURLOPT_TIMEOUT => 0,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_CUSTOMREQUEST => 'POST',
-        CURLOPT_POSTFIELDS => $fields,
-        CURLOPT_HTTPHEADER => array(
-            'x-api-key: ' . $payment_setting['nowpayment_token'],
-            'Content-Type: application/json'
-        ),
-    ));
+    curl_setopt_array(
+        $curl,
+        array(
+            CURLOPT_URL => 'https://api.nowpayments.io/v1/payment',
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => $fields,
+            CURLOPT_HTTPHEADER => array(
+                'x-api-key: ' . $payment_setting['nowpayment_token'],
+                'Content-Type: application/json'
+            ),
+        )
+    );
     $response = curl_exec($curl);
     curl_close($curl);
     return $response;
@@ -380,21 +412,24 @@ function checkNowPayment($payment_id)
     global $payment_setting;
 
     $curl = curl_init();
-    curl_setopt_array($curl, array(
-        CURLOPT_URL => 'https://api.nowpayments.io/v1/payment/' . $payment_id,
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_SSL_VERIFYHOST => false,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_ENCODING => '',
-        CURLOPT_MAXREDIRS => 10,
-        CURLOPT_TIMEOUT => 0,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-        CURLOPT_CUSTOMREQUEST => 'GET',
-        CURLOPT_HTTPHEADER => array(
-            'x-api-key: ' . $payment_setting['nowpayment_token']
-        ),
-    ));
+    curl_setopt_array(
+        $curl,
+        array(
+            CURLOPT_URL => 'https://api.nowpayments.io/v1/payment/' . $payment_id,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_HTTPHEADER => array(
+                'x-api-key: ' . $payment_setting['nowpayment_token']
+            ),
+        )
+    );
     $response = curl_exec($curl);
     curl_close($curl);
     return $response;
@@ -443,14 +478,17 @@ function loginPanel($address, $username, $password)
         'accept: application/json'
 
     );
-    curl_setopt_array($curl, array(
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_SSL_VERIFYHOST => false,
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => http_build_query($fields),
-        CURLOPT_HTTPHEADER => $marzban_login_headers
-    ));
+    curl_setopt_array(
+        $curl,
+        array(
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => http_build_query($fields),
+            CURLOPT_HTTPHEADER => $marzban_login_headers
+        )
+    );
     $response = curl_exec($curl);
     if ($response === false) {
         sendMessage($from_id, curl_error($curl), $cancel_add_server);
@@ -470,7 +508,7 @@ function createService($username, $limit, $expire_data, $proxies, $inbounds, $to
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $token, 'Content-Type: application/json'));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token, 'Content-Type: application/json'));
     if ($inbounds != 'null') {
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(array('proxies' => $proxies, 'inbounds' => $inbounds, 'expire' => $expire_data, 'data_limit' => $limit, 'username' => $username, 'data_limit_reset_strategy' => 'no_reset')));
     } else {
@@ -499,51 +537,6 @@ function getUserInfo($sevice_name, $token, $url)
     $response = json_decode(curl_exec($ch), true);
     curl_close($ch);
     return $response;
-}
-
-function getMultiUserInfo($service_names, $token, $url)
-{   
-    $mh = curl_multi_init();
-    $handles = array();
-    $responses = array();
-
-    $req_headers = array(
-        'Accept: application/json',
-        'Authorization: Bearer ' . $token,
-
-    );
-    $i = 0;
-    foreach ($service_names as $service_name){
-        $i++;
-        $api_url = $url . '/api/user/' . $service_name;
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $api_url);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_HTTPGET, true);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $req_headers);
-
-        curl_multi_add_handle($mh, $ch);
-        $handles[$i] = $ch;
-    }
-
-    $running = null;
-    do {
-        curl_multi_exec($mh, $running);
-    }  while ($running > 0);
-
-    foreach ($handles as $i => $ch) {
-        $responses[$i] = curl_multi_getcontent($ch);
-    
-        // Remove and close the cURL handle
-        curl_multi_remove_handle($mh, $ch);
-        curl_close($ch);
-    }
-
-    curl_multi_close($mh);
-    ksort($responses);
-    return $responses;
 }
 
 function resetUserDataUsage($username, $token, $url)
@@ -636,236 +629,335 @@ function checkInbound($inbounds, $inbound)
 # ----------------- [ <- keyboard -> ] ----------------- #
 include_once 'custom.php';
 
+
 if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
     if ($test_account_setting['status'] == 'active' and $user['test_account'] == 'no') {
-        $start_key = json_encode(['keyboard' => [
-            [['text' => '🔧 مدیریت']],
-            [['text' => '➕ تمدید سرویس'], ['text' => '🛒 خرید سرویس']],
-            [['text' => '🛍 سرویس های من'], ['text' => get_account_status_changer_button_status()]],
-            [['text' => '🎁 سرویس تستی (رایگان)']],
-            [['text' => '👤 پروفایل'], ['text' => '🛒 تعرفه خدمات'], ['text' => get_charge_account_button_status()]],
-            [['text' => '🔗 راهنمای اتصال'], ['text' => '📮 پشتیبانی آنلاین']]
-        ], 'resize_keyboard' => true]);
+        $start_key = json_encode([
+            'keyboard' => [
+                [['text' => '🔧 مدیریت']],
+                [['text' => '➕ تمدید سرویس'], ['text' => '🛒 خرید سرویس']],
+                [['text' => '🛍 سرویس های من'], ['text' => get_account_status_changer_button_status()]],
+                [['text' => '🎁 سرویس تستی (رایگان)']],
+                [['text' => '👤 پروفایل'], ['text' => '🛒 تعرفه خدمات'], ['text' => get_charge_account_button_status()]],
+                [['text' => '🔗 راهنمای اتصال'], ['text' => '📮 پشتیبانی آنلاین']]
+            ],
+            'resize_keyboard' => true
+        ]);
     } else {
-        $start_key = json_encode(['keyboard' => [
-            [['text' => '🔧 مدیریت']],
-            [['text' => '➕ تمدید سرویس'], ['text' => '🛒 خرید سرویس']],
-            [['text' => '🛍 سرویس های من'], ['text' => get_account_status_changer_button_status()]],
-            [['text' => '👤 پروفایل'], ['text' => '🛒 تعرفه خدمات'], ['text' => get_charge_account_button_status()]],
-            [['text' => '🔗 راهنمای اتصال'], ['text' => '📮 پشتیبانی آنلاین']]
-        ], 'resize_keyboard' => true]);
+        $start_key = json_encode([
+            'keyboard' => [
+                [['text' => '🔧 مدیریت']],
+                [['text' => '➕ تمدید سرویس'], ['text' => '🛒 خرید سرویس']],
+                [['text' => '🛍 سرویس های من'], ['text' => get_account_status_changer_button_status()]],
+                [['text' => '👤 پروفایل'], ['text' => '🛒 تعرفه خدمات'], ['text' => get_charge_account_button_status()]],
+                [['text' => '🔗 راهنمای اتصال'], ['text' => '📮 پشتیبانی آنلاین']]
+            ],
+            'resize_keyboard' => true
+        ]);
     }
 } else {
     if ($test_account_setting['status'] == 'active' and $user['test_account'] == 'no') {
-        $start_key = json_encode(['keyboard' => [
-            [['text' => '➕ تمدید سرویس'], ['text' => '🛒 خرید سرویس']],
-            [['text' => '🛍 سرویس های من'], ['text' => get_account_status_changer_button_status()]],
-            [['text' => '🎁 سرویس تستی (رایگان)']],
-            [['text' => '👤 پروفایل'], ['text' => '🛒 تعرفه خدمات'], ['text' => get_charge_account_button_status()]],
-            [['text' => '🔗 راهنمای اتصال'], ['text' => '📮 پشتیبانی آنلاین']]
-        ], 'resize_keyboard' => true]);
+        $start_key = json_encode([
+            'keyboard' => [
+                [['text' => '➕ تمدید سرویس'], ['text' => '🛒 خرید سرویس']],
+                [['text' => '🛍 سرویس های من'], ['text' => get_account_status_changer_button_status()]],
+                [['text' => '🎁 سرویس تستی (رایگان)']],
+                [['text' => '👤 پروفایل'], ['text' => '🛒 تعرفه خدمات'], ['text' => get_charge_account_button_status()]],
+                [['text' => '🔗 راهنمای اتصال'], ['text' => '📮 پشتیبانی آنلاین']]
+            ],
+            'resize_keyboard' => true
+        ]);
     } else {
-        $start_key = json_encode(['keyboard' => [
-            [['text' => '➕ تمدید سرویس'], ['text' => '🛒 خرید سرویس']],
-            [['text' => '🛍 سرویس های من'], ['text' => get_account_status_changer_button_status()]],
-            [['text' => '👤 پروفایل'], ['text' => '🛒 تعرفه خدمات'], ['text' => get_charge_account_button_status()]],
-            [['text' => '🔗 راهنمای اتصال'], ['text' => '📮 پشتیبانی آنلاین']]
-        ], 'resize_keyboard' => true]);
+        $start_key = json_encode([
+            'keyboard' => [
+                [['text' => '➕ تمدید سرویس'], ['text' => '🛒 خرید سرویس']],
+                [['text' => '🛍 سرویس های من'], ['text' => get_account_status_changer_button_status()]],
+                [['text' => '👤 پروفایل'], ['text' => '🛒 تعرفه خدمات'], ['text' => get_charge_account_button_status()]],
+                [['text' => '🔗 راهنمای اتصال'], ['text' => '📮 پشتیبانی آنلاین']]
+            ],
+            'resize_keyboard' => true
+        ]);
     }
 }
 
-$education = json_encode(['inline_keyboard' => [
-    [['text' => '🍏 ios', 'callback_data' => 'edu_ios'], ['text' => '📱 android', 'callback_data' => 'edu_android']],
-    [['text' => '🖥️ mac', 'callback_data' => 'edu_mac'], ['text' => '💻 windows', 'callback_data' => 'edu_windows']],
-    [['text' => '🐧 linux', 'callback_data' => 'edu_linux']]
-]]);
+$education = json_encode([
+    'inline_keyboard' => [
+        [['text' => '🍏 ios', 'callback_data' => 'edu_ios'], ['text' => '📱 android', 'callback_data' => 'edu_android']],
+        [['text' => '🖥️ mac', 'callback_data' => 'edu_mac'], ['text' => '💻 windows', 'callback_data' => 'edu_windows']],
+        [['text' => '🐧 linux', 'callback_data' => 'edu_linux']]
+    ]
+]);
 
-$back = json_encode(['keyboard' => [
-    [['text' => '🔙 بازگشت']]
-], 'resize_keyboard' => true]);
+$back = json_encode([
+    'keyboard' => [
+        [['text' => '🔙 بازگشت']]
+    ],
+    'resize_keyboard' => true
+]);
 
-$cancel_copen = json_encode(['inline_keyboard' => [
-    [['text' => '❌ لغو', 'callback_data' => 'cancel_copen']]
-]]);
+$cancel_copen = json_encode([
+    'inline_keyboard' => [
+        [['text' => '❌ لغو', 'callback_data' => 'cancel_copen']]
+    ]
+]);
 
-$confirm_service = json_encode(['keyboard' => [
-    [['text' => '☑️ ایجاد سرویس']], [['text' => '❌  انصراف']]
-], 'resize_keyboard' => true]);
+$confirm_service = json_encode([
+    'keyboard' => [
+        [['text' => '☑️ ایجاد سرویس']],
+        [['text' => '❌  انصراف']]
+    ],
+    'resize_keyboard' => true
+]);
 
-$select_diposet_payment = json_encode(['inline_keyboard' => [
-    [['text' => '▫️کارت به کارت', 'callback_data' => 'kart']],
-    [['text' => '▫️زرین پال', 'callback_data' => 'zarinpal'], ['text' => '▫️آیدی پی', 'callback_data' => 'idpay']],
-    [['text' => '▫️پرداخت ارزی', 'callback_data' => 'nowpayment']],
-    [['text' => '❌ لغو عملیات', 'callback_data' => 'cancel_payment_proccess']]
-]]);
+$select_diposet_payment = json_encode([
+    'inline_keyboard' => [
+        [['text' => '▫️کارت به کارت', 'callback_data' => 'kart']],
+        [['text' => '▫️زرین پال', 'callback_data' => 'zarinpal'], ['text' => '▫️آیدی پی', 'callback_data' => 'idpay']],
+        [['text' => '▫️پرداخت ارزی', 'callback_data' => 'nowpayment']],
+        [['text' => '❌ لغو عملیات', 'callback_data' => 'cancel_payment_proccess']]
+    ]
+]);
 
-$send_phone = json_encode(['keyboard' => [
-    [['text' => '🔒 تایید و ارسال شماره', 'request_contact' => true]],
-    [['text' => '🔙 بازگشت']]
-], 'resize_keyboard' => true]);
+$send_phone = json_encode([
+    'keyboard' => [
+        [['text' => '🔒 تایید و ارسال شماره', 'request_contact' => true]],
+        [['text' => '🔙 بازگشت']]
+    ],
+    'resize_keyboard' => true
+]);
 
-$bot_management_keyboard = json_encode(['keyboard' => [
-    // [['text' => '📞 اطلاعیه آپدیت ربات']],
-    // [['text' => '🔑 سیستم احراز هویت']],
-    [['text' => '👥 مدیریت آمار ربات'], ['text' => '🌐 مدیریت سرور']],
-    [['text' => '📤 مدیریت پیام'], ['text' => '👤 مدیریت کاربران']],
-    [['text' => '⚙️ تنظیمات'], ['text' => '👮‍♂️مدیریت ادمین']],
-    [['text' => '🔙 بازگشت']],
-], 'resize_keyboard' => true]);
+$bot_management_keyboard = json_encode([
+    'keyboard' => [
+        // [['text' => '📞 اطلاعیه آپدیت ربات']],
+        // [['text' => '🔑 سیستم احراز هویت']],
+        [['text' => '👥 مدیریت آمار ربات'], ['text' => '🌐 مدیریت سرور']],
+        [['text' => '📤 مدیریت پیام'], ['text' => '👤 مدیریت کاربران']],
+        [['text' => '⚙️ تنظیمات'], ['text' => '👮‍♂️مدیریت ادمین']],
+        [['text' => '🔙 بازگشت']],
+    ],
+    'resize_keyboard' => true
+]);
 
-$manage_statistics = json_encode(['keyboard' => [
-    [['text' => '👤 آمار ربات']],
-    [['text' => '⬅️ بازگشت به مدیریت']]
-], 'resize_keyboard' => true]);
+$manage_statistics = json_encode([
+    'keyboard' => [
+        [['text' => '👤 آمار ربات']],
+        [['text' => '⬅️ بازگشت به مدیریت']]
+    ],
+    'resize_keyboard' => true
+]);
 
-$manage_server = json_encode(['keyboard' => [
-    [['text' => '⏱ مدیریت اکانت تست']],
-    [['text' => '⚙️ مدیریت پلن ها'], ['text' => '🎟 افزودن پلن']],
-    [['text' => '⚙️ لیست سرور ها'], ['text' => '➕ افزودن سرور']],
-    [['text' => '⬅️ بازگشت به مدیریت']]
-], 'resize_keyboard' => true]);
+$manage_server = json_encode([
+    'keyboard' => [
+        [['text' => '⏱ مدیریت اکانت تست']],
+        [['text' => '⚙️ مدیریت پلن ها'], ['text' => '🎟 افزودن پلن']],
+        [['text' => '⚙️ لیست سرور ها'], ['text' => '➕ افزودن سرور']],
+        [['text' => '⬅️ بازگشت به مدیریت']]
+    ],
+    'resize_keyboard' => true
+]);
 
-$select_panel = json_encode(['inline_keyboard' => [
-    [['text' => '▫سنایی', 'callback_data' => 'sanayi']],
-    [['text' => '▫️هیدیفای', 'callback_data' => 'hedifay'], ['text' => '▫️مرزبان', 'callback_data' => 'marzban']]
-]]);
+$select_panel = json_encode([
+    'inline_keyboard' => [
+        [['text' => '▫سنایی', 'callback_data' => 'sanayi']],
+        [['text' => '▫️هیدیفای', 'callback_data' => 'hedifay'], ['text' => '▫️مرزبان', 'callback_data' => 'marzban']]
+    ]
+]);
 
-$add_plan_button = json_encode(['inline_keyboard' => [
-    [['text' => '➕ پلن خرید سرویس', 'callback_data' => 'add_buy_plan']],
-    [['text' => '➕ پلن زمانی', 'callback_data' => 'add_date_plan'], ['text' => '➕ پلن حجمی', 'callback_data' => 'add_limit_plan']],
-]]);
+$add_plan_button = json_encode([
+    'inline_keyboard' => [
+        [['text' => '➕ پلن خرید سرویس', 'callback_data' => 'add_buy_plan']],
+        [['text' => '➕ پلن زمانی', 'callback_data' => 'add_date_plan'], ['text' => '➕ پلن حجمی', 'callback_data' => 'add_limit_plan']],
+    ]
+]);
 
-$manage_plans = json_encode(['inline_keyboard' => [
-    [['text' => '🔧 پلن خرید سرویس', 'callback_data' => 'manage_main_plan']],
-    [['text' => '🔧 پلن زمانی', 'callback_data' => 'manage_date_plan'], ['text' => '🔧 پلن حجمی', 'callback_data' => 'manage_limit_plan']],
-]]);
+$manage_plans = json_encode([
+    'inline_keyboard' => [
+        [['text' => '🔧 پلن خرید سرویس', 'callback_data' => 'manage_main_plan']],
+        [['text' => '🔧 پلن زمانی', 'callback_data' => 'manage_date_plan'], ['text' => '🔧 پلن حجمی', 'callback_data' => 'manage_limit_plan']],
+    ]
+]);
 
-$end_inbound = json_encode(['keyboard' => [
-    [['text' => '✔ اتمام و ثبت']],
-], 'resize_keyboard' => true]);
+$end_inbound = json_encode([
+    'keyboard' => [
+        [['text' => '✔ اتمام و ثبت']],
+    ],
+    'resize_keyboard' => true
+]);
 
-$manage_test_account = json_encode(['inline_keyboard' => [
-    [['text' => ($test_account_setting['status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_test_account_status'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
-    [['text' => ($test_account_setting['panel'] == 'none') ? '🔴 وصل نیست' : '🟢 وصل است', 'callback_data' => 'change_test_account_panel'], ['text' => '▫️متصل به پنل :', 'callback_data' => 'null']],
-    [['text' => $sql->query("SELECT * FROM `test_account`")->num_rows, 'callback_data' => 'null'], ['text' => '▫️تعداد اکانت تست :', 'callback_data' => 'null']],
-    [['text' => $test_account_setting['volume'] . ' GB', 'callback_data' => 'change_test_account_volume'], ['text' => '▫️حجم :', 'callback_data' => 'null']],
-    [['text' => $test_account_setting['time'] . ' ساعت', 'callback_data' => 'change_test_account_time'], ['text' => '▫️زمان :', 'callback_data' => 'null']],
-]]);
+$manage_test_account = json_encode([
+    'inline_keyboard' => [
+        [['text' => ($test_account_setting['status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_test_account_status'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
+        [['text' => ($test_account_setting['panel'] == 'none') ? '🔴 وصل نیست' : '🟢 وصل است', 'callback_data' => 'change_test_account_panel'], ['text' => '▫️متصل به پنل :', 'callback_data' => 'null']],
+        [['text' => $sql->query("SELECT * FROM `test_account`")->num_rows, 'callback_data' => 'null'], ['text' => '▫️تعداد اکانت تست :', 'callback_data' => 'null']],
+        [['text' => $test_account_setting['volume'] . ' GB', 'callback_data' => 'change_test_account_volume'], ['text' => '▫️حجم :', 'callback_data' => 'null']],
+        [['text' => $test_account_setting['time'] . ' ساعت', 'callback_data' => 'change_test_account_time'], ['text' => '▫️زمان :', 'callback_data' => 'null']],
+    ]
+]);
 
-$manage_auth = json_encode(['inline_keyboard' => [
-    [['text' => ($auth_setting['status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_auth'], ['text' => 'ℹ️ سیستم احرازهویت :', 'callback_data' => 'null']],
-    [['text' => ($auth_setting['iran_number'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_auth_iran'], ['text' => '🇮🇷 شماره ایران :', 'callback_data' => 'null']],
-    [['text' => ($auth_setting['virtual_number'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_auth_virtual'], ['text' => '🏴󠁧󠁢󠁥󠁮󠁧󠁿 شماره مجازی :', 'callback_data' => 'null']],
-    [['text' => ($auth_setting['both_number'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_auth_all_country'], ['text' => '🌎 همه شماره ها :', 'callback_data' => 'null']],
-]]);
+$manage_auth = json_encode([
+    'inline_keyboard' => [
+        [['text' => ($auth_setting['status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_auth'], ['text' => 'ℹ️ سیستم احرازهویت :', 'callback_data' => 'null']],
+        [['text' => ($auth_setting['iran_number'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_auth_iran'], ['text' => '🇮🇷 شماره ایران :', 'callback_data' => 'null']],
+        [['text' => ($auth_setting['virtual_number'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_auth_virtual'], ['text' => '🏴󠁧󠁢󠁥󠁮󠁧󠁿 شماره مجازی :', 'callback_data' => 'null']],
+        [['text' => ($auth_setting['both_number'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_auth_all_country'], ['text' => '🌎 همه شماره ها :', 'callback_data' => 'null']],
+    ]
+]);
 
-$manage_service = json_encode(['keyboard' => [
-    [['text' => '#⃣ لیست همه سرویس ها']],
-    [['text' => '➖ حذف سرویس'], ['text' => '➕ افزودن سرویس']],
-    [['text' => 'ℹ️ اطلاعات یک سرویس']],
-    [['text' => '⬅️ بازگشت به مدیریت']]
-], 'resize_keyboard' => true]);
+$manage_service = json_encode([
+    'keyboard' => [
+        [['text' => '#⃣ لیست همه سرویس ها']],
+        [['text' => '➖ حذف سرویس'], ['text' => '➕ افزودن سرویس']],
+        [['text' => 'ℹ️ اطلاعات یک سرویس']],
+        [['text' => '⬅️ بازگشت به مدیریت']]
+    ],
+    'resize_keyboard' => true
+]);
 
-$manage_message = json_encode(['keyboard' => [
-    // [['text' => '🔎 وضعیت ارسال / فوروارد همگانی']],
-    [['text' => '🔎 وضعیت ارسال همگانی']],
-    // [['text' => '📬 فوروارد همگانی'], ['text' => '📬 ارسال همگانی']],
-    [['text' => '📬 ارسال همگانی']],
-    [['text' => '📞 ارسال پیام به کاربر']],
-    [['text'  => 'ارسال پیام ها 📧']],
-    [['text' => '⬅️ بازگشت به مدیریت']]
-], 'resize_keyboard' => true]);
+$manage_message = json_encode([
+    'keyboard' => [
+        // [['text' => '🔎 وضعیت ارسال / فوروارد همگانی']],
+        [['text' => '🔎 وضعیت ارسال همگانی']],
+        // [['text' => '📬 فوروارد همگانی'], ['text' => '📬 ارسال همگانی']],
+        [['text' => '📬 ارسال همگانی']],
+        [['text' => '📞 ارسال پیام به کاربر']],
+        [['text' => 'ارسال پیام ها 📧']],
+        [['text' => '⬅️ بازگشت به مدیریت']]
+    ],
+    'resize_keyboard' => true
+]);
 
-$manage_user = json_encode(['keyboard' => [
-    [['text' => '🔎 اطلاعات کاربر'], ['text' => $texts['account_status_changer_button']]],
-    [['text' => '➖ کسر موجودی'], ['text' => '➕ افزایش موجودی']],
-    [['text' => '❌ مسدود کردن'], ['text' => '✅ آزاد کردن']],
-    [['text' => '📤 ارسال پیام به کاربر']],
-    [['text' => '⬅️ بازگشت به مدیریت']]
-], 'resize_keyboard' => true]);
+$manage_user = json_encode([
+    'keyboard' => [
+        [['text' => '🔎 اطلاعات کاربر'], ['text' => $texts['account_status_changer_button']]],
+        [['text' => '➖ کسر موجودی'], ['text' => '➕ افزایش موجودی']],
+        [['text' => '❌ مسدود کردن'], ['text' => '✅ آزاد کردن']],
+        [['text' => '📤 ارسال پیام به کاربر']],
+        [['text' => '⬅️ بازگشت به مدیریت']]
+    ],
+    'resize_keyboard' => true
+]);
 
-$manage_admin = json_encode(['keyboard' => [
-    [['text' => '➖ حذف ادمین'], ['text' => '➕ افزودن ادمین']],
-    [['text' => '⚙️ لیست ادمین ها']],
-    [['text' => '⬅️ بازگشت به مدیریت']]
-], 'resize_keyboard' => true]);
+$manage_admin = json_encode([
+    'keyboard' => [
+        [['text' => '➖ حذف ادمین'], ['text' => '➕ افزودن ادمین']],
+        [['text' => '⚙️ لیست ادمین ها']],
+        [['text' => '⬅️ بازگشت به مدیریت']]
+    ],
+    'resize_keyboard' => true
+]);
 
-$manage_setting = json_encode(['keyboard' => [
-    [['text' => 'غیر فعال یا فعال سازی دکمه شارژ'], ['text' => $texts['change_visibility_account_status_changer_button']]],
-    // [['text' => '🚫 مدیریت ضد اسپم']],
-    [['text' => '🚫 مدیریت ضد اسپم'], ['text' => '◽کانال ها']],
-    // [['text' => '◽کانال ها'], ['text' => '◽بخش ها']],
-    [['text' => '◽تنظیم متون ربات'], ['text' => '◽تنظیمات درگاه پرداخت']],
-    // [['text' => '🎁 مدیریت کد تخفیف']],
-    [['text' => '⬅️ بازگشت به مدیریت']]
-], 'resize_keyboard' => true]);
+$manage_setting = json_encode([
+    'keyboard' => [
+        [['text' => 'غیر فعال یا فعال سازی دکمه شارژ'], ['text' => $texts['change_visibility_account_status_changer_button']]],
+        // [['text' => '🚫 مدیریت ضد اسپم']],
+        [['text' => '🚫 مدیریت ضد اسپم'], ['text' => '◽کانال ها']],
+        // [['text' => '◽کانال ها'], ['text' => '◽بخش ها']],
+        [['text' => '◽تنظیم متون ربات'], ['text' => '◽تنظیمات درگاه پرداخت']],
+        // [['text' => '🎁 مدیریت کد تخفیف']],
+        [['text' => '⬅️ بازگشت به مدیریت']]
+    ],
+    'resize_keyboard' => true
+]);
 
-$manage_copens = json_encode(['inline_keyboard' => [
-    [['text' => '➕افزودن تخفیف', 'callback_data' => 'add_copen'], ['text' => '✏️ مدیریت', 'callback_data' => 'manage_copens']]
-]]);
+$manage_copens = json_encode([
+    'inline_keyboard' => [
+        [['text' => '➕افزودن تخفیف', 'callback_data' => 'add_copen'], ['text' => '✏️ مدیریت', 'callback_data' => 'manage_copens']]
+    ]
+]);
 
-$manage_spam = json_encode(['inline_keyboard' => [
-    [['text' => ($spam_setting['status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_spam'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
-    [['text' => ($spam_setting['type'] == 'ban') ? '🚫 مسدود' : '⚠️ اخطار', 'callback_data' => 'change_type_spam'], ['text' => '▫️مدل برخورد :', 'callback_data' => 'null']],
-    [['text' => $spam_setting['time'] . ' ثانیه', 'callback_data' => 'change_time_spam'], ['text' => '▫️زمان : ', 'callback_data' => 'null']],
-    [['text' => $spam_setting['count_message'] . ' عدد', 'callback_data' => 'change_count_spam'], ['text' => '▫️تعداد پیام : ', 'callback_data' => 'null']],
-]]);
+$manage_spam = json_encode([
+    'inline_keyboard' => [
+        [['text' => ($spam_setting['status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_spam'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
+        [['text' => ($spam_setting['type'] == 'ban') ? '🚫 مسدود' : '⚠️ اخطار', 'callback_data' => 'change_type_spam'], ['text' => '▫️مدل برخورد :', 'callback_data' => 'null']],
+        [['text' => $spam_setting['time'] . ' ثانیه', 'callback_data' => 'change_time_spam'], ['text' => '▫️زمان : ', 'callback_data' => 'null']],
+        [['text' => $spam_setting['count_message'] . ' عدد', 'callback_data' => 'change_count_spam'], ['text' => '▫️تعداد پیام : ', 'callback_data' => 'null']],
+    ]
+]);
 
-$manage_payment = json_encode(['keyboard' => [
-    [['text' => '✏️ وضعیت خاموش/روشن درگاه پرداخت های ربات']],
-    [['text' => '▫️تنظیم صاحب شماره کارت'], ['text' => '▫️تنظیم شماره کارت']],
-    [['text' => '▫️زرین پال'], ['text' => '▫️آیدی پی']],
-    [['text' => '◽ NOWPayments']],
-    [['text' => '⬅️ بازگشت به مدیریت']]
-], 'resize_keyboard' => true]);
+$manage_payment = json_encode([
+    'keyboard' => [
+        [['text' => '✏️ وضعیت خاموش/روشن درگاه پرداخت های ربات']],
+        [['text' => '▫️تنظیم صاحب شماره کارت'], ['text' => '▫️تنظیم شماره کارت']],
+        [['text' => '▫️زرین پال'], ['text' => '▫️آیدی پی']],
+        [['text' => '◽ NOWPayments']],
+        [['text' => '⬅️ بازگشت به مدیریت']]
+    ],
+    'resize_keyboard' => true
+]);
 
-$manage_off_on_paymanet = json_encode(['inline_keyboard' => [
-    [['text' => ($payment_setting['zarinpal_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_zarinpal'], ['text' => '▫️زرین پال :', 'callback_data' => 'null']],
-    [['text' => ($payment_setting['idpay_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_idpay'], ['text' => '▫️آیدی پی :', 'callback_data' => 'null']],
-    [['text' => ($payment_setting['nowpayment_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_nowpayment'], ['text' => ': nowpayment ▫️', 'callback_data' => 'null']],
-    [['text' => ($payment_setting['card_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_card'], ['text' => '▫️کارت به کارت :', 'callback_data' => 'null']]
-]]);
+$manage_off_on_paymanet = json_encode([
+    'inline_keyboard' => [
+        [['text' => ($payment_setting['zarinpal_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_zarinpal'], ['text' => '▫️زرین پال :', 'callback_data' => 'null']],
+        [['text' => ($payment_setting['idpay_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_idpay'], ['text' => '▫️آیدی پی :', 'callback_data' => 'null']],
+        [['text' => ($payment_setting['nowpayment_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_nowpayment'], ['text' => ': nowpayment ▫️', 'callback_data' => 'null']],
+        [['text' => ($payment_setting['card_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_card'], ['text' => '▫️کارت به کارت :', 'callback_data' => 'null']]
+    ]
+]);
 
-$manage_texts = json_encode(['keyboard' => [
-    [['text' => '✏️ متن تعرفه خدمات'], ['text' => '✏️ متن استارت']],
-    [['text' => '✏️ متن راهنمای اتصال']],
-    [['text' => '⬅️ بازگشت به مدیریت']]
-], 'resize_keyboard' => true]);
+$manage_texts = json_encode([
+    'keyboard' => [
+        [['text' => '✏️ متن تعرفه خدمات'], ['text' => '✏️ متن استارت']],
+        [['text' => '✏️ متن راهنمای اتصال']],
+        [['text' => '⬅️ بازگشت به مدیریت']]
+    ],
+    'resize_keyboard' => true
+]);
 
-$set_text_edu = json_encode(['inline_keyboard' => [
-    [['text' => '🍏 ios', 'callback_data' => 'set_edu_ios'], ['text' => '📱 android', 'callback_data' => 'set_edu_android']],
-    [['text' => '🖥️ mac', 'callback_data' => 'set_edu_mac'], ['text' => '💻 windows', 'callback_data' => 'set_edu_windows']],
-    [['text' => '🐧 linux', 'callback_data' => 'set_edu_linux']]
-]]);
+$set_text_edu = json_encode([
+    'inline_keyboard' => [
+        [['text' => '🍏 ios', 'callback_data' => 'set_edu_ios'], ['text' => '📱 android', 'callback_data' => 'set_edu_android']],
+        [['text' => '🖥️ mac', 'callback_data' => 'set_edu_mac'], ['text' => '💻 windows', 'callback_data' => 'set_edu_windows']],
+        [['text' => '🐧 linux', 'callback_data' => 'set_edu_linux']]
+    ]
+]);
 
-$cancel = json_encode(['keyboard' => [
-    [['text' => '❌ انصراف']]
-], 'resize_keyboard' => true]);
+$cancel = json_encode([
+    'keyboard' => [
+        [['text' => '❌ انصراف']]
+    ],
+    'resize_keyboard' => true
+]);
 
-$cancel_add_server = json_encode(['keyboard' => [
-    [['text' => '❌ انصراف و بازگشت']]
-], 'resize_keyboard' => true]);
+$cancel_add_server = json_encode([
+    'keyboard' => [
+        [['text' => '❌ انصراف و بازگشت']]
+    ],
+    'resize_keyboard' => true
+]);
 
-$back_panel = json_encode(['keyboard' => [
-    [['text' => '⬅️ بازگشت به مدیریت']]
-], 'resize_keyboard' => true]);
+$back_panel = json_encode([
+    'keyboard' => [
+        [['text' => '⬅️ بازگشت به مدیریت']]
+    ],
+    'resize_keyboard' => true
+]);
 
-$back_panellist = json_encode(['inline_keyboard' => [
-    [['text' => '🔙 بازگشت به لیست پنل ها', 'callback_data' => 'back_panellist']],
-]]);
+$back_panellist = json_encode([
+    'inline_keyboard' => [
+        [['text' => '🔙 بازگشت به لیست پنل ها', 'callback_data' => 'back_panellist']],
+    ]
+]);
 
-$back_services = json_encode(['inline_keyboard' => [
-    [['text' => '🔙 بازگشت', 'callback_data' => 'back_services']]
-]]);
+$back_services = json_encode([
+    'inline_keyboard' => [
+        [['text' => '🔙 بازگشت', 'callback_data' => 'back_services']]
+    ]
+]);
 
-$back_account_test = json_encode(['inline_keyboard' => [
-    [['text' => '🔙 بازگشت', 'callback_data' => 'back_account_test']]
-]]);
+$back_account_test = json_encode([
+    'inline_keyboard' => [
+        [['text' => '🔙 بازگشت', 'callback_data' => 'back_account_test']]
+    ]
+]);
 
-$back_spam = json_encode(['inline_keyboard' => [
-    [['text' => '🔙 بازگشت', 'callback_data' => 'back_spam']]
-]]);
+$back_spam = json_encode([
+    'inline_keyboard' => [
+        [['text' => '🔙 بازگشت', 'callback_data' => 'back_spam']]
+    ]
+]);
 
-$back_copen = json_encode(['inline_keyboard' => [
-    [['text' => '🔙 بازگشت', 'callback_data' => 'back_copen']]
-]]);
+$back_copen = json_encode([
+    'inline_keyboard' => [
+        [['text' => '🔙 بازگشت', 'callback_data' => 'back_copen']]
+    ]
+]);

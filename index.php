@@ -1,31 +1,24 @@
 <?php
 
-# -- #
-/**
- * Version: 2.5
- **/
 
-
-include_once 'config.php';
-include_once 'api/sanayi.php';
-include_once 'custom.php';
-# include_once  'api/hiddify.php';
-
-
-
-ini_set('display_errors', 0); // Disable error display on the screen
-ini_set('log_errors', 1); // Enable error logging to a file
-ini_set('error_log', 'error.log'); // Specify the path to the error log file
-error_reporting(E_ALL); // Set the error reporting level as needed
-date_default_timezone_set("UTC");
-
-
-// ============================ Debug code ================== START //
+// //============================ Debug code ================== START //
 // $debug_array = [];
 // send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448));
-// ============================ Debug code ================== END //
-
+// // ============================ Debug code ================== END //
+print("hello");
 try {
+    include_once 'config.php';
+    include_once 'api/sanayi.php';
+    include_once 'custom.php';
+    # include_once  'api/hiddify.php';
+
+    ini_set('display_errors', 0); // Disable error display on the screen
+    ini_set('log_errors', 1); // Enable error logging to a file
+    ini_set('error_log', 'error.log'); // Specify the path to the error log file
+    error_reporting(E_ALL); // Set the error reporting level as needed
+    date_default_timezone_set("UTC");
+
+
     if ($text == $texts['back_to_menu_button']) {
         step('none');
         sendMessage($from_id, $texts['back_to_menu'], $start_key);
@@ -35,7 +28,7 @@ try {
         sendMessage($from_id, "👮‍♂️ - سلام ادمین [ <b>$first_name</b> ] عزیز !\n\n⚡️به پنل مدیریت ربات خوش آمدید.\n🗃 ورژن فعلی ربات : <code>{$config['version']}</code>\n\n⚙️ جهت مدیریت ربات ، یکی از گزینه های زیر را انتخاب کنید.", $bot_management_keyboard);
         exit(0);
     } else {
-        send_message_query();
+        // send_message_query();
         renewal_service($text, $from_id);
         change_account_status($text, $from_id);
     }
@@ -56,18 +49,21 @@ try {
         sendMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $start_key);
     } elseif ($data == 'back_to_home') {
         step('none');
-        sendMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $start_key);
-        deleteMessage($from_id, $message_id);
+        editMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $message_id, $start_key);
     } elseif ($text == '❌  انصراف' and $user['step'] == 'confirm_service') {
         step('none');
-        foreach ([$from_id . '-location.txt', $from_id . '-protocol.txt'] as $file) if (file_exists($file)) unlink($file);
-        if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0) $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
+        foreach ([$from_id . '-location.txt', $from_id . '-protocol.txt'] as $file)
+            if (file_exists($file))
+                unlink($file);
+        if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0)
+            $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
         sendMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $start_key);
     } elseif ($text == '🛒 خرید سرویس') {
         $servers = $sql->query("SELECT * FROM `panels` WHERE `status` = 'active'");
         if ($servers->num_rows > 0) {
             step('buy_service');
-            if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0) $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
+            if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0)
+                $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
             while ($row = $servers->fetch_assoc()) {
                 $location[] = ['text' => $row['name']];
             }
@@ -195,7 +191,7 @@ try {
             if ($copen['status'] == 'active') {
                 if ($copen['count_use'] > 0) {
                     step('confirm_service');
-                    $price =  $service['price'] * (intval($copen['percent']) / 100);
+                    $price = $service['price'] * (intval($copen['percent']) / 100);
                     $sql->query("UPDATE `service_factors` SET `price` = price - $price WHERE `code` = '$code'");
                     sendMessage($from_id, sprintf($texts['success_copen'], $copen['percent']), $confirm_service);
                 } else {
@@ -211,7 +207,9 @@ try {
         step('none');
         sendMessage($from_id, $texts['create_service_proccess']);
         # ---------------- delete extra files ---------------- #
-        foreach ([$from_id . '-location.txt', $from_id . '-protocol.txt', $from_id . '-plan.txt', $from_id . '-service-name.txt'] as $file) if (file_exists($file)) unlink($file);
+        foreach ([$from_id . '-location.txt', $from_id . '-protocol.txt', $from_id . '-plan.txt', $from_id . '-service-name.txt'] as $file)
+            if (file_exists($file))
+                unlink($file);
         # ---------------- get all information for create service ---------------- #
         $select_service = $sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->fetch_assoc();
         $location = $select_service['location'];
@@ -243,7 +241,8 @@ try {
             # ---------------- set proxies and inbounds proccess for marzban panel ---------------- #
             $protocols = explode('|', $panel['protocols']);
             unset($protocols[count($protocols) - 1]);
-            if ($protocols[0] == '') unset($protocols[0]);
+            if ($protocols[0] == '')
+                unset($protocols[0]);
             $proxies = array();
             foreach ($protocols as $protocol) {
                 if ($protocol == 'vless' and $panel['flow'] == 'flowon') {
@@ -274,7 +273,8 @@ try {
             }
             # ---------------- get links and subscription_url for send the user ---------------- #
             $links = "";
-            foreach ($create_status['links'] as $link) $links .= $link . "\n\n";
+            foreach ($create_status['links'] as $link)
+                $links .= $link . "\n\n";
 
 
             if ($info_panel->num_rows > 0) {
@@ -336,7 +336,8 @@ try {
                     # ---------------- set proxies and inbounds proccess for marzban panel ---------------- #
                     $protocols = explode('|', $panel_fetch['protocols']);
                     unset($protocols[count($protocols) - 1]);
-                    if ($protocols[0] == '') unset($protocols[0]);
+                    if ($protocols[0] == '')
+                        unset($protocols[0]);
                     $proxies = array();
                     foreach ($protocols as $protocol) {
                         if ($protocol == 'vless' and $panel_fetch['flow'] == 'flowon') {
@@ -360,7 +361,8 @@ try {
                     $create_status = json_decode($create_service, true);
                     if (isset($create_status['username'])) {
                         $links = "";
-                        foreach ($create_status['links'] as $link) $links .= $link . "\n\n";
+                        foreach ($create_status['links'] as $link)
+                            $links .= $link . "\n\n";
                         $subscribe = (strpos($create_status['subscription_url'], 'http') !== false) ? $create_status['subscription_url'] : $panel_fetch['login_link'] . $create_status['subscription_url'];
                         $sql->query("UPDATE `users` SET `count_service` = count_service + 1, `test_account` = 'yes' WHERE `from_id` = '$from_id'");
                         $sql->query("INSERT INTO `test_account` (`from_id`, `location`, `date`, `volume`, `link`, `price`, `code`, `status`) VALUES ('$from_id', '{$panel_fetch['name']}', '{$test_account_setting['date']}', '{$test_account_setting['volume']}', '$links', '0', '$code', 'active')");
@@ -421,17 +423,15 @@ try {
         if (isset($text)) {
             sendMessage($from_id, $texts['my_services'], json_encode(['inline_keyboard' => $key]));
         } else {
-            editMessage($from_id, $texts['my_services'], $message_id,  json_encode(['inline_keyboard' => $key]));
+            editMessage($from_id, $texts['my_services'], $message_id, json_encode(['inline_keyboard' => $key]));
             if ($data == 'back_my_services_menu_from_all_services') {
                 $file_name = $from_id . "-" . "all_services_lists_msg_ids";
-                $remaining_service_lists_msg_ids_string = file_get_contents($file_name);
-                $remaining_service_lists_msg_ids = explode('-', $remaining_service_lists_msg_ids_string);
-                if (($key = array_search($message_id, $remaining_service_lists_msg_ids)) !== false) {
-                    unset($remaining_service_lists_msg_ids[$key]);
+                $service_lists_msg_ids_string = file_get_contents($file_name);
+                $service_lists_msg_ids = explode('-', $service_lists_msg_ids_string);
+                if (($key = array_search($message_id, $service_lists_msg_ids)) !== false) {
+                    unset($service_lists_msg_ids[$key]);
                 }
-                foreach ($remaining_service_lists_msg_ids as $service_list_msg_id) {
-                    deleteMessage($from_id, $service_list_msg_id);
-                };
+                deleteMessages($from_id, $service_lists_msg_ids);
                 unlink($file_name);
             }
         }
@@ -488,7 +488,7 @@ try {
             sendMessage($from_id, $texts['service_search_retry'], json_encode(['inline_keyboard' => $key]));
             step('search-service');
         }
-    } elseif (in_array($data, array('all_services')) or strpos($data, 'back_all_services') !== false) {
+    } elseif ($data == 'all_services' or strpos($data, 'back_all_services') !== false) {
         $callback_parts = explode('__', $data);
         if (count($callback_parts) > 1) {
             $back_from_list_index = $callback_parts[1];
@@ -496,64 +496,111 @@ try {
             $back_from_list_index = null;
         };
         $list_button_count_limit = 60;
+        $list_button_count_limit = 1;
         $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'");
-        if ($services->num_rows > 0) {
-            $user_number = 0;
-            $list_details = array();
+        $services_count = $services->num_rows;
+
+        if ($services_count > 0) {
+            $service_number = 0;
+            $services_base_details = [];
+            $curlMultiHandle = curl_multi_init();
+            $curlHandles = array();
+            $i = 0;
             while ($row = $services->fetch_assoc()) {
-                $user_number++;
-                $cal_user_number = $user_number - 1;
-                $current_list_index = intval($cal_user_number / $list_button_count_limit);
+                $service_number++;
+                $cal_service_number = $service_number - 1;
+                $current_list_index = intval($cal_service_number / $list_button_count_limit);
+                $last_list_index = $current_list_index;
                 if (isset($back_from_list_index) and $current_list_index != $back_from_list_index) {
                     continue;
-                };
+                }
                 $service_base_name = $row['code'];
-                $service_name = $row['code'] . "_" . $from_id;
+                $service_name = $service_base_name . "_" . $from_id;
                 $service_location = $row['location'];
-                $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();;
-                $marzban_res = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
-                $service_status = $marzban_res['status'];
-                // $t = json_encode($service_name, 448);
-                // sendMessage($from_id, "test : $t");
-                if ($service_status == 'active') {
+
+                $services_base_details[] = [
+                    "service_name" => $service_name,
+                    "service_base_name" => $service_base_name,
+                    "service_location" => $service_location,
+                    "service_list_index" => $current_list_index
+                ];
+
+                $curlHandle = curl_init();
+                $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();
+                $api_url = $mysql_service_panel['login_link'] . '/api/user/' . $service_name;
+                $req_headers = array(
+                    'Accept: application/json',
+                    'Authorization: Bearer ' . get_marzban_panel_token($service_location),
+
+                );
+                curl_setopt($curlHandle, CURLOPT_URL, $api_url);
+                curl_setopt($curlHandle, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($curlHandle, CURLOPT_SSL_VERIFYHOST, false);
+                curl_setopt($curlHandle, CURLOPT_HTTPGET, true);
+                curl_setopt($curlHandle, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($curlHandle, CURLOPT_HTTPHEADER, $req_headers);
+                curl_multi_add_handle($curlMultiHandle, $curlHandle);
+                $curlHandles[$i] = $curlHandle;
+                $i++;
+            }
+            $running = null;
+            do {
+                curl_multi_exec($curlMultiHandle, $running);
+            } while ($running > 0);
+
+            $servicesStatus = array();
+            foreach ($curlHandles as $i => $curlHandle) {
+                $curlResponse = json_decode(curl_multi_getcontent($curlHandle), true);
+                $serviceStatus = $curlResponse['status'];
+                if ($serviceStatus == 'active') {
                     $status = '🟢';
-                } elseif (in_array($service_status, array("disabled", "limited", "expired"))) {
+                } elseif (in_array($serviceStatus, array("disabled", "limited", "expired"))) {
                     $status = '🔴';
                 } else {
                     $status = '❌';
                 };
+                $servicesStatus[$i] = $status;
+                // Remove and close the cURL handle
+                curl_multi_remove_handle($curlMultiHandle, $curlHandle);
+                curl_close($curlHandle);
+            }
+            curl_multi_close($curlMultiHandle);
+            ksort($servicesStatus);
+            $list_details = array();
+            for ($i = 0; $i < count($services_base_details); $i++) {
+                $service_base_datails = $services_base_details[$i];
+                $service_base_name = $service_base_datails['service_base_name'];
+                $service_name = $service_base_datails['service_name'];
+                $service_location = $service_base_datails['service_location'];
+                $service_list_index = $service_base_datails['service_list_index'];
+                $service_status = $servicesStatus[$i];
+
+
                 $key = [
-                    'text' => $status . $row['code'] . ' - ' . $row['location'],
-                    'callback_data' => 'service_status-' . $row['code'] . "-all_services__$current_list_index" . "-$current_list_index"
+                    'text' => $service_status . $service_base_name . ' - ' . $service_location,
+                    'callback_data' => 'service_status-' . $service_base_name . "-all_services__$service_list_index" . "-$service_list_index"
                 ];
-                if (array_key_exists($current_list_index, $list_details)) {
+                if (array_key_exists($service_list_index, $list_details)) {
                     // Key exists, append the value to the existing list
-                    $list_details[$current_list_index][] = $key;
+                    $list_details[$service_list_index][] = $key;
                 } else {
                     // Key doesn't exist, create it with a new list containing the value
-                    $list_details[$current_list_index] = array($key);
+                    $list_details[$service_list_index] = array($key);
                 }
-            };
-            if (in_array($back_from_list_index, [null, $current_list_index])) {
-                $list_details[$current_list_index][] = [
+            }
+            if (in_array($back_from_list_index, [null, $last_list_index])) {
+                $list_details[$service_list_index][] = [
                     'text' => '🔙 بازگشت',
                     'callback_data' => 'back_my_services_menu_from_all_services'
                 ];
             }
 
-            $replied_message_ids_string = "";
-
+            $replied_message_ids_string = null;
             foreach ($list_details as $list_index => $list_buttons) {
                 $list_number = $list_index + 1;
                 $current_list_buttons = array_chunk($list_buttons, 1);
                 $service_keys = json_encode(['inline_keyboard' => $current_list_buttons]);
 
-                // $debug_array = [
-                //     "list_details" => $list_details,
-                //     "list_number" => $list_number,
-                //     "current_list_buttons" => $current_list_buttons,
-                // ];
-                // send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448));
 
                 if ($list_index == 0) {
                     $reply_msg = sprintf($texts['all_services'], $services->num_rows, $list_number);
@@ -567,12 +614,18 @@ try {
                     };
                 };
 
-                $replied_message_id = json_decode($replied_message)["result"]["message_id"];
-                $replied_message_ids_string = $replied_message_ids_string . "-" . $replied_message_id;
+                $replied_message_id = $replied_message["result"]["message_id"];
+                if (!isset($replied_message_ids_string)) {
+                    $replied_message_ids_string = $replied_message_id;
+                } else {
+                    $replied_message_ids_string = $replied_message_ids_string . "-" . $replied_message_id;
+                }
             };
-
-            file_put_contents($from_id . "-" . "all_services_lists_msg_ids", $replied_message_ids_string);
+            if ($back_from_list_index == null) {
+                file_put_contents($from_id . "-" . "all_services_lists_msg_ids", $replied_message_ids_string);
+            }
         } else {
+
             if (isset($text)) {
                 sendMessage($from_id, $texts['my_services_not_found'], $start_key);
             } else {
@@ -620,17 +673,17 @@ try {
                     $expireDate = new DateTime("@$expireDateTimeStamp", new DateTimeZone('UTC'));
                     $diffLastOnlineDateTillNow = $now->diff($expireDate);
                     if ($diffLastOnlineDateTillNow->y > 0) {
-                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%y سال و %m ماه دیگر');
+                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNow->format('%y سال و %m ماه دیگر');
                     } elseif ($diffLastOnlineDateTillNow->m > 0) {
-                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%m ماه و %d روز دیگر');
+                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNow->format('%m ماه و %d روز دیگر');
                     } elseif ($diffLastOnlineDateTillNow->d > 0) {
-                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%d روز و %h ساعت دیگر');
+                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNow->format('%d روز و %h ساعت دیگر');
                     } elseif ($diffLastOnlineDateTillNow->h > 0) {
-                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%h ساعت و %i دقیقه دیگر');
+                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNow->format('%h ساعت و %i دقیقه دیگر');
                     } elseif ($diffLastOnlineDateTillNow->i > 0) {
-                        $diffLastOnlineDateTillNowString =  $diffLastOnlineDateTillNow->format('%i دقیقه دیگر');
+                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNow->format('%i دقیقه دیگر');
                     } else {
-                        $diffLastOnlineDateTillNowString =  "به زودی";
+                        $diffLastOnlineDateTillNowString = "به زودی";
                     };
                 } else {
                     $diffLastOnlineDateTillNowString = "⚠️ عدم وجود اطلاعات";
@@ -642,23 +695,23 @@ try {
 
                     if ($diffLastOnlineDateTillNow->y > 0) {
                         $online_status = '🔴';
-                        $last_online =  $diffLastOnlineDateTillNow->format('%y سال قبل');
+                        $last_online = $diffLastOnlineDateTillNow->format('%y سال قبل');
                     } elseif ($diffLastOnlineDateTillNow->m > 0) {
                         $online_status = '🔴';
-                        $last_online =  $diffLastOnlineDateTillNow->format('%m ماه قبل');
+                        $last_online = $diffLastOnlineDateTillNow->format('%m ماه قبل');
                     } elseif ($diffLastOnlineDateTillNow->d > 0) {
                         $online_status = '🔴';
-                        $last_online =  $diffLastOnlineDateTillNow->format('%d روز قبل');
+                        $last_online = $diffLastOnlineDateTillNow->format('%d روز قبل');
                     } elseif ($diffLastOnlineDateTillNow->h > 0) {
                         $online_status = '🔴';
-                        $last_online =  $diffLastOnlineDateTillNow->format('%h ساعت و %i دقیقه قبل');
+                        $last_online = $diffLastOnlineDateTillNow->format('%h ساعت و %i دقیقه قبل');
                     } elseif ($diffLastOnlineDateTillNow->i > 0) {
                         $online_status = '🔴';
-                        $last_online =  $diffLastOnlineDateTillNow->format('%i دقیقه قبل');
+                        $last_online = $diffLastOnlineDateTillNow->format('%i دقیقه قبل');
                     } else {
                         $online_status = '🟢';
                         // $last_online =  $diffLastOnlineDateTillNow->format('%s ثانیه');
-                        $last_online =  "آنلاین";
+                        $last_online = "آنلاین";
                     }
                     $online_status_message = "$online_status $last_online";
                 } else {
@@ -666,10 +719,12 @@ try {
                 };
 
                 $manage_service_btns = json_encode(
-                    ['inline_keyboard' => [
-                        [['text' => 'دریافت QrCode', 'callback_data' => 'getQrCode-' . $code_base . '-marzban']],
-                        [['text' => '🔙 بازگشت', 'callback_data' => "back_$back_btn_callback_data"]]
-                    ]]
+                    [
+                        'inline_keyboard' => [
+                            [['text' => 'دریافت QrCode', 'callback_data' => 'getQrCode-' . $code_base . '-marzban']],
+                            [['text' => '🔙 بازگشت', 'callback_data' => "back_$back_btn_callback_data"]]
+                        ]
+                    ]
                 );
                 // $diffLastOnlineDateTillNowString = date('Y-m-d H:i:s',  $getUser['expire']);
                 editMessage($from_id, sprintf($texts['your_service'], ($getUser['status'] == 'active') ? '🟢 فعال' : '🔴 غیرفعال', $online_status_message, $getService['location'], $code_base, Conversion($getUser['used_traffic'], 'GB'), Conversion($getUser['data_limit'], 'GB'), $diffLastOnlineDateTillNowString, ''), $message_id, $manage_service_btns);
@@ -690,16 +745,18 @@ try {
                 $order = $sql->query("SELECT * FROM `orders` WHERE `code` = '$code'")->fetch_assoc();
                 $link = $order['link'];
 
-                $manage_service_btns = json_encode(['inline_keyboard' => [
-                    [['text' => 'دریافت QrCode', 'callback_data' => 'getQrCode-' . $code . '-sanayi']],
-                    [['text' => '🔙 بازگشت', 'callback_data' => $callback_parts[2]]]
-                ]]);
+                $manage_service_btns = json_encode([
+                    'inline_keyboard' => [
+                        [['text' => 'دریافت QrCode', 'callback_data' => 'getQrCode-' . $code . '-sanayi']],
+                        [['text' => '🔙 بازگشت', 'callback_data' => $callback_parts[2]]]
+                    ]
+                ]);
 
                 if ($note->num_rows == 0) {
-                    editMessage($from_id, sprintf($texts['your_service'], ($getUser['result']['enable'] == true) ? '🟢 فعال' : '🔴 غیرفعال', null, $getService['location'], base64_encode($code), Conversion($getUser['result']['up'] + $getUser['result']['down'], 'GB'), ($getUser['result']['total'] == 0) ? 'نامحدود' : Conversion($getUser['result']['total'], 'GB') . ' MB', date('Y-d-m H:i:s',  $getUser['result']['expiryTime']), $link), $message_id, $manage_service_btns);
+                    editMessage($from_id, sprintf($texts['your_service'], ($getUser['result']['enable'] == true) ? '🟢 فعال' : '🔴 غیرفعال', null, $getService['location'], base64_encode($code), Conversion($getUser['result']['up'] + $getUser['result']['down'], 'GB'), ($getUser['result']['total'] == 0) ? 'نامحدود' : Conversion($getUser['result']['total'], 'GB') . ' MB', date('Y-d-m H:i:s', $getUser['result']['expiryTime']), $link), $message_id, $manage_service_btns);
                 } else {
                     $note = $note->fetch_assoc();
-                    editMessage($from_id, sprintf($texts['your_service_with_note'], ($getUser['result']['enable'] == true) ? '🟢 فعال' : '🔴 غیرفعال', $note['note'], $getService['location'], base64_encode($code), Conversion($getUser['result']['up'] + $getUser['result']['down'], 'GB'), ($getUser['result']['total'] == 0) ? 'نامحدود' : Conversion($getUser['result']['total'], 'GB') . ' MB', date('Y-d-m H:i:s',  $getUser['result']['expiryTime']), $link), $message_id, $manage_service_btns);
+                    editMessage($from_id, sprintf($texts['your_service_with_note'], ($getUser['result']['enable'] == true) ? '🟢 فعال' : '🔴 غیرفعال', $note['note'], $getService['location'], base64_encode($code), Conversion($getUser['result']['up'] + $getUser['result']['down'], 'GB'), ($getUser['result']['total'] == 0) ? 'نامحدود' : Conversion($getUser['result']['total'], 'GB') . ' MB', date('Y-d-m H:i:s', $getUser['result']['expiryTime']), $link), $message_id, $manage_service_btns);
                 }
             } else {
                 $sql->query("DELETE FROM `orders` WHERE `code` = '$code'");
@@ -794,10 +851,12 @@ try {
         $service = $sql->query("SELECT * FROM `orders` WHERE `code` = '$service_code'")->fetch_assoc();
         $plan = $sql->query("SELECT * FROM `category_date` WHERE `code` = '$plan_code'")->fetch_assoc();
 
-        $access_key = json_encode(['inline_keyboard' => [
-            [['text' => '❌ لغو', 'callback_data' => 'cancel_buy'], ['text' => '✅ تایید', 'callback_data' => 'confirm_extra_time-' . $service_code . '-' . $plan_code]],
-        ]]);
-
+        $access_key = json_encode([
+            'inline_keyboard' => [
+                [['text' => '❌ لغو', 'callback_data' => 'cancel_buy'], ['text' => '✅ تایید', 'callback_data' => 'confirm_extra_time-' . $service_code . '-' . $plan_code]],
+            ]
+        ]);
+        
         editMessage($from_id, sprintf($texts['create_buy_extra_time_factor'], $service_code, $service_code, $plan['name'], number_format($plan['price']), $service_code), $message_id, $access_key);
     } elseif (strpos($data, 'confirm_extra_time') !== false) {
         alert($texts['wait']);
@@ -839,9 +898,11 @@ try {
         $service = $sql->query("SELECT * FROM `orders` WHERE `code` = '$service_code'")->fetch_assoc();
         $plan = $sql->query("SELECT * FROM `category_limit` WHERE `code` = '$plan_code'")->fetch_assoc();
 
-        $access_key = json_encode(['inline_keyboard' => [
-            [['text' => '❌ لغو', 'callback_data' => 'cancel_buy'], ['text' => '✅ تایید', 'callback_data' => 'confirm_extra_volume-' . $service_code . '-' . $plan_code]],
-        ]]);
+        $access_key = json_encode([
+            'inline_keyboard' => [
+                [['text' => '❌ لغو', 'callback_data' => 'cancel_buy'], ['text' => '✅ تایید', 'callback_data' => 'confirm_extra_volume-' . $service_code . '-' . $plan_code]],
+            ]
+        ]);
 
         editMessage($from_id, sprintf($texts['create_buy_extra_volume_factor'], $service_code, $service_code, $plan['name'], number_format($plan['price']), $service_code), $message_id, $access_key);
     } elseif (strpos($data, 'confirm_extra_volume') !== false) {
@@ -943,7 +1004,8 @@ try {
                 $code = rand(11111111, 99999999);
                 $sql->query("INSERT INTO `factors` (`from_id`, `price`, `code`, `status`) VALUES ('$from_id', '$price', '$code', 'no')");
                 $response = ($data == 'zarinpal') ? zarinpalGenerator($from_id, $price, $code) : idpayGenerator($from_id, $price, $code);
-                if ($response) $pay = json_encode(['inline_keyboard' => [[['text' => '💵 پرداخت', 'url' => $response]]]]);
+                if ($response)
+                    $pay = json_encode(['inline_keyboard' => [[['text' => '💵 پرداخت', 'url' => $response]]]]);
                 deleteMessage($from_id, $message_id);
                 sendMessage($from_id, sprintf($texts['create_diposet_factor'], $code, number_format($price)), $pay);
                 sendMessage($from_id, $texts['back_to_menu'], $start_key);
@@ -1177,7 +1239,8 @@ try {
         // ----------- manage servers ----------- //
         elseif ($text == '❌ انصراف و بازگشت') {
             step('none');
-            if (file_exists('add_panel.txt')) unlink('add_panel.txt');
+            if (file_exists('add_panel.txt'))
+                unlink('add_panel.txt');
             sendMessage($from_id, "⚙️ به مدیریت پلن ها خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :", $manage_server);
         } elseif ($data == 'close_panel') {
             step('none');
@@ -1200,13 +1263,15 @@ try {
             } else {
                 $sql->query("UPDATE `test_account_setting` SET `status` = 'active'");
             }
-            $manage_test_account = json_encode(['inline_keyboard' => [
-                [['text' => ($status == 'active') ? '🔴' : '🟢', 'callback_data' => 'change_test_account_status'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
-                [['text' => ($test_account_setting['panel'] == 'none') ? '🔴 وصل نیست' : '🟢 وصل است', 'callback_data' => 'change_test_account_panel'], ['text' => '▫️متصل به پنل :', 'callback_data' => 'null']],
-                [['text' => $sql->query("SELECT * FROM `test_account`")->num_rows, 'callback_data' => 'null'], ['text' => '▫️تعداد اکانت تست :', 'callback_data' => 'null']],
-                [['text' => $test_account_setting['volume'] . ' GB', 'callback_data' => 'change_test_account_volume'], ['text' => '▫️حجم :', 'callback_data' => 'null']],
-                [['text' => $test_account_setting['time'] . ' ساعت', 'callback_data' => 'change_test_account_time'], ['text' => '▫️زمان :', 'callback_data' => 'null']],
-            ]]);
+            $manage_test_account = json_encode([
+                'inline_keyboard' => [
+                    [['text' => ($status == 'active') ? '🔴' : '🟢', 'callback_data' => 'change_test_account_status'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
+                    [['text' => ($test_account_setting['panel'] == 'none') ? '🔴 وصل نیست' : '🟢 وصل است', 'callback_data' => 'change_test_account_panel'], ['text' => '▫️متصل به پنل :', 'callback_data' => 'null']],
+                    [['text' => $sql->query("SELECT * FROM `test_account`")->num_rows, 'callback_data' => 'null'], ['text' => '▫️تعداد اکانت تست :', 'callback_data' => 'null']],
+                    [['text' => $test_account_setting['volume'] . ' GB', 'callback_data' => 'change_test_account_volume'], ['text' => '▫️حجم :', 'callback_data' => 'null']],
+                    [['text' => $test_account_setting['time'] . ' ساعت', 'callback_data' => 'change_test_account_time'], ['text' => '▫️زمان :', 'callback_data' => 'null']],
+                ]
+            ]);
             editMessage($from_id, "⏱ به تنظیمات اکانت تست خوش آمدید.\n\n👇🏻 یکی از گزینه های زیر را انتخاب کنید :", $message_id, $manage_test_account);
         } elseif ($data == 'change_test_account_volume') {
             step('change_test_account_volume');
@@ -1216,13 +1281,15 @@ try {
                 if (is_numeric($text)) {
                     step('none');
                     $sql->query("UPDATE `test_account_setting` SET `volume` = '$text'");
-                    $manage_test_account = json_encode(['inline_keyboard' => [
-                        [['text' => ($status == 'active') ? '🔴' : '🟢', 'callback_data' => 'change_test_account_status'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
-                        [['text' => ($test_account_setting['panel'] == 'none') ? '🔴 وصل نیست' : '🟢 وصل است', 'callback_data' => 'change_test_account_panel'], ['text' => '▫️متصل به پنل :', 'callback_data' => 'null']],
-                        [['text' => $sql->query("SELECT * FROM `test_account`")->num_rows, 'callback_data' => 'null'], ['text' => '▫️تعداد اکانت تست :', 'callback_data' => 'null']],
-                        [['text' => $text . ' GB', 'callback_data' => 'change_test_account_volume'], ['text' => '▫️حجم :', 'callback_data' => 'null']],
-                        [['text' => $test_account_setting['time'] . ' ساعت', 'callback_data' => 'change_test_account_time'], ['text' => '▫️زمان :', 'callback_data' => 'null']],
-                    ]]);
+                    $manage_test_account = json_encode([
+                        'inline_keyboard' => [
+                            [['text' => ($status == 'active') ? '🔴' : '🟢', 'callback_data' => 'change_test_account_status'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
+                            [['text' => ($test_account_setting['panel'] == 'none') ? '🔴 وصل نیست' : '🟢 وصل است', 'callback_data' => 'change_test_account_panel'], ['text' => '▫️متصل به پنل :', 'callback_data' => 'null']],
+                            [['text' => $sql->query("SELECT * FROM `test_account`")->num_rows, 'callback_data' => 'null'], ['text' => '▫️تعداد اکانت تست :', 'callback_data' => 'null']],
+                            [['text' => $text . ' GB', 'callback_data' => 'change_test_account_volume'], ['text' => '▫️حجم :', 'callback_data' => 'null']],
+                            [['text' => $test_account_setting['time'] . ' ساعت', 'callback_data' => 'change_test_account_time'], ['text' => '▫️زمان :', 'callback_data' => 'null']],
+                        ]
+                    ]);
                     sendMessage($from_id, "✅ عملیات تغییرات با موفقیت انجام شد.\n\n👇🏻 یکی از گزینه های زیر را انتخاب کنید .", $manage_test_account);
                 } else {
                     sendMessage($from_id, "❌ ورودی ارسالی اشتباه است !", $back_account_test);
@@ -1236,13 +1303,15 @@ try {
                 if (is_numeric($text)) {
                     step('none');
                     $sql->query("UPDATE `test_account_setting` SET `time` = '$text'");
-                    $manage_test_account = json_encode(['inline_keyboard' => [
-                        [['text' => ($status == 'active') ? '🔴' : '🟢', 'callback_data' => 'change_test_account_status'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
-                        [['text' => ($test_account_setting['panel'] == 'none') ? '🔴 وصل نیست' : '🟢 وصل است', 'callback_data' => 'change_test_account_panel'], ['text' => '▫️متصل به پنل :', 'callback_data' => 'null']],
-                        [['text' => $sql->query("SELECT * FROM `test_account`")->num_rows, 'callback_data' => 'null'], ['text' => '▫️تعداد اکانت تست :', 'callback_data' => 'null']],
-                        [['text' => $test_account_setting['volume'] . ' GB', 'callback_data' => 'change_test_account_volume'], ['text' => '▫️حجم :', 'callback_data' => 'null']],
-                        [['text' => $text . ' ساعت', 'callback_data' => 'change_test_account_time'], ['text' => '▫️زمان :', 'callback_data' => 'null']],
-                    ]]);
+                    $manage_test_account = json_encode([
+                        'inline_keyboard' => [
+                            [['text' => ($status == 'active') ? '🔴' : '🟢', 'callback_data' => 'change_test_account_status'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
+                            [['text' => ($test_account_setting['panel'] == 'none') ? '🔴 وصل نیست' : '🟢 وصل است', 'callback_data' => 'change_test_account_panel'], ['text' => '▫️متصل به پنل :', 'callback_data' => 'null']],
+                            [['text' => $sql->query("SELECT * FROM `test_account`")->num_rows, 'callback_data' => 'null'], ['text' => '▫️تعداد اکانت تست :', 'callback_data' => 'null']],
+                            [['text' => $test_account_setting['volume'] . ' GB', 'callback_data' => 'change_test_account_volume'], ['text' => '▫️حجم :', 'callback_data' => 'null']],
+                            [['text' => $text . ' ساعت', 'callback_data' => 'change_test_account_time'], ['text' => '▫️زمان :', 'callback_data' => 'null']],
+                        ]
+                    ]);
                     sendMessage($from_id, "✅ عملیات تغییرات با موفقیت انجام شد.\n\n👇🏻 یکی از گزینه های زیر را انتخاب کنید ", $manage_test_account);
                 } else {
                     sendMessage($from_id, "❌ ورودی ارسالی اشتباه است !", $back_account_test);
@@ -1267,13 +1336,15 @@ try {
             if ($panel->num_rows > 0) {
                 $sql->query("UPDATE `test_account_setting` SET `panel` = '$code'");
                 $panel = $panel->fetch_assoc();
-                $manage_test_account = json_encode(['inline_keyboard' => [
-                    [['text' => ($test_account_setting['status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_test_account_status'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
-                    [['text' => $panel['name'], 'callback_data' => 'change_test_account_panel'], ['text' => '▫️متصل به پنل :', 'callback_data' => 'null']],
-                    [['text' => $sql->query("SELECT * FROM `test_account`")->num_rows, 'callback_data' => 'null'], ['text' => '▫️تعداد اکانت تست :', 'callback_data' => 'null']],
-                    [['text' => $test_account_setting['volume'] . ' GB', 'callback_data' => 'change_test_account_volume'], ['text' => '▫️حجم :', 'callback_data' => 'null']],
-                    [['text' => $test_account_setting['time'] . ' ساعت', 'callback_data' => 'change_test_account_time'], ['text' => '▫️زمان :', 'callback_data' => 'null']],
-                ]]);
+                $manage_test_account = json_encode([
+                    'inline_keyboard' => [
+                        [['text' => ($test_account_setting['status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_test_account_status'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
+                        [['text' => $panel['name'], 'callback_data' => 'change_test_account_panel'], ['text' => '▫️متصل به پنل :', 'callback_data' => 'null']],
+                        [['text' => $sql->query("SELECT * FROM `test_account`")->num_rows, 'callback_data' => 'null'], ['text' => '▫️تعداد اکانت تست :', 'callback_data' => 'null']],
+                        [['text' => $test_account_setting['volume'] . ' GB', 'callback_data' => 'change_test_account_volume'], ['text' => '▫️حجم :', 'callback_data' => 'null']],
+                        [['text' => $test_account_setting['time'] . ' ساعت', 'callback_data' => 'change_test_account_time'], ['text' => '▫️زمان :', 'callback_data' => 'null']],
+                    ]
+                ]);
                 editMessage($from_id, "✅ عملیات تغییرات با موفقیت انجام شد.\n\n👇🏻 یکی از گزینه های زیر را انتخاب کنید", $message_id, $manage_test_account);
             } else {
                 alert('❌ پنل مورد نظر یافت نشد !');
@@ -1314,7 +1385,6 @@ try {
         }
 
         # ------------- sanayi ------------- #
-
         elseif ($data == 'sanayi') {
             step('add_server_sanayi');
             deleteMessage($from_id, $message_id);
@@ -1356,11 +1426,12 @@ try {
             } else {
                 sendMessage($from_id, "❌ لاگین به پنل با خطا مواجه شد , بعد از گذشت چند دقیقه مجددا تلاش کنید !\n\n🎯 دلایل ممکن متصل نشدن ربات به پنل شما :↓\n\n◽باز نبودن پورت مورد نظر\n◽باز نشدن آدرس ارسالی\n◽آدرس ارسالی اشتباه\n◽یوزرنیم یا پسورد اشتباه\n◽قرار گرفتن آی‌پی در بلاک لیست\n◽️باز نبودن دسترسی CURL\n◽️مشکل کلی هاست", $manage_server);
             }
-            foreach (['add_panel.txt', 'cookie.txt'] as $file) if (file_exists($file)) unlink($file);
+            foreach (['add_panel.txt', 'cookie.txt'] as $file)
+                if (file_exists($file))
+                    unlink($file);
         }
 
         # ------------- marzban ------------- #
-
         elseif ($data == 'marzban') {
             step('add_server');
             deleteMessage($from_id, $message_id);
@@ -1400,11 +1471,11 @@ try {
             } else {
                 sendMessage($from_id, "❌ لاگین به پنل با خطا مواجه شد , بعد از گذشت چند دقیقه مجددا تلاش کنید !\n\n🎯 دلایل ممکن متصل نشدن ربات به پنل شما :↓\n\n◽باز نبودن پورت مورد نظر\n◽باز نشدن آدرس ارسالی\n◽آدرس ارسالی اشتباه\n◽یوزرنیم یا پسورد اشتباه\n◽قرار گرفتن آی‌پی در بلاک لیست\n◽️باز نبودن دسترسی CURL\n◽️مشکل کلی هاست", $manage_server);
             }
-            if (file_exists('add_panel.txt')) unlink('add_panel.txt');
+            if (file_exists('add_panel.txt'))
+                unlink('add_panel.txt');
         }
 
         # ------------------------------------ #
-
         elseif ($text == '🎟 افزودن پلن') {
             step('none');
             sendMessage($from_id, "ℹ️ قصد اضافه کردن چه نوع پلنی را دارید ؟\n\n👇🏻 یکی از گزینه های زیر را انتخاب کنید :", $add_plan_button);
@@ -1430,7 +1501,8 @@ try {
             $code = rand(1111111, 9999999);
             $sql->query("INSERT INTO `category` (`limit`, `date`, `name`, `price`, `code`, `status`) VALUES ('{$info[1]}', '{$info[2]}', '{$info[0]}', '$text', '$code', 'active')");
             sendmessage($from_id, "✅ اطلاعات ارسالی شما با موفقیت ثبت و به لیست اضافه شد.\n\n◽حجم ارسالی : <code>{$info[1]}</code>\n◽قیمت ارسالی : <code>$text</code>", $manage_server);
-            if (file_exists('add_plan.txt')) unlink('add_plan.txt');
+            if (file_exists('add_plan.txt'))
+                unlink('add_plan.txt');
         } elseif ($data == 'add_limit_plan') {
             step('add_name_limit');
             deleteMessage($from_id, $message_id);
@@ -1449,7 +1521,8 @@ try {
             $code = rand(1111111, 9999999);
             $sql->query("INSERT INTO `category_limit` (`limit`, `name`, `price`, `code`, `status`) VALUES ('{$info[1]}', '{$info[0]}', '$text', '$code', 'active')");
             sendmessage($from_id, "✅ اطلاعات ارسالی شما با موفقیت ثبت و به لیست اضافه شد.\n\n◽حجم ارسالی : <code>{$info[1]}</code>\n◽قیمت ارسالی : <code>$text</code>", $manage_server);
-            if (file_exists('add_plan_limit.txt')) unlink('add_plan_limit.txt');
+            if (file_exists('add_plan_limit.txt'))
+                unlink('add_plan_limit.txt');
         } elseif ($data == 'add_date_plan') {
             step('add_name_date');
             deleteMessage($from_id, $message_id);
@@ -1468,7 +1541,8 @@ try {
             $code = rand(1111111, 9999999);
             $sql->query("INSERT INTO `category_date` (`date`, `name`, `price`, `code`, `status`) VALUES ('{$info[1]}', '{$info[0]}', '$text', '$code', 'active')");
             sendmessage($from_id, "✅ اطلاعات ارسالی شما با موفقیت ثبت و به لیست اضافه شد.\n\n◽حجم ارسالی : <code>{$info[1]}</code>\n◽قیمت ارسالی : <code>$text</code>", $manage_server);
-            if (file_exists('add_plan_date.txt')) unlink('add_plan_date.txt');
+            if (file_exists('add_plan_date.txt'))
+                unlink('add_plan_date.txt');
         } elseif ($text == '⚙️ لیست سرور ها' or $data == 'back_panellist') {
             step('none');
             $info_servers = $sql->query("SELECT * FROM `panels`");
@@ -1484,8 +1558,10 @@ try {
             while ($row = $info_servers->fetch_array()) {
                 $name = $row['name'];
                 $code = $row['code'];
-                if ($row['status'] == 'active') $status = '✅ فعال';
-                else $status = '❌ غیرفعال';
+                if ($row['status'] == 'active')
+                    $status = '✅ فعال';
+                else
+                    $status = '❌ غیرفعال';
                 $key[] = [['text' => $status, 'callback_data' => 'change_status_panel-' . $code], ['text' => $name, 'callback_data' => 'status_panel-' . $code], ['text' => $code, 'callback_data' => 'status_panel-' . $code]];
             }
             $key[] = [['text' => '❌ بستن پنل | close panel', 'callback_data' => 'close_panel']];
@@ -1519,8 +1595,10 @@ try {
             while ($row = $result->fetch_array()) {
                 $name = $row['name'];
                 $code = $row['code'];
-                if ($row['status'] == 'active') $status = '✅ فعال';
-                else $status = '❌ غیرفعال';
+                if ($row['status'] == 'active')
+                    $status = '✅ فعال';
+                else
+                    $status = '❌ غیرفعال';
                 $key[] = [['text' => $status, 'callback_data' => 'change_status_panel-' . $code], ['text' => $name, 'callback_data' => 'status_panel-' . $code], ['text' => $code, 'callback_data' => 'status_panel-' . $code]];
             }
             $key[] = [['text' => '❌ بستن پنل | close panel', 'callback_data' => 'close_panel']];
@@ -1532,10 +1610,14 @@ try {
             $code = explode('-', $data)[1];
             $info_server = $sql->query("SELECT * FROM `panels` WHERE `code` = '$code'")->fetch_assoc();
 
-            if ($info_server['status'] == 'active') $status = '✅ فعال';
-            else $status = '❌ غیرفعال';
-            if (strpos($info_server['login_link'], 'https://') !== false) $status_ssl = '✅ فعال';
-            else $status_ssl = '❌ غیرفعال';
+            if ($info_server['status'] == 'active')
+                $status = '✅ فعال';
+            else
+                $status = '❌ غیرفعال';
+            if (strpos($info_server['login_link'], 'https://') !== false)
+                $status_ssl = '✅ فعال';
+            else
+                $status_ssl = '❌ غیرفعال';
 
             $info = [
                 'ip' => explode(':', str_replace(['http://', 'https://'], '', $info_server['login_link']))[0] ?? '⚠️',
@@ -1547,37 +1629,49 @@ try {
 
             $protocols = explode('|', $info_server['protocols']);
             unset($protocols[count($protocols) - 1]);
-            if (in_array('vmess', $protocols)) $vmess_status = '✅';
-            else $vmess_status = '❌';
-            if (in_array('trojan', $protocols)) $trojan_status = '✅';
-            else $trojan_status = '❌';
-            if (in_array('vless', $protocols)) $vless_status = '✅';
-            else $vless_status = '❌';
-            if (in_array('shadowsocks', $protocols)) $shadowsocks_status = '✅';
-            else $shadowsocks_status = '❌';
+            if (in_array('vmess', $protocols))
+                $vmess_status = '✅';
+            else
+                $vmess_status = '❌';
+            if (in_array('trojan', $protocols))
+                $trojan_status = '✅';
+            else
+                $trojan_status = '❌';
+            if (in_array('vless', $protocols))
+                $vless_status = '✅';
+            else
+                $vless_status = '❌';
+            if (in_array('shadowsocks', $protocols))
+                $shadowsocks_status = '✅';
+            else
+                $shadowsocks_status = '❌';
 
             if ($info_server['type'] == 'marzban') {
-                $back_panellist = json_encode(['inline_keyboard' => [
-                    [['text' => '🆙 آپدیت اطلاعات', 'callback_data' => 'update_panel-' . $code]],
-                    [['text' => '🔎 - Status :', 'callback_data' => 'null'], ['text' => $info_server['status'] == 'active' ? '✅' : '❌', 'callback_data' => 'change_status_panel-' . $code]],
-                    [['text' => '🎯 - Flow :', 'callback_data' => 'null'], ['text' => $info_server['flow'] == 'flowon' ? '✅' : '❌', 'callback_data' => 'change_status_flow-' . $code]],
-                    [['text' => '🗑 حذف پنل', 'callback_data' => 'delete_panel-' . $code], ['text' => '✍️ تغییر نام', 'callback_data' => 'change_name_panel-' . $code]],
-                    [['text' => 'vmess - [' . $vmess_status . ']', 'callback_data' => 'change_protocol|vmess-' . $code], ['text' => 'trojan [' . $trojan_status . ']', 'callback_data' => 'change_protocol|trojan-' . $code], ['text' => 'vless [' . $vless_status . ']', 'callback_data' => 'change_protocol|vless-' . $code]],
-                    [['text' => 'shadowsocks [' . $shadowsocks_status . ']', 'callback_data' => 'change_protocol|shadowsocks-' . $code]],
-                    [['text' => 'ℹ️ مدیریت اینباند ها', 'callback_data' => 'manage_marzban_inbound-' . $code], ['text' => '⏺ تنظیم اینباند', 'callback_data' => 'set_inbound_marzban-' . $code]],
-                    [['text' => '🔙 بازگشت به لیست پنل ها', 'callback_data' => 'back_panellist']],
-                ]]);
+                $back_panellist = json_encode([
+                    'inline_keyboard' => [
+                        [['text' => '🆙 آپدیت اطلاعات', 'callback_data' => 'update_panel-' . $code]],
+                        [['text' => '🔎 - Status :', 'callback_data' => 'null'], ['text' => $info_server['status'] == 'active' ? '✅' : '❌', 'callback_data' => 'change_status_panel-' . $code]],
+                        [['text' => '🎯 - Flow :', 'callback_data' => 'null'], ['text' => $info_server['flow'] == 'flowon' ? '✅' : '❌', 'callback_data' => 'change_status_flow-' . $code]],
+                        [['text' => '🗑 حذف پنل', 'callback_data' => 'delete_panel-' . $code], ['text' => '✍️ تغییر نام', 'callback_data' => 'change_name_panel-' . $code]],
+                        [['text' => 'vmess - [' . $vmess_status . ']', 'callback_data' => 'change_protocol|vmess-' . $code], ['text' => 'trojan [' . $trojan_status . ']', 'callback_data' => 'change_protocol|trojan-' . $code], ['text' => 'vless [' . $vless_status . ']', 'callback_data' => 'change_protocol|vless-' . $code]],
+                        [['text' => 'shadowsocks [' . $shadowsocks_status . ']', 'callback_data' => 'change_protocol|shadowsocks-' . $code]],
+                        [['text' => 'ℹ️ مدیریت اینباند ها', 'callback_data' => 'manage_marzban_inbound-' . $code], ['text' => '⏺ تنظیم اینباند', 'callback_data' => 'set_inbound_marzban-' . $code]],
+                        [['text' => '🔙 بازگشت به لیست پنل ها', 'callback_data' => 'back_panellist']],
+                    ]
+                ]);
             } elseif ($info_server['type'] == 'sanayi') {
-                $back_panellist = json_encode(['inline_keyboard' => [
-                    [['text' => '🆙 آپدیت اطلاعات', 'callback_data' => 'update_panel-' . $code]],
-                    [['text' => '🔎 - Status :', 'callback_data' => 'null'], ['text' => $info_server['status'] == 'active' ? '✅' : '❌', 'callback_data' => 'change_status_panel-' . $code]],
-                    [['text' => '🗑 حذف پنل', 'callback_data' => 'delete_panel-' . $code], ['text' => '✍️ تغییر نام', 'callback_data' => 'change_name_panel-' . $code]],
-                    [['text' => '🆔 تنظیم اینباند برای ساخت سرویس', 'callback_data' => 'set_inbound_sanayi-' . $code]],
-                    [['text' => '🌐 تنظیم نمونه لینک ( سرویس ) برای تحویل', 'callback_data' => 'set_example_link_sanayi-' . $code]],
-                    [['text' => 'vmess - [' . $vmess_status . ']', 'callback_data' => 'change_protocol|vmess-' . $code], ['text' => 'trojan [' . $trojan_status . ']', 'callback_data' => 'change_protocol|trojan-' . $code], ['text' => 'vless [' . $vless_status . ']', 'callback_data' => 'change_protocol|vless-' . $code]],
-                    [['text' => 'shadowsocks [' . $shadowsocks_status . ']', 'callback_data' => 'change_protocol|shadowsocks-' . $code]],
-                    [['text' => '🔙 بازگشت به لیست پنل ها', 'callback_data' => 'back_panellist']],
-                ]]);
+                $back_panellist = json_encode([
+                    'inline_keyboard' => [
+                        [['text' => '🆙 آپدیت اطلاعات', 'callback_data' => 'update_panel-' . $code]],
+                        [['text' => '🔎 - Status :', 'callback_data' => 'null'], ['text' => $info_server['status'] == 'active' ? '✅' : '❌', 'callback_data' => 'change_status_panel-' . $code]],
+                        [['text' => '🗑 حذف پنل', 'callback_data' => 'delete_panel-' . $code], ['text' => '✍️ تغییر نام', 'callback_data' => 'change_name_panel-' . $code]],
+                        [['text' => '🆔 تنظیم اینباند برای ساخت سرویس', 'callback_data' => 'set_inbound_sanayi-' . $code]],
+                        [['text' => '🌐 تنظیم نمونه لینک ( سرویس ) برای تحویل', 'callback_data' => 'set_example_link_sanayi-' . $code]],
+                        [['text' => 'vmess - [' . $vmess_status . ']', 'callback_data' => 'change_protocol|vmess-' . $code], ['text' => 'trojan [' . $trojan_status . ']', 'callback_data' => 'change_protocol|trojan-' . $code], ['text' => 'vless [' . $vless_status . ']', 'callback_data' => 'change_protocol|vless-' . $code]],
+                        [['text' => 'shadowsocks [' . $shadowsocks_status . ']', 'callback_data' => 'change_protocol|shadowsocks-' . $code]],
+                        [['text' => '🔙 بازگشت به لیست پنل ها', 'callback_data' => 'back_panellist']],
+                    ]
+                ]);
             }
             editMessage($from_id, $txt, $message_id, $back_panellist);
         } elseif (strpos($data, 'set_inbound_marzban') !== false) {
@@ -1742,8 +1836,10 @@ try {
             while ($row = $info_servers->fetch_array()) {
                 $name = $row['name'];
                 $code = $row['code'];
-                if ($row['status'] == 'active') $status = '✅ فعال';
-                else $status = '❌ غیرفعال';
+                if ($row['status'] == 'active')
+                    $status = '✅ فعال';
+                else
+                    $status = '❌ غیرفعال';
                 $key[] = [['text' => $status, 'callback_data' => 'change_status_panel-' . $code], ['text' => $name, 'callback_data' => 'status_panel-' . $code], ['text' => $code, 'callback_data' => 'status_panel-' . $code]];
             }
             $key[] = [['text' => '❌ بستن پنل | close panel', 'callback_data' => 'close_panel']];
@@ -1967,29 +2063,35 @@ try {
         } elseif (strpos($data, 'manage_cat-') !== false) {
             $code = explode('-', $data)[1];
             $res = $sql->query("SELECT * FROM `category` WHERE `code` = '$code'")->fetch_assoc();
-            $key = json_encode(['inline_keyboard' => [
-                [['text' => 'تاریخ', 'callback_data' => 'null'], ['text' => 'حجم', 'callback_data' => 'null'], ['text' => 'قیمت', 'callback_data' => 'null'], ['text' => 'نام', 'callback_data' => 'null']],
-                [['text' => $res['date'], 'callback_data' => 'change_date-' . $res['code']], ['text' => $res['limit'], 'callback_data' => 'change_limit-' . $res['code']], ['text' => $res['price'], 'callback_data' => 'change_price-' . $res['code']], ['text' => '✏️', 'callback_data' => 'change_name-' . $res['code']]],
-                [['text' => '⬅️ بازگشت', 'callback_data' => 'back_cat']],
-            ]]);
+            $key = json_encode([
+                'inline_keyboard' => [
+                    [['text' => 'تاریخ', 'callback_data' => 'null'], ['text' => 'حجم', 'callback_data' => 'null'], ['text' => 'قیمت', 'callback_data' => 'null'], ['text' => 'نام', 'callback_data' => 'null']],
+                    [['text' => $res['date'], 'callback_data' => 'change_date-' . $res['code']], ['text' => $res['limit'], 'callback_data' => 'change_limit-' . $res['code']], ['text' => $res['price'], 'callback_data' => 'change_price-' . $res['code']], ['text' => '✏️', 'callback_data' => 'change_name-' . $res['code']]],
+                    [['text' => '⬅️ بازگشت', 'callback_data' => 'back_cat']],
+                ]
+            ]);
             editmessage($from_id, "🌐 اطلاعات پلن با موفقیت دریافت شد.\n\n▫️نام پلن : <b>{$res['name']}</b>\n▫️حجم : <code>{$res['limit']}</code>\n▫️تاریخ : <code>{$res['date']}</code>\n▫️قیمت : <code>{$res['price']}</code>\n\n📎 با کلیک بر روی هر کدام میتوانید مقدار آن را تغییر دهید !", $message_id, $key);
         } elseif (strpos($data, 'manage_cat_date-') !== false) {
             $code = explode('-', $data)[1];
             $res = $sql->query("SELECT * FROM `category_date` WHERE `code` = '$code'")->fetch_assoc();
-            $key = json_encode(['inline_keyboard' => [
-                [['text' => 'تاریخ', 'callback_data' => 'null'], ['text' => 'قیمت', 'callback_data' => 'null'], ['text' => 'نام', 'callback_data' => 'null']],
-                [['text' => $res['date'], 'callback_data' => 'change_date_date-' . $res['code']], ['text' => $res['price'], 'callback_data' => 'change_price_date-' . $res['code']], ['text' => '✏️', 'callback_data' => 'change_name_date-' . $res['code']]],
-                [['text' => '⬅️ بازگشت', 'callback_data' => 'back_cat']],
-            ]]);
+            $key = json_encode([
+                'inline_keyboard' => [
+                    [['text' => 'تاریخ', 'callback_data' => 'null'], ['text' => 'قیمت', 'callback_data' => 'null'], ['text' => 'نام', 'callback_data' => 'null']],
+                    [['text' => $res['date'], 'callback_data' => 'change_date_date-' . $res['code']], ['text' => $res['price'], 'callback_data' => 'change_price_date-' . $res['code']], ['text' => '✏️', 'callback_data' => 'change_name_date-' . $res['code']]],
+                    [['text' => '⬅️ بازگشت', 'callback_data' => 'back_cat']],
+                ]
+            ]);
             editmessage($from_id, "🌐 اطلاعات پلن با موفقیت دریافت شد.\n\n▫️نام پلن : <b>{$res['name']}</b>\n▫️تاریخ : <code>{$res['date']}</code>\n▫️قیمت : <code>{$res['price']}</code>\n\n📎 با کلیک بر روی هر کدام میتوانید مقدار آن را تغییر دهید !", $message_id, $key);
         } elseif (strpos($data, 'manage_cat_limit-') !== false) {
             $code = explode('-', $data)[1];
             $res = $sql->query("SELECT * FROM `category_limit` WHERE `code` = '$code'")->fetch_assoc();
-            $key = json_encode(['inline_keyboard' => [
-                [['text' => 'حجم', 'callback_data' => 'null'], ['text' => 'قیمت', 'callback_data' => 'null'], ['text' => 'نام', 'callback_data' => 'null']],
-                [['text' => $res['limit'], 'callback_data' => 'change_limit_limit-' . $res['code']], ['text' => $res['price'], 'callback_data' => 'change_price_limit-' . $res['code']], ['text' => '✏️', 'callback_data' => 'change_name_limit-' . $res['code']]],
-                [['text' => '⬅️ بازگشت', 'callback_data' => 'back_cat']],
-            ]]);
+            $key = json_encode([
+                'inline_keyboard' => [
+                    [['text' => 'حجم', 'callback_data' => 'null'], ['text' => 'قیمت', 'callback_data' => 'null'], ['text' => 'نام', 'callback_data' => 'null']],
+                    [['text' => $res['limit'], 'callback_data' => 'change_limit_limit-' . $res['code']], ['text' => $res['price'], 'callback_data' => 'change_price_limit-' . $res['code']], ['text' => '✏️', 'callback_data' => 'change_name_limit-' . $res['code']]],
+                    [['text' => '⬅️ بازگشت', 'callback_data' => 'back_cat']],
+                ]
+            ]);
             editmessage($from_id, "🌐 اطلاعات پلن با موفقیت دریافت شد.\n\n▫️نام پلن : <b>{$res['name']}</b>\n▫️حجم : <code>{$res['limit']}</code>\n▫️قیمت : <code>{$res['price']}</code>\n\n📎 با کلیک بر روی هر کدام میتوانید مقدار آن را تغییر دهید !", $message_id, $key);
         } elseif (strpos($data, 'change_date-') !== false) {
             $code = explode('-', $data)[1];
@@ -2087,12 +2189,18 @@ try {
         // elseif ($text == '🔎 وضعیت ارسال / فوروارد همگانی') {
         elseif ($text == '🔎 وضعیت ارسال همگانی') {
             $info_send = $sql->query("SELECT * FROM `sends`")->fetch_assoc();
-            if ($info_send['send'] == 'yes') $send_status = '✅';
-            else $send_status = '❌';
-            if ($info_send['step'] == 'send') $status_send = '✅';
-            else $status_send = '❌';
-            if ($info_send['step'] == 'forward') $status_forward = '✅';
-            else $status_forward = '❌';
+            if ($info_send['send'] == 'yes')
+                $send_status = '✅';
+            else
+                $send_status = '❌';
+            if ($info_send['step'] == 'send')
+                $status_send = '✅';
+            else
+                $status_send = '❌';
+            if ($info_send['step'] == 'forward')
+                $status_forward = '✅';
+            else
+                $status_forward = '❌';
             sendMessage($from_id, "👇🏻وضعیت ارسال های شما به شرح زیر است :\n\nℹ️ در صف ارسال : <b>$send_status</b>\n⬅️ ارسال همگانی : <b>$status_send</b>\n\n🟥 برای لغو ارسال همگانی دستور /cancel_send را ارسال کنید.", $manage_message);
         } elseif ($text == '/cancel_send') {
             $sql->query("UPDATE `sends` SET `send` = 'no', `text` = 'null', `type` = 'null', `step` = 'null'");
@@ -2110,13 +2218,6 @@ try {
             }
             $sql->query("UPDATE `sends` SET `send` = 'yes', `text` = '$text', `type` = '$type', `step` = 'send'");
             sendMessage($from_id, "✅ پیام شما با موفقیت به صف ارسال همگانی اضافه شد !", $manage_message);
-        } elseif ($text == '📬 فوروارد همگانی') {
-            step('for_all');
-            sendMessage($from_id, "‌‌👈🏻⁩ متن خود را فوروارد کنید :", $back_panel);
-        } elseif ($user['step'] == 'for_all') {
-            step('none');
-            sendMessage($from_id, "✅ پیام شما با موفقیت به صف فوروارد همگانی اضافه شد !", $bot_management_keyboard);
-            $sql->query("UPDATE `sends` SET `send` = 'yes', `text` = '$message_id', `type` = '$from_id', `step` = 'forward'");
         } elseif ($text == '📞 ارسال پیام به کاربر' or $text == '📤 ارسال پیام به کاربر') {
             step('sendmessage_user1');
             sendMessage($from_id, "🔢 ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_panel);
@@ -2141,6 +2242,19 @@ try {
                 bot('sendphoto', ['chat_id' => $id, 'photo' => $file_id, 'caption' => $caption]);
             }
             unlink('id.txt');
+        } elseif ($text == 'ارسال پیام ها 📧') {
+            sendmessage($from_id, "درحال ارسال پیام های صف ⌛");
+            $url = "http://127.0.0.1/ZanborPanelBot/send.php";
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 1);
+            $response = curl_exec($ch);
+            curl_close($ch);
+            exit(0);
         }
 
         // ----------- manage users ----------- //
@@ -2283,12 +2397,14 @@ try {
             } elseif ($status == 'inactive') {
                 $sql->query("UPDATE `spam_setting` SET `status` = 'active'");
             }
-            $manage_spam = json_encode(['inline_keyboard' => [
-                [['text' => ($status == 'active') ? '🔴' : '🟢', 'callback_data' => 'change_status_spam'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
-                [['text' => ($spam_setting['status'] == 'ban') ? '🚫 مسدود' : '⚠️ اخطار', 'callback_data' => 'change_type_spam'], ['text' => '▫️مدل برخورد :', 'callback_data' => 'null']],
-                [['text' => $spam_setting['time'] . ' ثانیه', 'callback_data' => 'change_time_spam'], ['text' => '▫️زمان : ', 'callback_data' => 'null']],
-                [['text' => $spam_setting['count_message'] . ' عدد', 'callback_data' => 'change_count_spam'], ['text' => '▫️تعداد پیام : ', 'callback_data' => 'null']],
-            ]]);
+            $manage_spam = json_encode([
+                'inline_keyboard' => [
+                    [['text' => ($status == 'active') ? '🔴' : '🟢', 'callback_data' => 'change_status_spam'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
+                    [['text' => ($spam_setting['status'] == 'ban') ? '🚫 مسدود' : '⚠️ اخطار', 'callback_data' => 'change_type_spam'], ['text' => '▫️مدل برخورد :', 'callback_data' => 'null']],
+                    [['text' => $spam_setting['time'] . ' ثانیه', 'callback_data' => 'change_time_spam'], ['text' => '▫️زمان : ', 'callback_data' => 'null']],
+                    [['text' => $spam_setting['count_message'] . ' عدد', 'callback_data' => 'change_count_spam'], ['text' => '▫️تعداد پیام : ', 'callback_data' => 'null']],
+                ]
+            ]);
             editMessage($from_id, "🚫 به بخش مدیریت ضد اسپم ربات خوش آمدید!\n\n✏️ با کلیک بر روی هر کدام از دکمه های سمت چپ, میتوانید مقدار فعلی را تغییر دهید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : ", $message_id, $manage_spam);
         } elseif ($data == 'change_type_spam') {
             $type = $sql->query("SELECT * FROM `spam_setting`")->fetch_assoc()['type'];
@@ -2297,12 +2413,14 @@ try {
             } elseif ($type == 'warn') {
                 $sql->query("UPDATE `spam_setting` SET `type` = 'ban'");
             }
-            $manage_spam = json_encode(['inline_keyboard' => [
-                [['text' => ($spam_setting['status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_spam'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
-                [['text' => ($type == 'ban') ? '⚠️ اخطار' : '🚫 مسدود', 'callback_data' => 'change_type_spam'], ['text' => '▫️مدل برخورد :', 'callback_data' => 'null']],
-                [['text' => $spam_setting['time'] . ' ثانیه', 'callback_data' => 'change_time_spam'], ['text' => '▫️زمان : ', 'callback_data' => 'null']],
-                [['text' => $spam_setting['count_message'] . ' عدد', 'callback_data' => 'change_count_spam'], ['text' => '▫️تعداد پیام : ', 'callback_data' => 'null']],
-            ]]);
+            $manage_spam = json_encode([
+                'inline_keyboard' => [
+                    [['text' => ($spam_setting['status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_spam'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
+                    [['text' => ($type == 'ban') ? '⚠️ اخطار' : '🚫 مسدود', 'callback_data' => 'change_type_spam'], ['text' => '▫️مدل برخورد :', 'callback_data' => 'null']],
+                    [['text' => $spam_setting['time'] . ' ثانیه', 'callback_data' => 'change_time_spam'], ['text' => '▫️زمان : ', 'callback_data' => 'null']],
+                    [['text' => $spam_setting['count_message'] . ' عدد', 'callback_data' => 'change_count_spam'], ['text' => '▫️تعداد پیام : ', 'callback_data' => 'null']],
+                ]
+            ]);
             editMessage($from_id, "🚫 به بخش مدیریت ضد اسپم ربات خوش آمدید!\n\n✏️ با کلیک بر روی هر کدام از دکمه های سمت چپ, میتوانید مقدار فعلی را تغییر دهید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : ", $message_id, $manage_spam);
         } elseif ($data == 'change_count_spam') {
             step('change_count_spam');
@@ -2311,12 +2429,14 @@ try {
             if (is_numeric($text)) {
                 step('none');
                 $sql->query("UPDATE `spam_setting` SET `count_message` = '$text'");
-                $manage_spam = json_encode(['inline_keyboard' => [
-                    [['text' => ($spam_setting['status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_spam'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
-                    [['text' => ($spam_setting['type'] == 'ban') ? '🚫 مسدود' : '⚠️ اخطار', 'callback_data' => 'change_type_spam'], ['text' => '▫️مدل برخورد :', 'callback_data' => 'null']],
-                    [['text' => $spam_setting['time'] . ' ثانیه', 'callback_data' => 'change_time_spam'], ['text' => '▫️زمان : ', 'callback_data' => 'null']],
-                    [['text' => $text . ' عدد', 'callback_data' => 'change_count_spam'], ['text' => '▫️تعداد پیام : ', 'callback_data' => 'null']],
-                ]]);
+                $manage_spam = json_encode([
+                    'inline_keyboard' => [
+                        [['text' => ($spam_setting['status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_spam'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
+                        [['text' => ($spam_setting['type'] == 'ban') ? '🚫 مسدود' : '⚠️ اخطار', 'callback_data' => 'change_type_spam'], ['text' => '▫️مدل برخورد :', 'callback_data' => 'null']],
+                        [['text' => $spam_setting['time'] . ' ثانیه', 'callback_data' => 'change_time_spam'], ['text' => '▫️زمان : ', 'callback_data' => 'null']],
+                        [['text' => $text . ' عدد', 'callback_data' => 'change_count_spam'], ['text' => '▫️تعداد پیام : ', 'callback_data' => 'null']],
+                    ]
+                ]);
                 sendMEssage($from_id, "✅ تغییرات با موفقیت انجام شد !\n🚫 به بخش مدیریت ضد اسپم ربات خوش آمدید!\n\n✏️ با کلیک بر روی هر کدام از دکمه های سمت چپ, میتوانید مقدار فعلی را تغییر دهید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : ", $manage_spam);
             } else {
                 sendMessage($from_id, "❌ عدد ارسالی شما اشتباه است !", $back_spam);
@@ -2328,12 +2448,14 @@ try {
             if (is_numeric($text)) {
                 step('none');
                 $sql->query("UPDATE `spam_setting` SET `time` = '$text'");
-                $manage_spam = json_encode(['inline_keyboard' => [
-                    [['text' => ($spam_setting['status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_spam'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
-                    [['text' => ($spam_setting['type'] == 'ban') ? '🚫 مسدود' : '⚠️ اخطار', 'callback_data' => 'change_type_spam'], ['text' => '▫️مدل برخورد :', 'callback_data' => 'null']],
-                    [['text' => $text . ' ثانیه', 'callback_data' => 'change_time_spam'], ['text' => '▫️زمان : ', 'callback_data' => 'null']],
-                    [['text' => $spam_setting['count_message'] . ' عدد', 'callback_data' => 'change_count_spam'], ['text' => '▫️تعداد پیام : ', 'callback_data' => 'null']],
-                ]]);
+                $manage_spam = json_encode([
+                    'inline_keyboard' => [
+                        [['text' => ($spam_setting['status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_spam'], ['text' => '▫️وضعیت :', 'callback_data' => 'null']],
+                        [['text' => ($spam_setting['type'] == 'ban') ? '🚫 مسدود' : '⚠️ اخطار', 'callback_data' => 'change_type_spam'], ['text' => '▫️مدل برخورد :', 'callback_data' => 'null']],
+                        [['text' => $text . ' ثانیه', 'callback_data' => 'change_time_spam'], ['text' => '▫️زمان : ', 'callback_data' => 'null']],
+                        [['text' => $spam_setting['count_message'] . ' عدد', 'callback_data' => 'change_count_spam'], ['text' => '▫️تعداد پیام : ', 'callback_data' => 'null']],
+                    ]
+                ]);
                 sendMEssage($from_id, "✅ تغییرات با موفقیت انجام شد !\n🚫 به بخش مدیریت ضد اسپم ربات خوش آمدید!\n\n✏️ با کلیک بر روی هر کدام از دکمه های سمت چپ, میتوانید مقدار فعلی را تغییر دهید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید : ", $manage_spam);
             } else {
                 sendMessage($from_id, "❌ عدد ارسالی شما اشتباه است !", $back_spam);
@@ -2348,10 +2470,13 @@ try {
                     $link = str_replace("@", "", $row['chat_id']);
                     $button[] = [['text' => $name, 'url' => "https://t.me/$link"], ['text' => '🗑', 'callback_data' => "remove_lock-{$row['chat_id']}"]];
                 }
-            } else $locksText = '❌ شما قفلی برای حذف و مشاهده ندارید لطفا از طریق دکمه ی ( ➕ افزودن قفل ) اضافه کنید.';
+            } else
+                $locksText = '❌ شما قفلی برای حذف و مشاهده ندارید لطفا از طریق دکمه ی ( ➕ افزودن قفل ) اضافه کنید.';
             $button[] = [['text' => '➕ افزودن قفل', 'callback_data' => 'addLock']];
-            if ($data) editmessage($from_id, $locksText, $message_id, json_encode(['inline_keyboard' => $button]));
-            else sendMessage($from_id, $locksText, json_encode(['inline_keyboard' => $button]));
+            if ($data)
+                editmessage($from_id, $locksText, $message_id, json_encode(['inline_keyboard' => $button]));
+            else
+                sendMessage($from_id, $locksText, json_encode(['inline_keyboard' => $button]));
         } elseif ($data == 'addLock') {
             step('add_channel');
             deleteMessage($from_id, $message_id);
@@ -2387,10 +2512,13 @@ try {
                     $link = str_replace("@", "", $row['chat_id']);
                     $button[] = [['text' => $name, 'url' => "https://t.me/$link"], ['text' => '🗑', 'callback_data' => "remove_lock_{$row['chat_id']}"]];
                 }
-            } else $locksText = '❌ شما قفلی برای حذف و مشاهده ندارید لطفا از طریق دکمه ی ( ➕ افزودن قفل ) اضافه کنید.';
+            } else
+                $locksText = '❌ شما قفلی برای حذف و مشاهده ندارید لطفا از طریق دکمه ی ( ➕ افزودن قفل ) اضافه کنید.';
             $button[] = [['text' => '➕ افزودن قفل', 'callback_data' => 'addLock']];
-            if ($data) editmessage($from_id, $locksText, $message_id, json_encode(['inline_keyboard' => $button]));
-            else sendMessage($from_id, $locksText, json_encode(['inline_keyboard' => $button]));
+            if ($data)
+                editmessage($from_id, $locksText, $message_id, json_encode(['inline_keyboard' => $button]));
+            else
+                sendMessage($from_id, $locksText, json_encode(['inline_keyboard' => $button]));
         }
 
         // ----------------- manage paymanet ----------------- //
@@ -2405,12 +2533,14 @@ try {
             } elseif ($status == 'inactive') {
                 $sql->query("UPDATE `payment_setting` SET `zarinpal_status` = 'active'");
             }
-            $manage_off_on_paymanet = json_encode(['inline_keyboard' => [
-                [['text' => ($status == 'inactive') ? '🟢' : '🔴', 'callback_data' => 'change_status_zarinpal'], ['text' => '▫️زرین پال :', 'callback_data' => 'null']],
-                [['text' => ($payment_setting['idpay_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_idpay'], ['text' => '▫️آیدی پی :', 'callback_data' => 'null']],
-                [['text' => ($payment_setting['nowpayment_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_nowpayment'], ['text' => ': nowpayment ▫️', 'callback_data' => 'null']],
-                [['text' => ($payment_setting['card_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_card'], ['text' => '▫️کارت به کارت :', 'callback_data' => 'null']]
-            ]]);
+            $manage_off_on_paymanet = json_encode([
+                'inline_keyboard' => [
+                    [['text' => ($status == 'inactive') ? '🟢' : '🔴', 'callback_data' => 'change_status_zarinpal'], ['text' => '▫️زرین پال :', 'callback_data' => 'null']],
+                    [['text' => ($payment_setting['idpay_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_idpay'], ['text' => '▫️آیدی پی :', 'callback_data' => 'null']],
+                    [['text' => ($payment_setting['nowpayment_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_nowpayment'], ['text' => ': nowpayment ▫️', 'callback_data' => 'null']],
+                    [['text' => ($payment_setting['card_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_card'], ['text' => '▫️کارت به کارت :', 'callback_data' => 'null']]
+                ]
+            ]);
             editMessage($from_id, "✏️ وضعیت خاموش/روشن درگاه پرداخت های ربات به شرح زیر است :", $message_id, $manage_off_on_paymanet);
         } elseif ($data == 'change_status_idpay') {
             $status = $sql->query("SELECT * FROM `payment_setting`")->fetch_assoc()['idpay_status'];
@@ -2419,12 +2549,14 @@ try {
             } elseif ($status == 'inactive') {
                 $sql->query("UPDATE `payment_setting` SET `idpay_status` = 'active'");
             }
-            $manage_off_on_paymanet = json_encode(['inline_keyboard' => [
-                [['text' => ($payment_setting['zarinpal_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_zarinpal'], ['text' => '▫️زرین پال :', 'callback_data' => 'null']],
-                [['text' => ($status == 'inactive') ? '🟢' : '🔴', 'callback_data' => 'change_status_idpay'], ['text' => '▫️آیدی پی :', 'callback_data' => 'null']],
-                [['text' => ($payment_setting['nowpayment_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_nowpayment'], ['text' => ': nowpayment ▫️', 'callback_data' => 'null']],
-                [['text' => ($payment_setting['card_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_card'], ['text' => '▫️کارت به کارت :', 'callback_data' => 'null']]
-            ]]);
+            $manage_off_on_paymanet = json_encode([
+                'inline_keyboard' => [
+                    [['text' => ($payment_setting['zarinpal_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_zarinpal'], ['text' => '▫️زرین پال :', 'callback_data' => 'null']],
+                    [['text' => ($status == 'inactive') ? '🟢' : '🔴', 'callback_data' => 'change_status_idpay'], ['text' => '▫️آیدی پی :', 'callback_data' => 'null']],
+                    [['text' => ($payment_setting['nowpayment_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_nowpayment'], ['text' => ': nowpayment ▫️', 'callback_data' => 'null']],
+                    [['text' => ($payment_setting['card_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_card'], ['text' => '▫️کارت به کارت :', 'callback_data' => 'null']]
+                ]
+            ]);
             editMessage($from_id, "✏️ وضعیت خاموش/روشن درگاه پرداخت های ربات به شرح زیر است :", $message_id, $manage_off_on_paymanet);
         } elseif ($data == 'change_status_nowpayment') {
             $status = $sql->query("SELECT * FROM `payment_setting`")->fetch_assoc()['nowpayment_status'];
@@ -2433,12 +2565,14 @@ try {
             } elseif ($status == 'inactive') {
                 $sql->query("UPDATE `payment_setting` SET `nowpayment_status` = 'active'");
             }
-            $manage_off_on_paymanet = json_encode(['inline_keyboard' => [
-                [['text' => ($payment_setting['zarinpal_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_zarinpal'], ['text' => '▫️زرین پال :', 'callback_data' => 'null']],
-                [['text' => ($payment_setting['idpay_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_idpay'], ['text' => '▫️آیدی پی :', 'callback_data' => 'null']],
-                [['text' => ($status == 'inactive') ? '🟢' : '🔴', 'callback_data' => 'change_status_nowpayment'], ['text' => ': nowpayment ▫️', 'callback_data' => 'null']],
-                [['text' => ($payment_setting['card_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_card'], ['text' => '▫️کارت به کارت :', 'callback_data' => 'null']]
-            ]]);
+            $manage_off_on_paymanet = json_encode([
+                'inline_keyboard' => [
+                    [['text' => ($payment_setting['zarinpal_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_zarinpal'], ['text' => '▫️زرین پال :', 'callback_data' => 'null']],
+                    [['text' => ($payment_setting['idpay_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_idpay'], ['text' => '▫️آیدی پی :', 'callback_data' => 'null']],
+                    [['text' => ($status == 'inactive') ? '🟢' : '🔴', 'callback_data' => 'change_status_nowpayment'], ['text' => ': nowpayment ▫️', 'callback_data' => 'null']],
+                    [['text' => ($payment_setting['card_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_card'], ['text' => '▫️کارت به کارت :', 'callback_data' => 'null']]
+                ]
+            ]);
             editMessage($from_id, "✏️ وضعیت خاموش/روشن درگاه پرداخت های ربات به شرح زیر است :", $message_id, $manage_off_on_paymanet);
         } elseif ($data == 'change_status_card') {
             $status = $sql->query("SELECT * FROM `payment_setting`")->fetch_assoc()['card_status'];
@@ -2447,12 +2581,14 @@ try {
             } elseif ($status == 'inactive') {
                 $sql->query("UPDATE `payment_setting` SET `card_status` = 'active'");
             }
-            $manage_off_on_paymanet = json_encode(['inline_keyboard' => [
-                [['text' => ($payment_setting['zarinpal_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_zarinpal'], ['text' => '▫️زرین پال :', 'callback_data' => 'null']],
-                [['text' => ($payment_setting['idpay_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_idpay'], ['text' => '▫️آیدی پی :', 'callback_data' => 'null']],
-                [['text' => ($payment_setting['nowpayment_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_nowpayment'], ['text' => ': nowpayment ▫️', 'callback_data' => 'null']],
-                [['text' => ($status == 'inactive') ? '🟢' : '🔴', 'callback_data' => 'change_status_card'], ['text' => '▫️کارت به کارت :', 'callback_data' => 'null']]
-            ]]);
+            $manage_off_on_paymanet = json_encode([
+                'inline_keyboard' => [
+                    [['text' => ($payment_setting['zarinpal_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_zarinpal'], ['text' => '▫️زرین پال :', 'callback_data' => 'null']],
+                    [['text' => ($payment_setting['idpay_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_idpay'], ['text' => '▫️آیدی پی :', 'callback_data' => 'null']],
+                    [['text' => ($payment_setting['nowpayment_status'] == 'active') ? '🟢' : '🔴', 'callback_data' => 'change_status_nowpayment'], ['text' => ': nowpayment ▫️', 'callback_data' => 'null']],
+                    [['text' => ($status == 'inactive') ? '🟢' : '🔴', 'callback_data' => 'change_status_card'], ['text' => '▫️کارت به کارت :', 'callback_data' => 'null']]
+                ]
+            ]);
             editMessage($from_id, "✏️ وضعیت خاموش/روشن درگاه پرداخت های ربات به شرح زیر است :", $message_id, $manage_off_on_paymanet);
         } elseif ($text == '▫️تنظیم شماره کارت') {
             step('set_card_number');
@@ -2695,14 +2831,22 @@ try {
         }
     }
 } catch (\Throwable $e) {
+    $recived_error_msg = $e->getMessage();
+    // ================= check if it is json if json then decode else send it anyway.
+    $error_msg = json_decode($recived_error_msg);
+    if (!isset($error_msg)) {
+        $error_msg = $recived_error_msg;
+    }
+    // ================= build debug array
     $error_data = [
         "chat_id" => $from_id,
         'user_name' => $username,
         'step' => $user['step'],
-        'error_msg' => 'Caught exception: ' . $e->getMessage() . ' on line ' . $e->getLine() . "\n"
+        'error_line' => $e->getLine(),
+        'error_file_source' => $e->getFile(),
+        'error_msg' => $error_msg
     ];
-    $report_msg = 'Faital Error Detected:\n\n' . json_encode($$error_data, 448);
-    send_debug_msg_to_maintainer($report_msg);
-    send_debug_data_to_maintainer($report_msg);
+    // ================= send debug array
+    send_debug_msg_to_maintainer("Faital Error Detected:\n\n" . json_encode($error_data, 448));
     sendMessage($from_id, $texts['error_encounter_msg']);
 }
