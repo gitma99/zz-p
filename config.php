@@ -20,8 +20,7 @@ if ($sql->connect_error) {
 
 define('API_KEY', $config['token']);
 
-if (file_exists('texts.json'))
-    $texts = json_decode(file_get_contents('texts.json'), true);
+if (file_exists('texts.json')) $texts = json_decode(file_get_contents('texts.json'), true);
 # ----------------- [ <- variables -> ] ----------------- #
 
 $update = json_decode(file_get_contents('php://input'));
@@ -44,7 +43,6 @@ if (isset($update->message)) {
     $username = isset($update->callback_query->chat->username) ? '@' . $update->callback_query->chat->username : "ندارد";
     $text = null;
     $data = $update->callback_query->data;
-    
 }
 
 # ----------------- [ <- others -> ] ----------------- #
@@ -155,7 +153,7 @@ function editMessage($chat_id, $text, $message_id, $keyboard = null, $mrk = 'htm
         deleteMessage($chat_id, $message_id);
         $bot_reply = sendMessage($chat_id, $text, $keyboard, $mrk = 'html');
         if ($bot_reply["ok"] == false) {
-            throw new Exception(json_encode($bot_reply,448));
+            throw new Exception(json_encode($bot_reply, 448));
         }
     }
     return $bot_reply;
@@ -167,7 +165,7 @@ function deleteMessage($chat_id, $message_id, $only_handler = false)
         'chat_id' => $chat_id,
         'message_id' => $message_id
     ];
-    return bot('deleteMessage', $params, only_handler:$only_handler);
+    return bot('deleteMessage', $params);
 }
 function deleteMessages($chat_id, $message_ids, $only_handler = false)
 {
@@ -175,7 +173,7 @@ function deleteMessages($chat_id, $message_ids, $only_handler = false)
         'chat_id' => $chat_id,
         'message_ids' => json_encode($message_ids)
     ];
-    return bot('deleteMessages', $params, only_handler:$only_handler);
+    return bot('deleteMessages', $params);
 }
 
 function alert($text, $show = true)
