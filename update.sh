@@ -103,7 +103,7 @@ do
 
                             sleep 2
                             clear
-                            curl -s -x POST "https://api.telegram.org/bot${token}/setWebhook"  -d url="https://${domain}/ZanborPanelBot/index.php" -d drop_pending_updates="true"
+                            curl -s -X POST "https://api.telegram.org/bot${token}/setWebhook"  -d url="https://${domain}/ZanborPanelBot/index.php" -d drop_pending_updates="true"
                             echo -e "\n\n"
                             colorized_echo green "[+] The BotPanel Bot Has Been Successfully Updated"
                             colorized_echo green "Your Bot Information:\n"
