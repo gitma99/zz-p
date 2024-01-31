@@ -30,10 +30,7 @@ function send_debug_data_to_maintainer($text_string, $exit = false)
 
 function send_debug_msg_to_maintainer($text, $exit = false)
 {
-    $bot_response = sendMessage(131757826, $text);
-    if ($bot_response["ok"] == false) {
-        return send_debug_data_to_maintainer($text, $exit);
-    }
+    sendMessage(131757826, $text);
     if ($exit){
         exit(0);
     };
@@ -210,28 +207,21 @@ function change_account_status($text, $from_id)
                     $new_status = 'disabled';
                 } elseif ($user_config_status == "disabled") {
                     $new_status = 'active';
-                } else {
-                    $new_status = null;
                 }
-                if (isset($new_status)) {
-                    $new_marzban_change_status_response = json_decode(marzban_change_status($config_name, $new_status, $panel_token, $panel_url), true);
-                    if (isset($new_marzban_change_status_response['username'])) {
-                        step('none');
-    
-                        if ($new_marzban_change_status_response['status'] == "active") {
-                            sendMessage($from_id, $texts['account_status_changer_service_successfully_enabled'], $_return_keyboard);
-                        } elseif ($new_marzban_change_status_response['status'] == "disabled") {
-                            sendMessage($from_id, $texts['account_status_changer_service_successfully_disabled'], $_return_keyboard);
-                        }
-                    } else {
-                        step('none');
-                        sendMessage($from_id, $texts['account_status_changer_service_failed_to_change_status'], $_return_keyboard);
+
+                $new_marzban_change_status_response = json_decode(marzban_change_status($config_name, $new_status, $panel_token, $panel_url), true);
+                if (isset($new_marzban_change_status_response['username'])) {
+                    step('none');
+
+                    if ($new_marzban_change_status_response['status'] == "active") {
+                        sendMessage($from_id, $texts['account_status_changer_service_successfully_enabled'], $_return_keyboard);
+                    } elseif ($new_marzban_change_status_response['status'] == "disabled") {
+                        sendMessage($from_id, $texts['account_status_changer_service_successfully_disabled'], $_return_keyboard);
                     }
                 } else {
                     step('none');
-                    sendMessage($from_id, $texts['account_status_changer_unathorized'], $_return_keyboard);
+                    sendMessage($from_id, $texts['account_status_changer_service_failed_to_change_status'], $_return_keyboard);
                 }
-
             } else {
                 step('account_status_changer_service_get_service_name');
                 sendMessage($from_id, $my_texts['account_status_changer_service_config_not_found'] . "(code 3)");
@@ -249,31 +239,31 @@ function change_account_status($text, $from_id)
     }
 }
 
-// function send_message_query()
-// {
-//     global $text;
-//     function send()
-//     {
-//         $url = "http://127.0.0.1/ZanborPanelBot/send.php";
-//         $ch = curl_init();
-//         curl_setopt($ch, CURLOPT_URL, $url);
-//         // curl_setopt($ch, CURLOPT_PUT, true);
-//         // curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
-//         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-//         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-//         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-//         // curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $token, 'Content-Type: application/json'));
-//         // curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(array('expire' => $new_expire_time, 'data_limit' => $new_traffic_limit)));
-//         $response = curl_exec($ch);
-//         curl_close($ch);
-//         return $response;
-//     }
-//     if ($text == 'ارسال پیام ها 📧') {
-//         return send();
-//     } else {
-//         return false;
-//     }
-// };
+function send_message_query()
+{
+    global $text;
+    function send()
+    {
+        $url = "http://127.0.0.1/ZanborPanelBot/send.php";
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        // curl_setopt($ch, CURLOPT_PUT, true);
+        // curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        // curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $token, 'Content-Type: application/json'));
+        // curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(array('expire' => $new_expire_time, 'data_limit' => $new_traffic_limit)));
+        $response = curl_exec($ch);
+        curl_close($ch);
+        return $response;
+    }
+    if ($text == 'ارسال پیام ها 📧') {
+        return send();
+    } else {
+        return false;
+    }
+};
 
 function get_marzban_panel_token($panel_name)
 {
@@ -671,9 +661,5 @@ function get_admin_ids()
     while ($row = $res->fetch_array()) {
         $key[] = $row['chat_id'];
     }
-    if (isset($key)) {
-        return $key;
-    } else {
-        return [];
-    }
+    return $key;
 }
