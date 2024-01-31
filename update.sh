@@ -91,14 +91,16 @@ do
                             sleep 1
                             sudo chmod 777 /var/www/html/ZanborPanelBot/bot_config.json
                             sleep 1
-                            sudo systemctl restart apache2
                             sleep 1
 
                             curl --location "https://${domain}/ZanborPanelBot/sql/sql.php?db_password=${db_password}&db_name=${db_name}&db_username=${db_username}"
                             echo -e "\n"
+                            # ============================= reset apache server and telegram webhook ============================= #
+                            sudo systemctl restart apache2
+                            curl -s -x POST "https://api.telegram.org/bot${token}/setWebhook"  -d url="https://${domain}/ZanborPanelBot/index.php" -d drop_pending_updates="true"
+
                             TEXT_MESSAGE="✅ ربات شما با موفقیت به آخرین نسخه آپدیت شد."$'\n\n'"#️⃣ اطلاعات ربات :"$'\n\n'"▫️token: <code>${token}</code>"$'\n'"▫️admin: <code>${dev}</code> "$'\n'"▫️domain: <code>${domain}</code>"$'\n'"▫️db_name: <code>${db_name}</code>"$'\n'"▫️db_username: <code>${db_username}</code>"$'\n'"▫️db_password: <code>${db_password}</code>"
                             curl -s -X POST "https://api.telegram.org/bot${token}/sendMessage" -d chat_id="${dev}" -d text="${TEXT_MESSAGE}" -d parse_mode="html"
-
 
                             sleep 2
                             clear
