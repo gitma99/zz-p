@@ -34,7 +34,7 @@ if (isset($update->message)) {
     $first_name = isset($update->message->from->first_name) ? $update->message->from->first_name : '❌';
     $username = isset($update->message->from->username) ? '@' . $update->message->from->username : '❌';
     $text = $update->message->text;
-    $data = null;
+    // $data = null;
 } elseif (isset($update->callback_query)) {
     $from_id = $update->callback_query->from->id;
     $chat_id = $update->callback_query->message->chat->id;

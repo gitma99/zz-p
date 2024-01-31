@@ -18,7 +18,6 @@ try {
     error_reporting(E_ALL); // Set the error reporting level as needed
     date_default_timezone_set("UTC");
 
-   
 
     if ($text == $texts['back_to_menu_button']) {
         step('none');
@@ -50,7 +49,7 @@ try {
         sendMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $start_key);
     } elseif ($data == 'back_to_home') {
         step('none');
-        editMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name),$message_id, $start_key);
+        editMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $message_id, $start_key);
     } elseif ($text == '❌  انصراف' and $user['step'] == 'confirm_service') {
         step('none');
         foreach ([$from_id . '-location.txt', $from_id . '-protocol.txt'] as $file)
@@ -461,8 +460,7 @@ try {
                 $service_base_name = $row['code'];
                 $service_name = $row['code'] . "_" . $from_id;
                 $service_location = $row['location'];
-                $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();
-                ;
+                $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();;
                 $marzban_res = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
                 $service_status = $marzban_res['status'];
                 if ($service_status == 'active') {
@@ -496,8 +494,7 @@ try {
             $back_from_list_index = $callback_parts[1];
         } else {
             $back_from_list_index = null;
-        }
-        ;
+        };
         $list_button_count_limit = 60;
         $list_button_count_limit = 1;
         $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'");
@@ -614,10 +611,8 @@ try {
                         $replied_message = editMessage($from_id, $reply_msg, $message_id, $service_keys);
                     } else {
                         $replied_message = sendMessage($from_id, $reply_msg, $service_keys);
-                    }
-                    ;
-                }
-                ;
+                    };
+                };
 
                 $replied_message_id = $replied_message["result"]["message_id"];
                 if (!isset($replied_message_ids_string)) {
@@ -626,7 +621,7 @@ try {
                     $replied_message_ids_string = $replied_message_ids_string . "-" . $replied_message_id;
                 }
             };
-            if ($back_from_list_index == null){
+            if ($back_from_list_index == null) {
                 file_put_contents($from_id . "-" . "all_services_lists_msg_ids", $replied_message_ids_string);
             }
         } else {
@@ -635,7 +630,6 @@ try {
                 sendMessage($from_id, $texts['my_services_not_found'], $start_key);
             } else {
                 editMessage($from_id, $texts['my_services_not_found'], $message_id, $start_key);
-
             }
         }
     } elseif (strpos($data, 'service_status-') !== false) {
@@ -666,8 +660,7 @@ try {
                     alert($my_texts['error_show_service__config_not_found']);
                     $sql->query("DELETE FROM `orders` WHERE `code` = '$code_base'");
                     exit();
-                }
-                ;
+                };
             }
 
             // $getUser = getUserInfo(base64_encode($code) . '_' . $from_id, $panel['token'], $panel['login_link']);
@@ -691,12 +684,10 @@ try {
                         $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNow->format('%i دقیقه دیگر');
                     } else {
                         $diffLastOnlineDateTillNowString = "به زودی";
-                    }
-                    ;
+                    };
                 } else {
                     $diffLastOnlineDateTillNowString = "⚠️ عدم وجود اطلاعات";
-                }
-                ;
+                };
                 $lastOnlineDateString = $getUser['online_at'];
                 if (isset($lastOnlineDateString)) {
                     $lastOnlineDate = new DateTime($lastOnlineDateString, new DateTimeZone('UTC'));
@@ -725,8 +716,7 @@ try {
                     $online_status_message = "$online_status $last_online";
                 } else {
                     $online_status_message = "⚠️ عدم وجود اطلاعات";
-                }
-                ;
+                };
 
                 $manage_service_btns = json_encode(
                     [
@@ -742,8 +732,7 @@ try {
                 alert($my_texts['error_show_service__server_not_found_internally']);
                 $sql->query("DELETE FROM `orders` WHERE `code` = '$code_base'");
                 // alert($texts['not_found_service']);
-            }
-            ;
+            };
         } elseif ($panel['type'] == 'sanayi') {
 
             include_once 'api/sanayi.php';
@@ -867,7 +856,7 @@ try {
                 [['text' => '❌ لغو', 'callback_data' => 'cancel_buy'], ['text' => '✅ تایید', 'callback_data' => 'confirm_extra_time-' . $service_code . '-' . $plan_code]],
             ]
         ]);
-
+        
         editMessage($from_id, sprintf($texts['create_buy_extra_time_factor'], $service_code, $service_code, $plan['name'], number_format($plan['price']), $service_code), $message_id, $access_key);
     } elseif (strpos($data, 'confirm_extra_time') !== false) {
         alert($texts['wait']);
@@ -1108,8 +1097,7 @@ try {
                 $service_base_name = $row['code'];
                 $service_name = $row['code'] . "_" . $from_id;
                 $service_location = $row['location'];
-                $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();
-                ;
+                $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();;
                 $marzban_res = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
                 $service_status = $marzban_res['status'];
                 // $t = json_encode($service_name, 448);
@@ -2295,8 +2283,7 @@ try {
                         $service_base_name = $row['code'];
                         $service_name = $row['code'] . "_" . $text;
                         $service_location = $row['location'];
-                        $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();
-                        ;
+                        $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();;
                         $marzban_res = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
                         $service_status = $marzban_res['status'];
                         if ($service_status == 'active') {
