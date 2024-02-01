@@ -510,7 +510,6 @@ try {
             $bstartTime = microtime(true);
             // while ($row = $services->fetch_assoc()) {
             foreach ($rows as $row) {
-                $startTime = microtime(true);
                 $service_number++;
                 $cal_service_number = $service_number - 1;
                 $current_list_index = intval($cal_service_number / $list_button_count_limit);
@@ -547,26 +546,21 @@ try {
                 curl_setopt($curlHandle, CURLOPT_HTTPHEADER, $req_headers);
                 curl_multi_add_handle($curlMultiHandle, $curlHandle);
                 $curlHandles[$i] = $curlHandle;
-                $endTime = microtime(true);
-                $timeDiff = ($endTime - $startTime) * 1000;
-                send_debug_msg_to_maintainer("sql:gg " . $timeDiff . " milliseconds");
                 $i++;
             }
-            $bendTime = microtime(true);
-            $timeDiff = ($bendTime - $bstartTime) * 1000;
+            $timeDiff = (microtime(true) - $bstartTime) * 1000;
             send_debug_msg_to_maintainer("making curlshandlers: " . $timeDiff . " milliseconds");
-$startTime = microtime(true);
+            $startTime = microtime(true);
             $running = null;
             do {
                 curl_multi_exec($curlMultiHandle, $running);
             } while ($running > 0);
-$endTime = microtime(true);
-$timeDiff = ($endTime - $startTime) * 1000;
-send_debug_msg_to_maintainer("getting_curls_reponse: " . $timeDiff . " milliseconds");
-$startTime = microtime(true);
-$servicesStatus = array();
-foreach ($curlHandles as $i => $curlHandle) {
-    $curlResponse = json_decode(curl_multi_getcontent($curlHandle), true);
+            $endTime = microtime(true);
+            $timeDiff = ($endTime - $startTime) * 1000;
+            send_debug_msg_to_maintainer("getting_curls_reponse: " . $timeDiff . " milliseconds");
+            $servicesStatus = array();
+            foreach ($curlHandles as $i => $curlHandle) {
+                $curlResponse = json_decode(curl_multi_getcontent($curlHandle), true);
                 $serviceStatus = $curlResponse['status'];
                 if ($serviceStatus == 'active') {
                     $status = '🟢';
@@ -580,13 +574,9 @@ foreach ($curlHandles as $i => $curlHandle) {
                 curl_multi_remove_handle($curlMultiHandle, $curlHandle);
                 curl_close($curlHandle);
             }
-$endTime = microtime(true);
-$timeDiff = ($endTime - $startTime) * 1000;
-send_debug_msg_to_maintainer("getting_status_from_curls: " . $timeDiff . " milliseconds");
             curl_multi_close($curlMultiHandle);
             ksort($servicesStatus);
             $list_details = array();
-$startTime = microtime(true);
 
             for ($i = 0; $i < count($services_base_details); $i++) {
                 $service_base_datails = $services_base_details[$i];
@@ -615,10 +605,7 @@ $startTime = microtime(true);
                     'callback_data' => 'back_my_services_menu_from_all_services'
                 ];
             }
-$endTime = microtime(true);
-$timeDiff = ($endTime - $startTime) * 1000;
-send_debug_msg_to_maintainer("making_buttons: " . $timeDiff . " milliseconds");
-$startTime = microtime(true);
+
             $replied_message_ids_string = null;
             foreach ($list_details as $list_index => $list_buttons) {
                 $list_number = $list_index + 1;
@@ -656,9 +643,6 @@ $startTime = microtime(true);
                 editMessage($from_id, $texts['my_services_not_found'], $message_id, $start_key);
             }
         }
-
-$endTime = microtime(true);
-
     } elseif (strpos($data, 'service_status-') !== false) {
         $callback_parts = explode('-', $data);
         $code_base = $callback_parts[1];
