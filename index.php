@@ -506,8 +506,11 @@ try {
             $curlMultiHandle = curl_multi_init();
             $curlHandles = array();
             $i = 0;
-$startTime = microtime(true);
-            while ($row = $services->fetch_assoc()) {
+            $rows = $services->fetch_all(MYSQLI_ASSOC);
+            $bstartTime = microtime(true);
+            // while ($row = $services->fetch_assoc()) {
+            foreach ($rows as $row) {
+                $startTime = microtime(true);
                 $service_number++;
                 $cal_service_number = $service_number - 1;
                 $current_list_index = intval($cal_service_number / $list_button_count_limit);
@@ -526,13 +529,15 @@ $startTime = microtime(true);
                     "service_list_index" => $current_list_index
                 ];
 
+                
+                $mysql_service_panel = $sql->query("SELECT `login_link`, `token` FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();
                 $curlHandle = curl_init();
-                $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();
                 $api_url = $mysql_service_panel['login_link'] . '/api/user/' . $service_name;
                 $req_headers = array(
                     'Accept: application/json',
-                    'Authorization: Bearer ' . get_marzban_panel_token($service_location),
-
+                    'Authorization: Bearer ' . $mysql_service_panel['token'],
+                    // 'Authorization: Bearer ' . get_marzban_panel_token($service_location),
+                    
                 );
                 curl_setopt($curlHandle, CURLOPT_URL, $api_url);
                 curl_setopt($curlHandle, CURLOPT_SSL_VERIFYPEER, false);
@@ -542,11 +547,14 @@ $startTime = microtime(true);
                 curl_setopt($curlHandle, CURLOPT_HTTPHEADER, $req_headers);
                 curl_multi_add_handle($curlMultiHandle, $curlHandle);
                 $curlHandles[$i] = $curlHandle;
+                $endTime = microtime(true);
+                $timeDiff = ($endTime - $startTime) * 1000;
+                send_debug_msg_to_maintainer("sql:gg " . $timeDiff . " milliseconds");
                 $i++;
             }
-$endTime = microtime(true);
-$timeDiff = ($endTime - $startTime) * 1000;
-send_debug_msg_to_maintainer("making curlshandlers: " . $timeDiff . " milliseconds");
+            $bendTime = microtime(true);
+            $timeDiff = ($bendTime - $bstartTime) * 1000;
+            send_debug_msg_to_maintainer("making curlshandlers: " . $timeDiff . " milliseconds");
 $startTime = microtime(true);
             $running = null;
             do {
