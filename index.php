@@ -501,6 +501,7 @@ try {
         $services_count = $services->num_rows;
 
         if ($services_count > 0) {
+            // $bstartTime  = microtime(true);
             $service_number = 0;
             $services_base_details = [];
             $curlMultiHandle = curl_multi_init();
@@ -512,6 +513,7 @@ try {
             $serviceLocationMap = array();
 
             // Loop through the result set and populate the hash map
+
             foreach ($result->fetch_all(MYSQLI_ASSOC) as $row) {
             // while ($row = $result->fetch_assoc()) {
                 $serviceLocationMap[$row['name']] = [
@@ -519,7 +521,9 @@ try {
                     'token' => $row['token']
                 ];   
             };
-            $bstartTime = microtime(true);
+            // $timeDiff = (microtime(true) - $bstartTime) * 1000;
+            // send_debug_msg_to_maintainer("t: " . $timeDiff . " milliseconds");
+            // $bstartTime = microtime(true);
             // while ($row = $services->fetch_assoc()) {
             foreach ($services->fetch_all(MYSQLI_ASSOC) as $row) {
                 $service_number++;
@@ -561,17 +565,16 @@ try {
                 $curlHandles[$i] = $curlHandle;
                 $i++;
             }
-            $timeDiff = (microtime(true) - $bstartTime) * 1000;
-            send_debug_msg_to_maintainer("making curlshandlers: " . $timeDiff . " milliseconds");
-            $startTime = microtime(true);
+            // $timeDiff = (microtime(true) - $bstartTime) * 1000;
+            // send_debug_msg_to_maintainer("making curlshandlers: " . $timeDiff . " milliseconds");
+            // $startTime = microtime(true);
             $running = null;
             do {
                 curl_multi_exec($curlMultiHandle, $running);
             } while ($running > 0);
-            $endTime = microtime(true);
-            $timeDiff = ($endTime - $startTime) * 1000;
-            send_debug_msg_to_maintainer("getting_curls_reponse: " . $timeDiff . " milliseconds");
-            $servicesStatus = array();
+            // $endTime = microtime(true);
+            // $timeDiff = ($endTime - $startTime) * 1000;
+            // send_debug_msg_to_maintainer("getting_curls_reponse: " . $timeDiff . " milliseconds");
             foreach ($curlHandles as $i => $curlHandle) {
                 $curlResponse = json_decode(curl_multi_getcontent($curlHandle), true);
                 $serviceStatus = $curlResponse['status'];
@@ -582,13 +585,12 @@ try {
                 } else {
                     $status = '❌';
                 };
-                $servicesStatus[$i] = $status;
+                $services_base_details[$i]['status'] = $status;
                 // Remove and close the cURL handle
                 curl_multi_remove_handle($curlMultiHandle, $curlHandle);
                 curl_close($curlHandle);
             }
             curl_multi_close($curlMultiHandle);
-            ksort($servicesStatus);
             $list_details = array();
 
             for ($i = 0; $i < count($services_base_details); $i++) {
@@ -597,7 +599,7 @@ try {
                 $service_name = $service_base_datails['service_name'];
                 $service_location = $service_base_datails['service_location'];
                 $service_list_index = $service_base_datails['service_list_index'];
-                $service_status = $servicesStatus[$i];
+                $service_status = $service_base_datails['status'];
 
 
                 $key = [
