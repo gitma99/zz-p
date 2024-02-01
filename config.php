@@ -165,7 +165,7 @@ function deleteMessage($chat_id, $message_id, $only_handler = false)
         'chat_id' => $chat_id,
         'message_id' => $message_id
     ];
-    return bot('deleteMessage', $params);
+    return bot('deleteMessage', $params, only_handler: $only_handler);
 }
 function deleteMessages($chat_id, $message_ids, $only_handler = false)
 {
@@ -173,7 +173,7 @@ function deleteMessages($chat_id, $message_ids, $only_handler = false)
         'chat_id' => $chat_id,
         'message_ids' => json_encode($message_ids)
     ];
-    return bot('deleteMessages', $params);
+    return bot('deleteMessages', $params, only_handler: $only_handler);
 }
 
 function alert($text, $show = true)
