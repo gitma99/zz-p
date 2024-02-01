@@ -506,10 +506,22 @@ try {
             $curlMultiHandle = curl_multi_init();
             $curlHandles = array();
             $i = 0;
-            $rows = $services->fetch_all(MYSQLI_ASSOC);
+            $result = $sql->query("SELECT `name`, `token`, `login_link` FROM `panels`");
+
+            // Initialize an empty hash map
+            $serviceLocationMap = array();
+
+            // Loop through the result set and populate the hash map
+            foreach ($result->fetch_all(MYSQLI_ASSOC) as $row) {
+            // while ($row = $result->fetch_assoc()) {
+                $serviceLocationMap[$row['name']] = [
+                    'login_link' => $row['login_link'],
+                    'token' => $row['token']
+                ];   
+            };
             $bstartTime = microtime(true);
             // while ($row = $services->fetch_assoc()) {
-            foreach ($rows as $row) {
+            foreach ($services->fetch_all(MYSQLI_ASSOC) as $row) {
                 $service_number++;
                 $cal_service_number = $service_number - 1;
                 $current_list_index = intval($cal_service_number / $list_button_count_limit);
@@ -529,7 +541,8 @@ try {
                 ];
 
                 
-                $mysql_service_panel = $sql->query("SELECT `login_link`, `token` FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();
+                // $mysql_service_panel = $sql->query("SELECT `login_link`, `token` FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();
+                $mysql_service_panel = $serviceLocationMap[$service_location];
                 $curlHandle = curl_init();
                 $api_url = $mysql_service_panel['login_link'] . '/api/user/' . $service_name;
                 $req_headers = array(
