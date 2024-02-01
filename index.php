@@ -496,7 +496,7 @@ try {
             $back_from_list_index = null;
         };
         $list_button_count_limit = 60;
-        $list_button_count_limit = 1;
+        // $list_button_count_limit = 1;
         $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'");
         $services_count = $services->num_rows;
 
