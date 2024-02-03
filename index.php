@@ -698,11 +698,11 @@ try {
             $current_list_buttons[] = [
                 [
                     'text' => $texts["show_service_list__button__previous_list"],
-                    'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . $current_list_index - 1
+                    'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . intval($current_list_index - 1)
                 ],
                 [
                     'text' => $texts["show_service_list__button__next_list"],
-                    'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . $current_list_index + 1
+                    'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . intval($current_list_index + 1)
                 ]
             ];
 
@@ -713,7 +713,7 @@ try {
                 ],
                 [
                     'text' => $texts["show_service_list__button__5_next_list"],
-                    'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . $current_list_index + 5
+                    'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . intval($current_list_index + 5)
                 ]
             ];
 
