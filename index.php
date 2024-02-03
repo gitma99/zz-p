@@ -694,7 +694,6 @@ try {
             //         ]
             //     ];
             // }
-            send_debug_msg_to_maintainer("Debug Message: 2 \n");
 
             $current_list_buttons[] = [
                 [
@@ -706,7 +705,6 @@ try {
                     'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . $current_list_index + 1
                 ]
             ];
-            send_debug_msg_to_maintainer("Debug Message: 3 \n");
 
             $current_list_buttons[] = [
                 [
@@ -718,7 +716,6 @@ try {
                     'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . $current_list_index + 5
                 ]
             ];
-            send_debug_msg_to_maintainer("Debug Message: 4 \n");
 
             $current_list_buttons[] = [
                 [
@@ -726,12 +723,15 @@ try {
                     'callback_data' => 'back_to_my_services_menu'
                 ]
             ];
-            send_debug_msg_to_maintainer("Debug Message: 5 \n");
 
             $reply_msg = sprintf($texts['all_services'], $total_services_count, $total_lists_count, count($list_keys));
             send_debug_msg_to_maintainer("Debug Message: 6 \n");
             editMessage($from_id, $reply_msg, $message_id, json_encode(['inline_keyboard' => $current_list_buttons]));
-            send_debug_msg_to_maintainer("Debug Message: 7 \n");
+            $debug = [
+                '$reply_msg' =>$reply_msg,
+                '$current_list_buttons' => $current_list_buttons
+            ];
+            send_debug_msg_to_maintainer("Debug Message:\n" . $debug);
         } else {
             if (isset($text)) {
                 sendMessage($from_id, $texts['my_services_not_found'], $start_key);
