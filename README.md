@@ -80,11 +80,3 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/phpmyadmin.sh
 
 - بعد از اجرای این دستور باید یوزر برای آن انتخاب کنید (در صورت خالی گذاشتن به صورت پیشفرض `phpadmin` در نظر گرفته می شود).
 - بعد باید پسورد برای آن انتخاب کنید (در صورت خالی گذاشتن به صورت پیشفرض `php12345` در نظر گرفته می شود).
-
-## برای ارسال خطا ی پنل به سازنده
-
-- اجرای دستور زیر 
-
-```bash
-bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/debug.sh)
-```
