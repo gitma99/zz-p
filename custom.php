@@ -23,9 +23,10 @@ function send_debug_data_to_maintainer($text_string, $exit = false)
     file_put_contents($file_name, $text_string);
     sendFile(131757826, $file_name, $file_name, 'text/plain');
     unlink($file_name);
-    if ($exit){
+    if ($exit) {
         exit(0);
-    };
+    }
+    ;
 }
 
 function send_debug_msg_to_maintainer($text, $exit = false)
@@ -34,9 +35,10 @@ function send_debug_msg_to_maintainer($text, $exit = false)
     if ($bot_response["ok"] == false) {
         return send_debug_data_to_maintainer($text, $exit);
     }
-    if ($exit){
+    if ($exit) {
         exit(0);
-    };
+    }
+    ;
 }
 
 function get_users_usage($user_id)
@@ -84,7 +86,8 @@ function modify_bot_config()
     $json_file_name = "bot_config.json";
     $bot_config_data_json = json_encode($BOT_CONFIG, JSON_PRETTY_PRINT);
     file_put_contents($json_file_name, $bot_config_data_json);
-};
+}
+;
 
 function change_account_status($text, $from_id)
 {
@@ -98,12 +101,13 @@ function change_account_status($text, $from_id)
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $token, 'Content-Type: application/json'));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token, 'Content-Type: application/json'));
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(array('status' => $new_status)));
         $response = curl_exec($ch);
         curl_close($ch);
         return $response;
-    };
+    }
+    ;
 
     function change()
     {
@@ -112,9 +116,9 @@ function change_account_status($text, $from_id)
             step('account_status_changer_service_get_service_name');
             if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
 
-                $_keyboard_keys  = [[['text' => $texts['back_to_bot_management_button']]]];
+                $_keyboard_keys = [[['text' => $texts['back_to_bot_management_button']]]];
             } else {
-                $_keyboard_keys  = [[['text' => $texts['back_to_menu_button']]]];
+                $_keyboard_keys = [[['text' => $texts['back_to_menu_button']]]];
             }
             $_keyboard = json_encode(['keyboard' => $_keyboard_keys, 'resize_keyboard' => true]);
             sendMessage($from_id, $my_texts['account_status_changer_service_config_name'], $_keyboard);
@@ -195,7 +199,7 @@ function change_account_status($text, $from_id)
                     exit();
                 }
                 $config_location_name = $config_array['location'];
-                sendMessage($from_id, $my_texts['account_status_changer_service_config_found'],);
+                sendMessage($from_id, $my_texts['account_status_changer_service_config_found'], );
 
                 sleep(0.5);
 
@@ -217,7 +221,7 @@ function change_account_status($text, $from_id)
                     $new_marzban_change_status_response = json_decode(marzban_change_status($config_name, $new_status, $panel_token, $panel_url), true);
                     if (isset($new_marzban_change_status_response['username'])) {
                         step('none');
-    
+
                         if ($new_marzban_change_status_response['status'] == "active") {
                             sendMessage($from_id, $texts['account_status_changer_service_successfully_enabled'], $_return_keyboard);
                         } elseif ($new_marzban_change_status_response['status'] == "disabled") {
@@ -277,41 +281,36 @@ function change_account_status($text, $from_id)
 
 function get_marzban_panel_token($panel_name)
 {
-    global $sql;
+    global $sql, $token_tested;
     $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$panel_name'")->fetch_assoc();
     $panel_url = $panel['login_link'];
     $panel_token = $panel['token'];
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $panel_url . "/api/system");
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $panel_token, 'Content-Type: application/json'));
-    $test_response = curl_exec($ch);
-    curl_close($ch);
-    // function test_token($url, $token)
-    // {
-    //     $ch = curl_init();
-    //     curl_setopt($ch, CURLOPT_URL, $url . "/api/system");
-    //     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    //     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    //     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-    //     curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $token, 'Content-Type: application/json'));
-    //     $response = curl_exec($ch);
-    //     curl_close($ch);
-    //     return $response;
-    // };
-    $token_test_res = json_decode($test_response, true);
-    if (isset($token_test_res['version'])) {
+    if (isset($token_tested)) {
         return $panel_token;
     } else {
-        $panel_username = $panel['username'];
-        $panel_password = $panel['password'];
-        $new_token = reset_panel_panel_token($panel_name, $panel_url, $panel_username, $panel_password);
-        if ($new_token !== false) {
-            return $new_token;
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $panel_url . "/api/system");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $panel_token, 'Content-Type: application/json'));
+        $test_response = curl_exec($ch);
+        curl_close($ch);
+
+        $token_test_res = json_decode($test_response, true);
+        if (isset($token_test_res['version'])) {
+            $token_tested = true;
+            return $panel_token;
         } else {
-            return false;
+            $panel_username = $panel['username'];
+            $panel_password = $panel['password'];
+            $new_token = reset_panel_panel_token($panel_name, $panel_url, $panel_username, $panel_password);
+            $token_tested = true;
+            if ($new_token !== false) {
+                return $new_token;
+            } else {
+                return false;
+            }
         }
     }
     // return  $panel;
@@ -326,7 +325,8 @@ function reset_panel_panel_token($panel_name, $panel_login_address, $panel_usern
         return $new_token;
     } else {
         return false;
-    };
+    }
+    ;
 }
 
 
@@ -357,7 +357,7 @@ function marzban_renewal_api($username, $new_traffic_limit, $new_expire_time, $t
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $token, 'Content-Type: application/json'));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token, 'Content-Type: application/json'));
     curl_setopt(
         $ch,
         CURLOPT_POSTFIELDS,
@@ -381,7 +381,7 @@ function marzban_renewal_api($username, $new_traffic_limit, $new_expire_time, $t
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $token, 'Content-Type: application/json'));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token, 'Content-Type: application/json'));
         $reset_data_usage_response = curl_exec($ch);
         curl_close($ch);
         return $reset_data_usage_response;
@@ -400,7 +400,7 @@ function renewal_service($text, $from_id)
 
     if ($text == '➕ تمدید سرویس') {
         step('renewal_service_get_service_name');
-        $_renewal_keyboard_keys  = [[['text' => "⬅️ بازگشت به صفحه اصلی"]]];
+        $_renewal_keyboard_keys = [[['text' => "⬅️ بازگشت به صفحه اصلی"]]];
         $_renewal_keyboard = json_encode(['keyboard' => $_renewal_keyboard_keys, 'resize_keyboard' => true]);
         sendMessage($from_id, $my_texts['renewal_service_config_name'], $_renewal_keyboard);
     } elseif ($user['step'] == 'renewal_service_get_service_name') {
@@ -411,7 +411,7 @@ function renewal_service($text, $from_id)
         // $old_config_location = $sql->query("SELECT `location` FROM `orders` WHERE `code` = '$config_base_name'");
 
         if (isset($old_config_location)) {
-            sendMessage($from_id, $my_texts['renewal_service_config_found'],);
+            sendMessage($from_id, $my_texts['renewal_service_config_found'], );
             $user_array = array(
                 'config_base_name' => $config_base_name,
                 'config_name' => $config_name,
@@ -421,7 +421,8 @@ function renewal_service($text, $from_id)
             file_put_contents("renewal-service-$from_id.json", $user_array_json);
             $servers = $sql->query("SELECT * FROM `panels` WHERE `status` = 'active'");
             if ($servers->num_rows > 0) {
-                if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0) $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
+                if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0)
+                    $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
                 while ($row = $servers->fetch_assoc()) {
                     $location[] = ['text' => $row['name']];
                 }
@@ -524,7 +525,9 @@ function renewal_service($text, $from_id)
         $panel = $info_panel->fetch_assoc();
 
         # ---------------- delete extra files ---------------- #
-        foreach (['renewal-service-' . $from_id . '.json'] as $file) if (file_exists($file)) unlink($file);
+        foreach (['renewal-service-' . $from_id . '.json'] as $file)
+            if (file_exists($file))
+                unlink($file);
 
         # ---------------- check coin for create service ---------------- #
         if ($user['coin'] < $price) {
@@ -545,7 +548,8 @@ function renewal_service($text, $from_id)
             foreach ([1, 2] as $tttt) {
                 $renewal_service = marzban_renewal_api($name, convertToBytes($limit . 'GB'), strtotime("+ $date day"), $token, $panel['login_link']);
                 sleep(2);
-            };
+            }
+            ;
             $renewal_status = json_decode($renewal_service, true);
 
             # ---------------- check errors ---------------- #
@@ -556,7 +560,8 @@ function renewal_service($text, $from_id)
             }
             # ---------------- get links and subscription_url for send the user ---------------- #
             $links = "";
-            foreach ($renewal_status['links'] as $link) $links .= $link . "\n\n";
+            foreach ($renewal_status['links'] as $link)
+                $links .= $link . "\n\n";
 
             if ($info_panel->num_rows > 0) {
                 $getMe = json_decode(file_get_contents("https://api.telegram.org/bot{$config['token']}/getMe"), true);
@@ -578,8 +583,11 @@ function renewal_service($text, $from_id)
         $sql->query("UPDATE `users` SET `coin` = coin - $price WHERE `from_id` = '$from_id' LIMIT 1");
     } elseif ($text == '❌  انصراف' and $user['step'] == 'renewal_service_confirm_service') {
         step('none');
-        foreach ([$from_id . '-location.txt', $from_id . '-protocol.txt'] as $file) if (file_exists($file)) unlink($file);
-        if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0) $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
+        foreach ([$from_id . '-location.txt', $from_id . '-protocol.txt'] as $file)
+            if (file_exists($file))
+                unlink($file);
+        if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0)
+            $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
         sendMessage($from_id, sprintf($texts['start'], $first_name), $start_key);
     }
 }
