@@ -1198,6 +1198,18 @@ try {
     } elseif ($text == '🛒 تعرفه خدمات') {
         sendMessage($from_id, $texts['service_tariff']);
     } elseif ($text == '👤 پروفایل') {
+        $services = $sql->query("SELECT `code`, `location` FROM `orders` WHERE `from_id` = '$from_id'");
+        $count_all = $services->num_rows;
+        $keys = [
+            [
+                [
+                    'text' => $texts['services_overview__button'],
+                    'callback_data' => 'all_service_count'
+                ]
+            ]
+        ];
+        sendMessage($from_id, sprintf($texts['my_account'], $from_id, number_format($user['coin']), $count_all), json_encode(['inline_keyboard' => $keys]));
+    } elseif ($data == 'all_service_count') {
         $count_all_active = 0;
         $count_all_inactive = 0;
 
@@ -1208,28 +1220,10 @@ try {
         foreach ($sql->query("SELECT `name`, `login_link` FROM `panels`")->fetch_all(MYSQLI_ASSOC) as $row) {
             $serviceLocationMap[$row['name']] = $row['login_link'];
         }
-        // if ($count_all > 0) {
-        //     while ($row = $services->fetch_assoc()) {
-        //         $service_base_name = $row['code'];
-        //         $service_name = $row['code'] . "_" . $from_id;
-        //         $service_location = $row['location'];
-        //         $marzban_res = getUserInfo($service_name, get_marzban_panel_token($service_location), $serviceLocationMap[$service_location]);
-        //         $service_status = $marzban_res['status'];
-        //         // $t = json_encode($service_name, 448);
-        //         // sendMessage($from_id, "test : $t  :$service_status");
-        //         // exit();
-        //         if ($service_status == 'active') {
-        //             $count_all_active = $count_all_active + 1;
-        //             // } elseif ($service_status == 'disabled') {
-        //         } elseif (in_array($service_status, array("disabled", "limited", "expired"))) {
-        //             $count_all_inactive = $count_all_inactive + 1;
-        //         }
-        //     }
-        // }
         if ($count_all > 0) {
             $curlMultiHandle = curl_multi_init();
             $curlHandles = array();
-            foreach ($services->fetch_all(MYSQLI_ASSOC) as $row){
+            foreach ($services->fetch_all(MYSQLI_ASSOC) as $row) {
                 $service_base_name = $row['code'];
                 $service_name = $service_base_name . "_" . $from_id;
                 $service_location = $row['location'];
@@ -1277,7 +1271,7 @@ try {
         $used_trafic = $user_usage['total_traffic_used'];
 
 
-        sendMessage($from_id, sprintf($texts['my_account'], $from_id, number_format($user['coin']), $count_all, $count_all_active, $count_all_inactive, $total_trafic, $used_trafic), $start_key);
+        alert(sprintf($texts['services_overview__alert__msg'],$count_all_active, $count_all_inactive, $total_trafic, $used_trafic));
     } elseif ($text == '📮 پشتیبانی آنلاین') {
         step('support');
         sendMessage($from_id, $texts['support'], $back);
@@ -3006,6 +3000,6 @@ try {
         'error_msg' => $error_msg
     ];
     // ================= send debug array
-    send_debug_msg_to_maintainer("Faital Error Detected:\n\n" . json_encode($error_data, 448),$config['dev']);
+    send_debug_msg_to_maintainer("Faital Error Detected:\n\n" . json_encode($error_data, 448), $config['dev']);
     sendMessage($from_id, $texts['error_encounter_msg']);
 }
