@@ -503,7 +503,7 @@ try {
         or strpos($data, 'go_serv_list__') !== false
         or strpos($data, 'back_serv_list__') !== false
     ) {
-        $max_list_length = 10;
+        $max_list_length = 20;
         //? go_service_list__<TOTAL_SERVICE_COUNT>__<SERVICE_LIST_INDEX>
         //? back_service_list__<TOTAL_SERVICE_COUNT>__<SERVICE_LIST_INDEX>
         $callback_parts = explode('__', $data);
