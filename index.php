@@ -1204,16 +1204,17 @@ try {
             [
                 [
                     'text' => $texts['services_overview__button'],
-                    'callback_data' => 'all_service_count'
+                    'callback_data' => 'all_service_count' . '__' . $from_id
                 ]
             ]
         ];
         sendMessage($from_id, sprintf($texts['my_account'], $from_id, number_format($user['coin']), $count_all), json_encode(['inline_keyboard' => $keys]));
-    } elseif ($data == 'all_service_count') {
+    } elseif (strpos($data, 'all_service_count__') !== false) {
+        $target_user_id = explode('__', $data)[1];
         $count_all_active = 0;
         $count_all_inactive = 0;
 
-        $services = $sql->query("SELECT `code`, `location` FROM `orders` WHERE `from_id` = '$from_id'");
+        $services = $sql->query("SELECT `code`, `location` FROM `orders` WHERE `from_id` = '$target_user_id'");
         $count_all = $services->num_rows;
 
         $serviceLocationMap = array();
@@ -1225,7 +1226,7 @@ try {
             $curlHandles = array();
             foreach ($services->fetch_all(MYSQLI_ASSOC) as $row) {
                 $service_base_name = $row['code'];
-                $service_name = $service_base_name . "_" . $from_id;
+                $service_name = $service_base_name . "_" . $target_user_id;
                 $service_location = $row['location'];
 
                 $api_url = $serviceLocationMap[$service_location] . '/api/user/' . $service_name;
@@ -1266,7 +1267,7 @@ try {
 
         }
 
-        $user_usage = get_users_usage($from_id);
+        $user_usage = get_users_usage($target_user_id);
         $total_trafic = $user_usage['total_traffic_bought'];
         $used_trafic = $user_usage['total_traffic_used'];
 
@@ -2413,6 +2414,72 @@ try {
         elseif ($text == '🔎 اطلاعات کاربر') {
             step('info_user');
             sendMessage($from_id, "🔰ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_panel);
+        } elseif ($user['step'] == 'info_user') {
+            $info = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$text'");
+            if ($info->num_rows > 0) {
+                step('none');
+                $info = $info->fetch_assoc();
+                $res_get = bot('getchatmember', ['user_id' => $text, 'chat_id' => $text]);
+                $first_name = $res_get->result->user->first_name;
+                $username = '@' . $res_get->result->user->username;
+                $coin = number_format($info['coin']) ?? 0;
+                $count_service = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'")->num_rows ?? 0;
+                $count_payment = $info['count_charge'] ?? 0;
+                $keys = [
+                    [
+                        [
+                            'text' => $texts['services_overview__button'],
+                            'callback_data' => 'all_service_count' . '__' . $text
+                        ]
+                    ]
+                ];
+                sendMessage($from_id, "⭕️ اطلاعات کاربر [ <code>$text</code> ] با موفقیت دریافت شد.\n\n▫️یوزرنیم کاربر : $username\n▫️نام کاربر : <b>$first_name</b>\n▫️موجودی کاربر : <code>$coin</code> تومان\n\n▫️ تعداد کل سرویس های کاربر : <code>$count_service</code> عدد\n\n▫️تعداد پرداختی کاربر : <code>$count_payment</code> عدد", json_encode(['inline_keyboard' => $keys]));
+            } else {
+                sendMessage($from_id, "‼ کاربر <code>$text</code> عضو ربات نیست !", $back_panel);
+            }
+        // } elseif ($user['step'] == 'info_user') {
+        //     $info = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$text'");
+        //     if ($info->num_rows > 0) {
+        //         $info = $info->fetch_assoc();
+        //         step('none');
+        //         $res_get = bot('getchatmember', ['user_id' => $text, 'chat_id' => $text]);
+        //         $first_name = $res_get->result->user->first_name;
+        //         $username = '@' . $res_get->result->user->username;
+        //         $coin = number_format($info['coin']) ?? 0;
+        //         $count_service = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'")->num_rows ?? 0;
+        //         // $count_service = $info['count_service'] ?? 0;
+        //         $count_payment = $info['count_charge'] ?? 0;
+
+        //         $count_all_active = 0;
+        //         $count_all_inactive = 0;
+        //         $count_all = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'")->num_rows;
+        //         $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'");
+        //         if ($services->num_rows > 0) {
+        //             while ($row = $services->fetch_assoc()) {
+        //                 $service_base_name = $row['code'];
+        //                 $service_name = $row['code'] . "_" . $text;
+        //                 $service_location = $row['location'];
+        //                 $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();
+        //                 ;
+        //                 $marzban_res = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
+        //                 $service_status = $marzban_res['status'];
+        //                 if ($service_status == 'active') {
+        //                     $count_all_active = $count_all_active + 1;
+        //                 } elseif (in_array($service_status, array("disabled", "limited", "expired"))) {
+        //                     $count_all_inactive = $count_all_inactive + 1;
+        //                 }
+        //             }
+        //         }
+
+        //         $user_usage = get_users_usage($text);
+        //         $total_trafic = $user_usage['total_traffic_bought'];
+        //         $used_trafic = $user_usage['total_traffic_used'];
+
+
+        //         sendMessage($from_id, "⭕️ اطلاعات کاربر [ <code>$text</code> ] با موفقیت دریافت شد.\n\n▫️یوزرنیم کاربر : $username\n▫️نام کاربر : <b>$first_name</b>\n▫️موجودی کاربر : <code>$coin</code> تومان\n\n▫️ تعداد کل سرویس های کاربر : <code>$count_service</code> عدد\n🟢 سرویس های فعال : <code>$count_all_active</code> عدد\n🔴 سرویس های غیرفعال : <code>$count_all_inactive</code> عدد\n\n▫️تعداد پرداختی کاربر : <code>$count_payment</code> عدد\n▫️حجم کل کانفیگ های فعال : <code>$total_trafic</code> GB\n▫️حجم مصرف شده از کانفیگ های فعال : <code>$used_trafic</code> GB", $manage_user);
+        //     } else {
+        //         sendMessage($from_id, "‼ کاربر <code>$text</code> عضو ربات نیست !", $back_panel);
+        //     }
         } elseif ($user['step'] == 'info_user') {
             $info = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$text'");
             if ($info->num_rows > 0) {
