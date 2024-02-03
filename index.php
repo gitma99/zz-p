@@ -17,7 +17,7 @@ try {
     ini_set('error_log', 'error.log'); // Specify the path to the error log file
     error_reporting(E_ALL); // Set the error reporting level as needed
     date_default_timezone_set("UTC");
-    
+
     switch ($data) {
         case 'no_service_list_available':
             alert($texts["show_service_list__error__no_service_list_available"]);
@@ -503,7 +503,6 @@ try {
         or strpos($data, 'go_to_service_list__') !== false
         or strpos($data, 'back_to_service_list__') !== false
     ) {
-        send_debug_msg_to_maintainer("Debug Message: 1 \n");
         $max_list_length = 10;
         //? go_to_service_list__total_<TOTAL_SERVICE_COUNT>__index_<SERVICE_LIST_INDEX>
         //? back_to_service_list__total_<TOTAL_SERVICE_COUNT>__index_<SERVICE_LIST_INDEX>
@@ -517,28 +516,24 @@ try {
             $starting_service_row = 0;
             $total_services_count = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'")->num_rows;
         }
-        send_debug_msg_to_maintainer("Debug Message: 2 \n");
 
         $cuurent_list_number = $current_list_index + 1;
-        $total_lists_count = ceil($total_services_count/ $max_list_length);
+        $total_lists_count = ceil($total_services_count / $max_list_length);
 
-        if ($cuurent_list_number < 1 or $cuurent_list_number > $total_lists_count){
+        if ($cuurent_list_number < 1 or $cuurent_list_number > $total_lists_count) {
             alert($texts["show_service_list__error__no_service_list_available"]);
             exit(0);
         }
 
-        send_debug_msg_to_maintainer("Debug Message: 3 \n");
 
         $current_list_services = $sql->query(
             "SELECT `code`, `location`  FROM `orders` WHERE `from_id` = '$from_id'
              LIMIT $max_list_length OFFSET $starting_service_row"
         );
-        send_debug_msg_to_maintainer("Debug Message: 4 \n");
 
         $current_list_services_count = $current_list_services->num_rows;
-        if ($current_list_index != 0 and $current_list_services_count == 0){
+        if ($current_list_index != 0 and $current_list_services_count == 0) {
             alert("nos service");
-            send_debug_msg_to_maintainer("Debug Message: 5 \n");
 
         } elseif ($current_list_services_count > 0 or $current_list_index != 0) {
             $serviceLocationMap = array();
@@ -554,7 +549,6 @@ try {
             $curlMultiHandle = curl_multi_init();
             $curlHandles = array();
             $i = 0;
-            send_debug_msg_to_maintainer("Debug Message: 6 \n");
 
             foreach ($current_list_services->fetch_all(MYSQLI_ASSOC) as $row) {
                 $service_base_name = $row['code'];
@@ -585,7 +579,6 @@ try {
                 $curlHandles[$i] = $curlHandle;
                 $i++;
             }
-            send_debug_msg_to_maintainer("Debug Message: 7 \n");
 
             $running = null;
             do {
@@ -608,7 +601,6 @@ try {
                 curl_multi_remove_handle($curlMultiHandle, $curlHandle);
                 curl_close($curlHandle);
             }
-            send_debug_msg_to_maintainer("Debug Message: 8 \n");
 
             curl_multi_close($curlMultiHandle);
 
@@ -627,7 +619,6 @@ try {
                 ];
                 $list_keys[] = $key;
             }
-            send_debug_msg_to_maintainer("Debug Message: 9 \n");
 
             $current_list_buttons = array_chunk($list_keys, 1);
             $service_list_number = $current_list_index + 1;
@@ -637,6 +628,8 @@ try {
                     'callback_data' => 'null'
                 ]
             ];
+            send_debug_msg_to_maintainer("Debug Message: 1 \n");
+
             array_unshift($current_list_buttons, $list_indicator_button);
 
             // $is_first_list = $current_list_index == 0;
@@ -701,16 +694,20 @@ try {
             //         ]
             //     ];
             // }
-                $current_list_buttons[] = [
-                    [
-                        'text' => $texts["show_service_list__button__previous_list"],
-                        'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . $current_list_index - 1
-                    ],
-                    [
-                        'text' => $texts["show_service_list__button__next_list"],
-                        'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . $current_list_index + 1
-                    ]
-                ];
+            send_debug_msg_to_maintainer("Debug Message: 2 \n");
+
+            $current_list_buttons[] = [
+                [
+                    'text' => $texts["show_service_list__button__previous_list"],
+                    'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . $current_list_index - 1
+                ],
+                [
+                    'text' => $texts["show_service_list__button__next_list"],
+                    'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . $current_list_index + 1
+                ]
+            ];
+            send_debug_msg_to_maintainer("Debug Message: 3 \n");
+
             $current_list_buttons[] = [
                 [
                     'text' => $texts["show_service_list__button__5_previous_list"],
@@ -721,6 +718,7 @@ try {
                     'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . $current_list_index + 5
                 ]
             ];
+            send_debug_msg_to_maintainer("Debug Message: 4 \n");
 
             $current_list_buttons[] = [
                 [
@@ -728,11 +726,13 @@ try {
                     'callback_data' => 'back_to_my_services_menu'
                 ]
             ];
+            send_debug_msg_to_maintainer("Debug Message: 5 \n");
 
             $reply_msg = sprintf($texts['all_services'], $total_services_count, $total_lists_count, count($list_keys));
+            send_debug_msg_to_maintainer("Debug Message: 6 \n");
             editMessage($from_id, $reply_msg, $message_id, json_encode(['inline_keyboard' => $current_list_buttons]));
+            send_debug_msg_to_maintainer("Debug Message: 7 \n");
         } else {
-
             if (isset($text)) {
                 sendMessage($from_id, $texts['my_services_not_found'], $start_key);
             } else {
