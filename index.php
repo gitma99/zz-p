@@ -408,7 +408,7 @@ try {
         } else {
             sendMessage($from_id, $texts['already_test_account'], $start_key);
         }
-    } elseif ($text == '🛍 سرویس های من' or in_array($data, array('back_to_my_services_menu', 'back_my_services_menu_from_all_services'))) {
+    } elseif ($text == '🛍 سرویس های من' or in_array($data, array('back_my_services_menu', 'back_my_services_menu_from_all_services'))) {
         step('none');
         $key = [
             [
@@ -448,7 +448,7 @@ try {
             [
                 [
                     'text' => '🔙 بازگشت',
-                    'callback_data' => 'back_to_my_services_menu'
+                    'callback_data' => 'back_my_services_menu'
                 ]
             ],
         ];
@@ -479,7 +479,7 @@ try {
                 } else {
                     $status = '❌';
                 }
-                $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'service_status-' . $row['code'] . '-' . "my_services_menu"];
+                $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'serv_stat-' . $row['code'] . '-' . "my_services_menu"];
             }
             $found_services_keys = array_chunk($key, 1);
             $found_services_keyboard = json_encode(['inline_keyboard' => $found_services_keys]);
@@ -490,7 +490,7 @@ try {
                 [
                     [
                         'text' => '🔙 بازگشت',
-                        'callback_data' => 'back_to_my_services_menu'
+                        'callback_data' => 'back_my_services_menu'
                     ]
                 ],
             ];
@@ -500,16 +500,16 @@ try {
     } elseif (
         $data == 'all_services'
         or strpos($data, 'back_all_services') !== false
-        or strpos($data, 'go_to_service_list__') !== false
-        or strpos($data, 'back_to_service_list__') !== false
+        or strpos($data, 'go_serv_list__') !== false
+        or strpos($data, 'back_serv_list__') !== false
     ) {
         $max_list_length = 10;
-        //? go_to_service_list__total_<TOTAL_SERVICE_COUNT>__index_<SERVICE_LIST_INDEX>
-        //? back_to_service_list__total_<TOTAL_SERVICE_COUNT>__index_<SERVICE_LIST_INDEX>
+        //? go_service_list__<TOTAL_SERVICE_COUNT>__<SERVICE_LIST_INDEX>
+        //? back_service_list__<TOTAL_SERVICE_COUNT>__<SERVICE_LIST_INDEX>
         $callback_parts = explode('__', $data);
         if (count($callback_parts) > 1) {
-            $total_services_count = intval(explode('_', $callback_parts[1])[1]);
-            $current_list_index = intval(explode('_', $callback_parts[2])[1]);
+            $total_services_count = intval($callback_parts[1]);
+            $current_list_index = intval($callback_parts[2]);
             $starting_service_row = $current_list_index * $max_list_length;
         } else {
             $current_list_index = 0;
@@ -615,7 +615,7 @@ try {
 
                 $key = [
                     'text' => $service_status . $service_base_name . ' - ' . $service_location,
-                    'callback_data' => 'service_status-' . $service_base_name . "-" . 'service_list' . '__' . 'total_' . $total_services_count . '__' . 'index_' . $current_list_index
+                    'callback_data' => 'serv_stat-' . $service_base_name . "-" . 'serv_list' . '__' . $total_services_count . '__' . $current_list_index
                 ];
                 $list_keys[] = $key;
             }
@@ -628,7 +628,6 @@ try {
                     'callback_data' => 'null'
                 ]
             ];
-            send_debug_msg_to_maintainer("Debug Message: 1 \n");
 
             array_unshift($current_list_buttons, $list_indicator_button);
 
@@ -654,7 +653,7 @@ try {
             //         ],
             //         [
             //             'text' => $texts["show_service_list__button__next_list"],
-            //             'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . $current_list_index + 1
+            //             'callback_data' => 'go_service_list__total_' . $total_services_count . '__index_' . $current_list_index + 1
             //         ]
             //     ];
             // } elseif ($is_last_list) {
@@ -662,7 +661,7 @@ try {
             //         $current_list_buttons[] = [
             //             [
             //                 'text' => $texts["show_service_list__button__previous_list"],
-            //                 'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . '0'
+            //                 'callback_data' => 'go_service_list__total_' . $total_services_count . '__index_' . '0'
             //             ],
 
             //             [
@@ -674,7 +673,7 @@ try {
             //         $current_list_buttons[] = [
             //             [
             //                 'text' => $texts["show_service_list__button__previous_list"],
-            //                 'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . intval($current_list_index - 1)
+            //                 'callback_data' => 'go_service_list__total_' . $total_services_count . '__index_' . intval($current_list_index - 1)
             //             ],
             //             [
             //                 'text' => '🚫',
@@ -686,11 +685,11 @@ try {
             //     $current_list_buttons[] = [
             //         [
             //             'text' => $texts["show_service_list__button__previous_list"],
-            //             'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . intval($current_list_index - 1)
+            //             'callback_data' => 'go_service_list__total_' . $total_services_count . '__index_' . intval($current_list_index - 1)
             //         ],
             //         [
             //             'text' => $texts["show_service_list__button__next_list"],
-            //             'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . $current_list_index + 1
+            //             'callback_data' => 'go_service_list__total_' . $total_services_count . '__index_' . $current_list_index + 1
             //         ]
             //     ];
             // }
@@ -698,41 +697,40 @@ try {
             $current_list_buttons[] = [
                 [
                     'text' => $texts["show_service_list__button__previous_list"],
-                    'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . intval($current_list_index - 1)
+                    'callback_data' => 'go_serv_list__' . $total_services_count . '__' . intval($current_list_index - 1)
                 ],
                 [
                     'text' => $texts["show_service_list__button__next_list"],
-                    'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . intval($current_list_index + 1)
+                    'callback_data' => 'go_serv_list__' . $total_services_count . '__' . intval($current_list_index + 1)
                 ]
             ];
 
             $current_list_buttons[] = [
                 [
                     'text' => $texts["show_service_list__button__5_previous_list"],
-                    'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . intval($current_list_index - 5)
+                    'callback_data' => 'go_serv_list__' . $total_services_count . '__' . intval($current_list_index - 5)
                 ],
                 [
                     'text' => $texts["show_service_list__button__5_next_list"],
-                    'callback_data' => 'go_to_service_list__total_' . $total_services_count . '__index_' . intval($current_list_index + 5)
+                    'callback_data' => 'go_serv_list__' . $total_services_count . '__' . intval($current_list_index + 5)
                 ]
             ];
 
             $current_list_buttons[] = [
                 [
                     'text' => '🔙 بازگشت',
-                    'callback_data' => 'back_to_my_services_menu'
+                    'callback_data' => 'back_my_services_menu'
                 ]
             ];
 
             $reply_msg = sprintf($texts['all_services'], $total_services_count, $total_lists_count, count($list_keys));
-            send_debug_msg_to_maintainer("Debug Message: 6 \n");
             editMessage($from_id, $reply_msg, $message_id, json_encode(['inline_keyboard' => $current_list_buttons]));
-            $debug_array = [
-                '$reply_msg' => $reply_msg,
-                '$current_list_buttons' => $current_list_buttons,           
-                'editMSG' => editMessage($from_id, $reply_msg, $message_id, json_encode(['inline_keyboard' => $current_list_buttons]))
-            ];
-            send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448));
+            // $debug_array = [
+            //     '$reply_msg' => $reply_msg,
+            //     '$current_list_buttons' => $current_list_buttons,           
+            //     'editMSG' => editMessage($from_id, $reply_msg, $message_id, json_encode(['inline_keyboard' => $current_list_buttons]))
+            // ];
+            // send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448));
         } else {
             if (isset($text)) {
                 sendMessage($from_id, $texts['my_services_not_found'], $start_key);
@@ -740,7 +738,7 @@ try {
                 editMessage($from_id, $texts['my_services_not_found'], $message_id, $start_key);
             }
         }
-    } elseif (strpos($data, 'service_status-') !== false) {
+    } elseif (strpos($data, 'serv_stat-') !== false) {
         //? service_status-<USER>-service_list__total_<TOTAL_SERVICE_COUNT>__index_<SERVICE_LIST_INDEX>
         $callback_parts = explode('-', $data);
         $code_base = $callback_parts[1];
@@ -836,7 +834,7 @@ try {
                         'inline_keyboard' => [
                             [['text' => 'دریافت QrCode', 'callback_data' => 'getQrCode-' . $code_base . '-marzban']],
                             // [['text' => '🔙 بازگشت', 'callback_data' => "back_$back_btn_callback_data"]]
-                            [['text' => '🔙 بازگشت', 'callback_data' => "back_to_$back_btn_callback_data"]]
+                            [['text' => '🔙 بازگشت', 'callback_data' => "back_$back_btn_callback_data"]]
                         ]
                     ]
                 );
@@ -934,7 +932,7 @@ try {
                 $key[] = ['text' => $row['name'], 'callback_data' => 'select_extra_time-' . $row['code'] . '-' . $code];
             }
             $key = array_chunk($key, 2);
-            $key[] = [['text' => '🔙 بازگشت', 'callback_data' => 'service_status-' . $code]];
+            $key[] = [['text' => '🔙 بازگشت', 'callback_data' => 'serv_stat-' . $code]];
             $key = json_encode(['inline_keyboard' => $key]);
             editMessage($from_id, sprintf($texts['select_extra_time_plan'], $code), $message_id, $key);
         } else {
@@ -950,7 +948,7 @@ try {
                 $key[] = ['text' => $row['name'], 'callback_data' => 'select_extra_volume-' . $row['code'] . '-' . $code];
             }
             $key = array_chunk($key, 2);
-            $key[] = [['text' => '🔙 بازگشت', 'callback_data' => 'service_status-' . $code]];
+            $key[] = [['text' => '🔙 بازگشت', 'callback_data' => 'serv_stat-' . $code]];
             $key = json_encode(['inline_keyboard' => $key]);
             editMessage($from_id, sprintf($texts['select_extra_volume_plan'], $code), $message_id, $key);
         } else {
