@@ -5,7 +5,7 @@
 // $debug_array = [];
 // send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448));
 // // ============================ Debug code ================== END //
-print("hello");
+readfile("test.html");
 try {
     include_once 'config.php';
     include_once 'api/sanayi.php';
@@ -1229,7 +1229,7 @@ try {
         if ($count_all > 0) {
             $curlMultiHandle = curl_multi_init();
             $curlHandles = array();
-            while ($row = $services->fetch_assoc()) {
+            foreach ($services->fetch_all(MYSQLI_ASSOC) as $row){
                 $service_base_name = $row['code'];
                 $service_name = $service_base_name . "_" . $from_id;
                 $service_location = $row['location'];
