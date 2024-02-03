@@ -503,6 +503,7 @@ try {
         or strpos($data, 'go_to_service_list__') !== false
         or strpos($data, 'back_to_service_list__') !== false
     ) {
+        send_debug_msg_to_maintainer("Debug Message: 1 \n");
         $max_list_length = 10;
         //? go_to_service_list__total_<TOTAL_SERVICE_COUNT>__index_<SERVICE_LIST_INDEX>
         //? back_to_service_list__total_<TOTAL_SERVICE_COUNT>__index_<SERVICE_LIST_INDEX>
@@ -516,6 +517,7 @@ try {
             $starting_service_row = 0;
             $total_services_count = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'")->num_rows;
         }
+        send_debug_msg_to_maintainer("Debug Message: 2 \n");
 
         $cuurent_list_number = $current_list_index + 1;
         $total_lists_count = ceil($total_services_count/ $max_list_length);
@@ -525,16 +527,20 @@ try {
             exit(0);
         }
 
+        send_debug_msg_to_maintainer("Debug Message: 3 \n");
+
         $current_list_services = $sql->query(
             "SELECT `code`, `location`  FROM `orders` WHERE `from_id` = '$from_id'
              LIMIT $max_list_length OFFSET $starting_service_row"
         );
+        send_debug_msg_to_maintainer("Debug Message: 4 \n");
 
         $current_list_services_count = $current_list_services->num_rows;
         if ($current_list_index != 0 and $current_list_services_count == 0){
             alert("nos service");
-        }
-        elseif ($current_list_services_count > 0 or $current_list_index != 0) {
+            send_debug_msg_to_maintainer("Debug Message: 5 \n");
+
+        } elseif ($current_list_services_count > 0 or $current_list_index != 0) {
             $serviceLocationMap = array();
             foreach ($sql->query("SELECT `name`, `login_link` FROM `panels`")->fetch_all(MYSQLI_ASSOC) as $row) {
                 // $serviceLocationMap[$row['name']] = [
@@ -548,6 +554,8 @@ try {
             $curlMultiHandle = curl_multi_init();
             $curlHandles = array();
             $i = 0;
+            send_debug_msg_to_maintainer("Debug Message: 6 \n");
+
             foreach ($current_list_services->fetch_all(MYSQLI_ASSOC) as $row) {
                 $service_base_name = $row['code'];
                 $service_name = $service_base_name . "_" . $from_id;
@@ -577,6 +585,7 @@ try {
                 $curlHandles[$i] = $curlHandle;
                 $i++;
             }
+            send_debug_msg_to_maintainer("Debug Message: 7 \n");
 
             $running = null;
             do {
@@ -599,6 +608,7 @@ try {
                 curl_multi_remove_handle($curlMultiHandle, $curlHandle);
                 curl_close($curlHandle);
             }
+            send_debug_msg_to_maintainer("Debug Message: 8 \n");
 
             curl_multi_close($curlMultiHandle);
 
@@ -617,6 +627,7 @@ try {
                 ];
                 $list_keys[] = $key;
             }
+            send_debug_msg_to_maintainer("Debug Message: 9 \n");
 
             $current_list_buttons = array_chunk($list_keys, 1);
             $service_list_number = $current_list_index + 1;
