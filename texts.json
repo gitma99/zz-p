@@ -88,10 +88,10 @@
   "error_show_service__token_reset_success": "سرویس بروز شد . لطفا دوباره امتحان کنید",
   "error_show_service__token_reset_failed": "بروزرسانی سرور با خطا روبه رو شد . لطفا به ادمین ربات اطلاع رسانی کنی\n\n(خطا : marzban token cant be reset automatiacally. please rest it manually)",
   "show_service_list__error__no_service_list_available": "لیست برای نمایش وجود ندارد",
-  "show_service_list__button__previous_list": "لیست قبل",
-  "show_service_list__button__next_list": "لیست بعد",
-  "show_service_list__button__5_previous_list": "5 لیست قبل",
-  "show_service_list__button__5_next_list": "5 لیست بعد",
+  "show_service_list__button__previous_list": "قبل",
+  "show_service_list__button__next_list": "بعد",
+  "show_service_list__button__5_previous_list": "<<",
+  "show_service_list__button__5_next_list": ">>",
   "repeated_config_name": "این نام قبلا انتخاب شده 🚫 لطفا دوباره امتحان کنید ♻️",
   "config_name_verification_failed": "خطا در احراز نام انتخاب شده. لطفا دوباره تلاش کنید. ",
   "server_connection_failed": "خطا در ارتباط با سرور . لطفا به ادمین اطلاع رسانی کنید. ",

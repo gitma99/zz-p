@@ -622,14 +622,14 @@ try {
 
             $current_list_buttons = array_chunk($list_keys, 1);
             $service_list_number = $current_list_index + 1;
-            $list_indicator_button = [
-                [
-                    'text' => 'لیست' . ' ' . $service_list_number,
-                    'callback_data' => 'null'
-                ]
-            ];
+            // $list_indicator_button = [
+            //     [
+            //         'text' => 'لیست' . ' ' . $service_list_number,
+            //         'callback_data' => 'null'
+            //     ]
+            // ];
 
-            array_unshift($current_list_buttons, $list_indicator_button);
+            // array_unshift($current_list_buttons, $list_indicator_button);
 
             // $is_first_list = $current_list_index == 0;
             // $is_last_list = $service_list_number == $total_lists_count;
@@ -693,7 +693,12 @@ try {
             //         ]
             //     ];
             // }
-
+            $current_list_buttons[] = [
+                [
+                    'text' => 'لیست' . ' ' . $service_list_number,
+                    'callback_data' => 'null'
+                ]
+            ];
             $current_list_buttons[] = [
                 [
                     'text' => $texts["show_service_list__button__previous_list"],
