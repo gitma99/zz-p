@@ -103,7 +103,12 @@ function sendFile($chat_id, $file_path, $file_name, $mime_type, $api_key = API_K
         'chat_id' => $chat_id,
         'document' => new CURLFile($file_path, $mime_type, $file_name)
     ];
-    return bot('sendDocument', $params, $api_key);
+    $bot_reply = bot('sendDocument', $params, $api_key);
+    if ($bot_reply["ok"] == false) {
+        throw new Exception(json_encode($bot_reply, 448));
+    } else {
+        return $bot_reply;
+    }
 }
 
 function sendMessage($chat_id, $text, $keyboard = null, $mrk = 'html')
@@ -116,8 +121,13 @@ function sendMessage($chat_id, $text, $keyboard = null, $mrk = 'html')
         'disable_web_page_preview' => true,
         'reply_markup' => $keyboard
     ];
-    return bot('sendMessage', $params);
-    // return bot('sendMessage', $params, $api_key);
+    $bot_reply =  bot('sendMessage', $params);
+    // $bot_reply =  bot('sendMessage', $params, $api_key);
+    if ($bot_reply["ok"] == false) {
+        throw new Exception(json_encode($bot_reply, 448));
+    } else {
+        return $bot_reply;
+    }
 }
 
 function forwardMessage($from, $to, $message_id, $mrk = 'html')
@@ -128,7 +138,12 @@ function forwardMessage($from, $to, $message_id, $mrk = 'html')
         'message_id' => $message_id,
         'parse_mode' => $mrk
     ];
-    return bot('forwardMessage', $params);
+    $bot_reply =  bot('forwardMessage', $params);
+    if ($bot_reply["ok"] == false) {
+        throw new Exception(json_encode($bot_reply, 448));
+    } else {
+        return $bot_reply;
+    }
 }
 
 function editMessage($chat_id, $text, $message_id, $keyboard = null, $mrk = 'html')
@@ -149,14 +164,19 @@ function editMessage($chat_id, $text, $message_id, $keyboard = null, $mrk = 'htm
         'reply_markup' => $keyboard
     ];
     $bot_reply = bot('editMessageText', $params);
-    if ($bot_reply["ok"] == false and $bot_reply["description"] == "Bad Request: inline keyboard expected") {
-        deleteMessage($chat_id, $message_id);
-        $bot_reply = sendMessage($chat_id, $text, $keyboard, $mrk = 'html');
-        if ($bot_reply["ok"] == false) {
+    if ($bot_reply["ok"] == false) {
+        if ($bot_reply["description"] == "Bad Request: inline keyboard expected") {
+            deleteMessage($chat_id, $message_id);
+            $bot_reply = sendMessage($chat_id, $text, $keyboard, $mrk = 'html');
+            if ($bot_reply["ok"] == false) {
+                throw new Exception(json_encode($bot_reply, 448));
+            }
+        } else {
             throw new Exception(json_encode($bot_reply, 448));
         }
+    } else {
+        return $bot_reply;
     }
-    return $bot_reply;
 }
 
 function deleteMessage($chat_id, $message_id, $only_handler = false)
@@ -165,7 +185,12 @@ function deleteMessage($chat_id, $message_id, $only_handler = false)
         'chat_id' => $chat_id,
         'message_id' => $message_id
     ];
-    return bot('deleteMessage', $params);
+    $bot_reply =  bot('deleteMessage', $params);
+    if ($bot_reply["ok"] == false) {
+        throw new Exception(json_encode($bot_reply, 448));
+    } else {
+        return $bot_reply;
+    }
 }
 function deleteMessages($chat_id, $message_ids, $only_handler = false)
 {
@@ -173,7 +198,12 @@ function deleteMessages($chat_id, $message_ids, $only_handler = false)
         'chat_id' => $chat_id,
         'message_ids' => json_encode($message_ids)
     ];
-    return bot('deleteMessages', $params);
+    $bot_reply = bot('deleteMessages', $params);
+    if ($bot_reply["ok"] == false) {
+        throw new Exception(json_encode($bot_reply, 448));
+    } else {
+        return $bot_reply;
+    }
 }
 
 function alert($text, $show = true)
@@ -184,7 +214,12 @@ function alert($text, $show = true)
         'text' => $text,
         'show_alert' => $show
     ];
-    return bot('answerCallbackQuery', $params);
+    $bot_reply =  bot('answerCallbackQuery', $params);
+    if ($bot_reply["ok"] == false) {
+        throw new Exception(json_encode($bot_reply, 448));
+    } else {
+        return $bot_reply;
+    }
 }
 
 function step($step)

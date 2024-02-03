@@ -525,7 +525,6 @@ try {
             exit(0);
         }
 
-
         $current_list_services = $sql->query(
             "SELECT `code`, `location`  FROM `orders` WHERE `from_id` = '$from_id'
              LIMIT $max_list_length OFFSET $starting_service_row"
@@ -730,12 +729,6 @@ try {
 
             $reply_msg = sprintf($texts['all_services'], $total_services_count, $total_lists_count, count($list_keys));
             editMessage($from_id, $reply_msg, $message_id, json_encode(['inline_keyboard' => $current_list_buttons]));
-            // $debug_array = [
-            //     '$reply_msg' => $reply_msg,
-            //     '$current_list_buttons' => $current_list_buttons,           
-            //     'editMSG' => editMessage($from_id, $reply_msg, $message_id, json_encode(['inline_keyboard' => $current_list_buttons]))
-            // ];
-            // send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448));
         } else {
             if (isset($text)) {
                 sendMessage($from_id, $texts['my_services_not_found'], $start_key);
@@ -748,7 +741,6 @@ try {
         $callback_parts = explode('-', $data);
         $code_base = $callback_parts[1];
         $back_btn_callback_data = $callback_parts[2];
-        // send_debug_msg_to_maintainer($back_btn_callback_data,true);
         $code = $code_base . '_' . $from_id;
         $getService = $sql->query("SELECT * FROM `orders` WHERE `code` = '$code_base'")->fetch_assoc();
         if ($getService['type'] == 'marzban') {
@@ -1209,29 +1201,76 @@ try {
         $count_all_active = 0;
         $count_all_inactive = 0;
 
-        $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'");
-        if ($services->num_rows > 0) {
+        $services = $sql->query("SELECT `code`, `location` FROM `orders` WHERE `from_id` = '$from_id'");
+        $count_all = $services->num_rows;
+
+        $serviceLocationMap = array();
+        foreach ($sql->query("SELECT `name`, `login_link` FROM `panels`")->fetch_all(MYSQLI_ASSOC) as $row) {
+            $serviceLocationMap[$row['name']] = $row['login_link'];
+        }
+        // if ($count_all > 0) {
+        //     while ($row = $services->fetch_assoc()) {
+        //         $service_base_name = $row['code'];
+        //         $service_name = $row['code'] . "_" . $from_id;
+        //         $service_location = $row['location'];
+        //         $marzban_res = getUserInfo($service_name, get_marzban_panel_token($service_location), $serviceLocationMap[$service_location]);
+        //         $service_status = $marzban_res['status'];
+        //         // $t = json_encode($service_name, 448);
+        //         // sendMessage($from_id, "test : $t  :$service_status");
+        //         // exit();
+        //         if ($service_status == 'active') {
+        //             $count_all_active = $count_all_active + 1;
+        //             // } elseif ($service_status == 'disabled') {
+        //         } elseif (in_array($service_status, array("disabled", "limited", "expired"))) {
+        //             $count_all_inactive = $count_all_inactive + 1;
+        //         }
+        //     }
+        // }
+        if ($count_all > 0) {
+            $curlMultiHandle = curl_multi_init();
+            $curlHandles = array();
             while ($row = $services->fetch_assoc()) {
                 $service_base_name = $row['code'];
-                $service_name = $row['code'] . "_" . $from_id;
+                $service_name = $service_base_name . "_" . $from_id;
                 $service_location = $row['location'];
-                $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();
-                ;
-                $marzban_res = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
-                $service_status = $marzban_res['status'];
-                // $t = json_encode($service_name, 448);
-                // sendMessage($from_id, "test : $t  :$service_status");
-                // exit();
-                if ($service_status == 'active') {
+
+                $api_url = $serviceLocationMap[$service_location] . '/api/user/' . $service_name;
+                $curlHandle = curl_init();
+                $req_headers = array(
+                    'Accept: application/json',
+                    'Authorization: Bearer ' . get_marzban_panel_token($service_location),
+                );
+                curl_setopt($curlHandle, CURLOPT_URL, $api_url);
+                curl_setopt($curlHandle, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($curlHandle, CURLOPT_SSL_VERIFYHOST, false);
+                curl_setopt($curlHandle, CURLOPT_HTTPGET, true);
+                curl_setopt($curlHandle, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($curlHandle, CURLOPT_HTTPHEADER, $req_headers);
+                curl_multi_add_handle($curlMultiHandle, $curlHandle);
+                $curlHandles[] = $curlHandle;
+            }
+
+            $running = null;
+            do {
+                curl_multi_exec($curlMultiHandle, $running);
+            } while ($running > 0);
+
+            foreach ($curlHandles as $i => $curlHandle) {
+                $curlResponse = json_decode(curl_multi_getcontent($curlHandle), true);
+                $serviceStatus = $curlResponse['status'];
+                if ($serviceStatus == 'active') {
                     $count_all_active = $count_all_active + 1;
-                    // } elseif ($service_status == 'disabled') {
-                } elseif (in_array($service_status, array("disabled", "limited", "expired"))) {
+                } elseif (in_array($serviceStatus, array("disabled", "limited", "expired"))) {
                     $count_all_inactive = $count_all_inactive + 1;
                 }
-            }
-        }
-        $count_all = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$from_id'")->num_rows;
 
+                curl_multi_remove_handle($curlMultiHandle, $curlHandle);
+                curl_close($curlHandle);
+            }
+
+            curl_multi_close($curlMultiHandle);
+
+        }
 
         $user_usage = get_users_usage($from_id);
         $total_trafic = $user_usage['total_traffic_bought'];
@@ -2967,6 +3006,6 @@ try {
         'error_msg' => $error_msg
     ];
     // ================= send debug array
-    send_debug_msg_to_maintainer("Faital Error Detected:\n\n" . json_encode($error_data, 448));
+    send_debug_msg_to_maintainer("Faital Error Detected:\n\n" . json_encode($error_data, 448),$config['dev']);
     sendMessage($from_id, $texts['error_encounter_msg']);
 }
