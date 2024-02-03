@@ -727,11 +727,12 @@ try {
             $reply_msg = sprintf($texts['all_services'], $total_services_count, $total_lists_count, count($list_keys));
             send_debug_msg_to_maintainer("Debug Message: 6 \n");
             editMessage($from_id, $reply_msg, $message_id, json_encode(['inline_keyboard' => $current_list_buttons]));
-            $debug = [
-                '$reply_msg' =>$reply_msg,
-                '$current_list_buttons' => $current_list_buttons
+            $debug_array = [
+                '$reply_msg' => $reply_msg,
+                '$current_list_buttons' => $current_list_buttons,           
+                'editMSG' => editMessage($from_id, $reply_msg, $message_id, json_encode(['inline_keyboard' => $current_list_buttons]))
             ];
-            send_debug_msg_to_maintainer("Debug Message:\n" . $debug);
+            send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448));
         } else {
             if (isset($text)) {
                 sendMessage($from_id, $texts['my_services_not_found'], $start_key);
