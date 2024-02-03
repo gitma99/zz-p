@@ -4,7 +4,7 @@
 - دستور زیر رو برای نصب ربات ارسال کنید.
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/zanbor.sh)
+bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/install.sh)
 ```
 
 - بعد از اجرای این دستور باید کمی صبر کنید تا به مرحله وارد کردن دامنه برسید.
