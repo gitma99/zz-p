@@ -3051,24 +3051,25 @@ try {
         }
     }
 } catch (\Throwable $e) {
-    $recived_error_msg = $e->getMessage();
     // =================Enter Maintainer Telgran Id for Debuging
-    $maintainer_telegram_id_number = 0000000000000;
+    $maintainer_telegram_id_number = 1212754771;
     // ================= check if it is json if json then decode else send it anyway.
+    $recived_error_msg = $e->getMessage();
     $error_msg = json_decode($recived_error_msg);
     if (!isset($error_msg)) {
         $error_msg = $recived_error_msg;
     }
     // ================= build debug array
-    $trace = $e->getTrace();
     $error_data = [
         "chat_id" => $from_id,
         'user_name' => $username,
         'step' => $user['step'],
-        'error_line' => $e->getLine(),
-        'error_file_source' => $e->getFile(),
+        'error_calss' => get_class($e),
         'error_msg' => $error_msg,
-        'error_trace' => $trace
+        'error_file' => $e->getFile(),
+        'error_line' => $e->getLine(),
+        'error_trace' => $e->getTrace(),
+        'error_trace_string' => $e->getTraceAsString(),
     ];
     // ================= send debug array
     send_debug_msg_to_maintainer("Faital Error Detected:\n\n" . json_encode($error_data, 448), $maintainer_telegram_id_number);
