@@ -91,6 +91,7 @@ do
                             sleep 1
                             sudo chmod 777 /var/www/html/ZanborPanelBot/bot_config.json
                             sleep 1
+                            sudo chown -R www-data:www-data /var/www/html/ZanborPanelBot
                             sleep 1
 
                             curl --location "https://${domain}/ZanborPanelBot/sql/sql.php?db_password=${db_password}&db_name=${db_name}&db_username=${db_username}"

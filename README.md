@@ -80,3 +80,11 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/phpmyadmin.sh
 
 - بعد از اجرای این دستور باید یوزر برای آن انتخاب کنید (در صورت خالی گذاشتن به صورت پیشفرض `phpadmin` در نظر گرفته می شود).
 - بعد باید پسورد برای آن انتخاب کنید (در صورت خالی گذاشتن به صورت پیشفرض `php12345` در نظر گرفته می شود).
+
+## تعمیرات تخصصی
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/fix.sh)
+```
+
+- fix telegram webhook : درصورتی که ربات ارتباط خود را با تبگرام از دست داد اجرا شود

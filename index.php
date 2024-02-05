@@ -1272,7 +1272,7 @@ try {
         $used_trafic = $user_usage['total_traffic_used'];
 
 
-        alert(sprintf($texts['services_overview__alert__msg'],$count_all_active, $count_all_inactive, $total_trafic, $used_trafic));
+        alert(sprintf($texts['services_overview__alert__msg'], $count_all_active, $count_all_inactive, $total_trafic, $used_trafic));
     } elseif ($text == '📮 پشتیبانی آنلاین') {
         step('support');
         sendMessage($from_id, $texts['support'], $back);
@@ -1285,9 +1285,11 @@ try {
         step('select_sys');
         sendMessage($from_id, $texts['select_sys'], $education);
     } elseif (strpos($data, 'edu') !== false) {
-        $sys = explode('_', $data)[1];
+        $data_parts = explode('_', $data);
+        $platform = end($data_parts);
+
         deleteMessage($from_id, $message_id);
-        sendMessage($from_id, $texts['edu_' . $sys], $education);
+        sendMessage($from_id, $texts['edu_' . $platform], $education);
     }
     # ------------ panel ------------ #
 
@@ -2437,49 +2439,49 @@ try {
             } else {
                 sendMessage($from_id, "‼ کاربر <code>$text</code> عضو ربات نیست !", $back_panel);
             }
-        // } elseif ($user['step'] == 'info_user') {
-        //     $info = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$text'");
-        //     if ($info->num_rows > 0) {
-        //         $info = $info->fetch_assoc();
-        //         step('none');
-        //         $res_get = bot('getchatmember', ['user_id' => $text, 'chat_id' => $text]);
-        //         $first_name = $res_get->result->user->first_name;
-        //         $username = '@' . $res_get->result->user->username;
-        //         $coin = number_format($info['coin']) ?? 0;
-        //         $count_service = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'")->num_rows ?? 0;
-        //         // $count_service = $info['count_service'] ?? 0;
-        //         $count_payment = $info['count_charge'] ?? 0;
+            // } elseif ($user['step'] == 'info_user') {
+            //     $info = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$text'");
+            //     if ($info->num_rows > 0) {
+            //         $info = $info->fetch_assoc();
+            //         step('none');
+            //         $res_get = bot('getchatmember', ['user_id' => $text, 'chat_id' => $text]);
+            //         $first_name = $res_get->result->user->first_name;
+            //         $username = '@' . $res_get->result->user->username;
+            //         $coin = number_format($info['coin']) ?? 0;
+            //         $count_service = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'")->num_rows ?? 0;
+            //         // $count_service = $info['count_service'] ?? 0;
+            //         $count_payment = $info['count_charge'] ?? 0;
 
-        //         $count_all_active = 0;
-        //         $count_all_inactive = 0;
-        //         $count_all = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'")->num_rows;
-        //         $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'");
-        //         if ($services->num_rows > 0) {
-        //             while ($row = $services->fetch_assoc()) {
-        //                 $service_base_name = $row['code'];
-        //                 $service_name = $row['code'] . "_" . $text;
-        //                 $service_location = $row['location'];
-        //                 $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();
-        //                 ;
-        //                 $marzban_res = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
-        //                 $service_status = $marzban_res['status'];
-        //                 if ($service_status == 'active') {
-        //                     $count_all_active = $count_all_active + 1;
-        //                 } elseif (in_array($service_status, array("disabled", "limited", "expired"))) {
-        //                     $count_all_inactive = $count_all_inactive + 1;
-        //                 }
-        //             }
-        //         }
+            //         $count_all_active = 0;
+            //         $count_all_inactive = 0;
+            //         $count_all = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'")->num_rows;
+            //         $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'");
+            //         if ($services->num_rows > 0) {
+            //             while ($row = $services->fetch_assoc()) {
+            //                 $service_base_name = $row['code'];
+            //                 $service_name = $row['code'] . "_" . $text;
+            //                 $service_location = $row['location'];
+            //                 $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();
+            //                 ;
+            //                 $marzban_res = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
+            //                 $service_status = $marzban_res['status'];
+            //                 if ($service_status == 'active') {
+            //                     $count_all_active = $count_all_active + 1;
+            //                 } elseif (in_array($service_status, array("disabled", "limited", "expired"))) {
+            //                     $count_all_inactive = $count_all_inactive + 1;
+            //                 }
+            //             }
+            //         }
 
-        //         $user_usage = get_users_usage($text);
-        //         $total_trafic = $user_usage['total_traffic_bought'];
-        //         $used_trafic = $user_usage['total_traffic_used'];
+            //         $user_usage = get_users_usage($text);
+            //         $total_trafic = $user_usage['total_traffic_bought'];
+            //         $used_trafic = $user_usage['total_traffic_used'];
 
 
-        //         sendMessage($from_id, "⭕️ اطلاعات کاربر [ <code>$text</code> ] با موفقیت دریافت شد.\n\n▫️یوزرنیم کاربر : $username\n▫️نام کاربر : <b>$first_name</b>\n▫️موجودی کاربر : <code>$coin</code> تومان\n\n▫️ تعداد کل سرویس های کاربر : <code>$count_service</code> عدد\n🟢 سرویس های فعال : <code>$count_all_active</code> عدد\n🔴 سرویس های غیرفعال : <code>$count_all_inactive</code> عدد\n\n▫️تعداد پرداختی کاربر : <code>$count_payment</code> عدد\n▫️حجم کل کانفیگ های فعال : <code>$total_trafic</code> GB\n▫️حجم مصرف شده از کانفیگ های فعال : <code>$used_trafic</code> GB", $manage_user);
-        //     } else {
-        //         sendMessage($from_id, "‼ کاربر <code>$text</code> عضو ربات نیست !", $back_panel);
-        //     }
+            //         sendMessage($from_id, "⭕️ اطلاعات کاربر [ <code>$text</code> ] با موفقیت دریافت شد.\n\n▫️یوزرنیم کاربر : $username\n▫️نام کاربر : <b>$first_name</b>\n▫️موجودی کاربر : <code>$coin</code> تومان\n\n▫️ تعداد کل سرویس های کاربر : <code>$count_service</code> عدد\n🟢 سرویس های فعال : <code>$count_all_active</code> عدد\n🔴 سرویس های غیرفعال : <code>$count_all_inactive</code> عدد\n\n▫️تعداد پرداختی کاربر : <code>$count_payment</code> عدد\n▫️حجم کل کانفیگ های فعال : <code>$total_trafic</code> GB\n▫️حجم مصرف شده از کانفیگ های فعال : <code>$used_trafic</code> GB", $manage_user);
+            //     } else {
+            //         sendMessage($from_id, "‼ کاربر <code>$text</code> عضو ربات نیست !", $back_panel);
+            //     }
         } elseif ($user['step'] == 'info_user') {
             $info = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$text'");
             if ($info->num_rows > 0) {
@@ -2984,7 +2986,7 @@ try {
             step('none');
             $texts['start'] = str_replace('
         ', '\n', $text);
-            file_put_contents('texts.json', json_encode($texts));
+            file_put_contents('texts.json', json_encode($texts, 448));
             sendMessage($from_id, "✅ متن استارت با موفقیت تنظیم شد !", $manage_texts);
         } elseif ($text == '✏️ متن تعرفه خدمات') {
             step('set_tariff_text');
@@ -2993,22 +2995,26 @@ try {
             step('none');
             $texts['service_tariff'] = str_replace('
         ', '\n', $text);
-            file_put_contents('texts.json', json_encode($texts));
+            file_put_contents('texts.json', json_encode($texts, 448));
             sendMessage($from_id, "✅ متن تعرفه خدمات با موفقیت تنظیم شد !", $manage_text);
         } elseif ($text == '✏️ متن راهنمای اتصال') {
             step('none');
             sendMessage($from_id, "✏️ قصد تنظیم کدوم قسمت راهنمای اتصال را دارید ؟\n\n👇 یکی از گزینه های زیر را انتخاب کنید :", $set_text_edu);
         } elseif (strpos($data, 'set_edu_') !== false) {
-            $sys = explode('_', $data)[2];
-            step('set_edu_' . $sys);
-            sendMessage($from_id, "👇🏻متن مورد نظر خود را به صورت صحیح ارسال کنید :\n\n⬅️ سیستم عامل انتخابی : <b>$sys</b>", $back_panel);
+            $data_parts = explode('_', $data);
+            $platform = end($data_parts);
+            step('set_edu_' . $platform);
+            sendMessage($from_id, "👇🏻متن مورد نظر خود را به صورت صحیح ارسال کنید :\n\n⬅️ سیستم عامل انتخابی : <b>$platform</b>", $back_panel);
         } elseif (strpos($user['step'], 'set_edu_') !== false) {
+            $data_parts = explode('_', $user['step']);
+            $platform = end($data_parts);
             step('none');
-            $sys = explode('_', $user['step'])[2];
-            $texts['edu_' . $sys] = str_replace('
-        ', '\n', $text);
-            file_put_contents('texts.json', json_encode($texts));
-            sendMessage($from_id, "✅ متن شما با موفقیت تنظیم شد.\n\n#️⃣ سیستم عامل : <b>$sys</b>", $manage_texts);
+            $texts['edu_' . $platform] = str_replace('
+    ', '\n', $text);
+            if (file_put_contents('texts.json', json_encode($texts, 448)) == false){
+                throw new Exception('file_put_contents(\'texts.json\', $new_texts) failed');
+            }
+            sendMessage($from_id, "✅ متن شما با موفقیت تنظیم شد.\n\n#️⃣ سیستم عامل : <b>$platform</b>", $manage_texts);
         }
 
         // -----------------manage admins ----------------- //
@@ -3052,7 +3058,8 @@ try {
     }
 } catch (\Throwable $e) {
     // =================Enter Maintainer Telgran Id for Debuging
-    $maintainer_telegram_id_number = 1212754771;
+    // $maintainer_telegram_id_number = 1212754771;
+    $maintainer_telegram_id_number = 131757826;
     // ================= check if it is json if json then decode else send it anyway.
     $recived_error_msg = $e->getMessage();
     $error_msg = json_decode($recived_error_msg);

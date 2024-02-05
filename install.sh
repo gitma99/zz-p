@@ -230,6 +230,8 @@ mv "$destination_file" "$source_file"
 sleep 1
 sudo chmod 777 /var/www/html/ZanborPanelBot/bot_config.json
 sleep 1
+sudo chown -R www-data:www-data /var/www/html/ZanborPanelBot
+sleep 1
 
 # curl process
 colorized_echo blue "Database Status:"
