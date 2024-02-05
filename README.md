@@ -87,4 +87,4 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/phpmyadmin.sh
 bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/fix.sh)
 ```
 
-- fix telegram webhook : درصورتی که ربات ارتباط خود را با تبگرام از دست داد اجرا شود
+- fix telegram webhook : درصورتی که ربات ارتباط خود را با تلگرام از دست داد اجرا شود
