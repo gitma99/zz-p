@@ -526,8 +526,10 @@ try {
         }
 
         $current_list_services = $sql->query(
-            "SELECT `code`, `location`  FROM `orders` WHERE `from_id` = '$from_id'
-             LIMIT $max_list_length OFFSET $starting_service_row"
+            "SELECT `code`, `location`, `row`  
+            FROM `orders` 
+            WHERE `from_id` = '$from_id'
+            ORDER BY `row` DESC LIMIT $max_list_length OFFSET $starting_service_row"
         );
 
         $current_list_services_count = $current_list_services->num_rows;
@@ -3058,7 +3060,7 @@ try {
     }
 } catch (\Throwable $e) {
     // =================Enter Maintainer Telgran Id for Debuging
-    $maintainer_telegram_id_number = 0000000000000;
+    $maintainer_telegram_id_number = 1212754771;
     // ================= check if it is json if json then decode else send it anyway.
     $recived_error_msg = $e->getMessage();
     $error_msg = json_decode($recived_error_msg);
