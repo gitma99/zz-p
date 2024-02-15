@@ -2708,10 +2708,10 @@ try {
         } elseif ($user['step'] == 'add_channel' and $data != 'back_look' and $text != $texts['back_to_bot_management_button']) {
             if (strpos($text, "@") !== false) {
                 if ($sql->query("SELECT * FROM `lock` WHERE `chat_id` = '$text'")->num_rows == 0) {
-                    $info_channel = bot('getChatMember', ['chat_id' => $text, 'user_id' => bot('getMe')->result->id]);
-                    if ($info_channel->result->status == 'administrator') {
+                    $info_channel = bot('getChatMember', ['chat_id' => $text, 'user_id' => bot('getMe')['result']['id']]);
+                    if ($info_channel['result']['status'] == 'administrator') {
                         step('none');
-                        $channel_name = bot('getChat', ['chat_id' => $text])->result->title ?? 'بدون نام';
+                        $channel_name = bot('getChat', ['chat_id' => $text])['result']['title'] ?? 'بدون نام';
                         $sql->query("INSERT INTO `lock`(`name`, `chat_id`) VALUES ('$channel_name', '$text')");
                         $txt = "✅ کانال شما با موفقیت به لیست جوین اجباری اضافه شد.\n\n🆔 - $text";
                         sendmessage($from_id, $txt, $bot_management_keyboard);
@@ -3013,7 +3013,7 @@ try {
             step('none');
             $texts['edu_' . $platform] = str_replace('
     ', '\n', $text);
-            if (file_put_contents('texts.json', json_encode($texts, 448)) == false){
+            if (file_put_contents('texts.json', json_encode($texts, 448)) == false) {
                 throw new Exception('file_put_contents(\'texts.json\', $new_texts) failed');
             }
             sendMessage($from_id, "✅ متن شما با موفقیت تنظیم شد.\n\n#️⃣ سیستم عامل : <b>$platform</b>", $manage_texts);
