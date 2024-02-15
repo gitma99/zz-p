@@ -18,11 +18,27 @@ try {
     error_reporting(E_ALL); // Set the error reporting level as needed
     date_default_timezone_set("UTC");
 
+    if ($data == 'join') {
+        if (isJoin($from_id)) {
+            deleteMessage($from_id, $message_id);
+            sendMessage($from_id, $texts['success_joined'], $start_key);
+        } else {
+            alert($texts['not_join']);
+        }
+        exit(0);
+    } elseif (isJoin($from_id) == false) {
+        joinSend($from_id);
+        exit(0);
+    }
+
     switch ($data) {
         case 'no_service_list_available':
             alert($texts["show_service_list__error__no_service_list_available"]);
             break;
         case 'null':
+            alert(null);
+            break;
+        case 'none':
             alert(null);
             break;
     }
@@ -41,16 +57,8 @@ try {
         change_account_status($text, $from_id);
     }
 
-    if ($data == 'join') {
-        if (isJoin($from_id)) {
-            deleteMessage($from_id, $message_id);
-            sendMessage($from_id, $texts['success_joined'], $start_key);
-        } else {
-            alert($texts['not_join']);
-        }
-    } elseif (isJoin($from_id) == false) {
-        joinSend($from_id);
-    } elseif ($user['status'] == 'inactive' and $from_id != $config['dev']) {
+
+    if ($user['status'] == 'inactive' and $from_id != $config['dev']) {
         sendMessage($from_id, $texts['block']);
     } elseif ($text == '/start' or $text == '🔙 بازگشت' or $text == '/back') {
         step('none');

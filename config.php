@@ -20,7 +20,8 @@ if ($sql->connect_error) {
 
 define('API_KEY', $config['token']);
 
-if (file_exists('texts.json')) $texts = json_decode(file_get_contents('texts.json'), true);
+if (file_exists('texts.json'))
+    $texts = json_decode(file_get_contents('texts.json'), true);
 # ----------------- [ <- variables -> ] ----------------- #
 
 $update = json_decode(file_get_contents('php://input'));
@@ -75,6 +76,14 @@ if (!isset($sql->connect_error)) {
 
 function bot($method, $datas = [], $api_key = API_KEY, $only_handler = false)
 {
+    $handeled_exception_outside = [
+        'sendDocument',
+        'sendMessage',
+        'forwardMessage',
+        'editMessageText',
+        'deleteMessage',
+        'answerCallbackQuery',
+    ];
     $url = "https://api.telegram.org/bot" . $api_key . "/" . $method;
     $ch = curl_init($url);
     curl_setopt_array($ch, [
@@ -92,7 +101,12 @@ function bot($method, $datas = [], $api_key = API_KEY, $only_handler = false)
         if ($res === false) {
             return $curl_error;
         } else {
-            return json_decode($res, true);
+            $telegram_res = json_decode($res, true);
+            if ($telegram_res["ok"] == false and !in_array($method, $handeled_exception_outside)) {
+                throw new Exception(json_encode($telegram_res, 448));
+            } else {
+                return $telegram_res;
+            }
         }
     }
 }
@@ -121,7 +135,7 @@ function sendMessage($chat_id, $text, $keyboard = null, $mrk = 'html')
         'disable_web_page_preview' => true,
         'reply_markup' => $keyboard
     ];
-    $bot_reply =  bot('sendMessage', $params);
+    $bot_reply = bot('sendMessage', $params);
     // $bot_reply =  bot('sendMessage', $params, $api_key);
     if ($bot_reply["ok"] == false) {
         throw new Exception(json_encode($bot_reply, 448));
@@ -138,7 +152,7 @@ function forwardMessage($from, $to, $message_id, $mrk = 'html')
         'message_id' => $message_id,
         'parse_mode' => $mrk
     ];
-    $bot_reply =  bot('forwardMessage', $params);
+    $bot_reply = bot('forwardMessage', $params);
     if ($bot_reply["ok"] == false) {
         throw new Exception(json_encode($bot_reply, 448));
     } else {
@@ -185,7 +199,7 @@ function deleteMessage($chat_id, $message_id, $only_handler = false)
         'chat_id' => $chat_id,
         'message_id' => $message_id
     ];
-    $bot_reply =  bot('deleteMessage', $params);
+    $bot_reply = bot('deleteMessage', $params);
     if ($bot_reply["ok"] == false) {
         throw new Exception(json_encode($bot_reply, 448));
     } else {
@@ -214,7 +228,7 @@ function alert($text, $show = true)
         'text' => $text,
         'show_alert' => $show
     ];
-    $bot_reply =  bot('answerCallbackQuery', $params);
+    $bot_reply = bot('answerCallbackQuery', $params);
     if ($bot_reply["ok"] == false) {
         throw new Exception(json_encode($bot_reply, 448));
     } else {
@@ -285,7 +299,7 @@ function isJoin($from_id)
     if ($lockSQL->num_rows > 0) {
         $result = [];
         while ($id = $lockSQL->fetch_assoc()) {
-            $status = bot('getChatMember', ['chat_id' => $id['chat_id'], 'user_id' => $from_id])->result->status;
+            $status = bot('getChatMember', ['chat_id' => $id['chat_id'], 'user_id' => $from_id])['result']['status'];
             $result[] = $status;
         }
         return !in_array('left', $result);
@@ -302,7 +316,7 @@ function joinSend($from_id)
         $link = $row['chat_id'];
         if ($link) {
             $chat_member = bot('getChatMember', ['chat_id' => $link, 'user_id' => $from_id]);
-            if ($chat_member->ok && $chat_member->result->status == 'left') {
+            if ($chat_member['ok'] && $chat_member['result']['status'] == 'left') {
                 $link = str_replace("@", "", $link);
                 $buttons[] = [['text' => $row['name'], 'url' => "https://t.me/$link"]];
             }
