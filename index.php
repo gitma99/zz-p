@@ -5,7 +5,7 @@
 // $debug_array = [];
 // send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448));
 // // ============================ Debug code ================== END //
-readfile("test.html");
+
 try {
     include_once 'config.php';
     include_once 'api/sanayi.php';
@@ -17,6 +17,11 @@ try {
     ini_set('error_log', 'error.log'); // Specify the path to the error log file
     error_reporting(E_ALL); // Set the error reporting level as needed
     date_default_timezone_set("UTC");
+
+    if (!isset($from_id)){
+        readfile("test.html");
+        exit(0);
+    }
 
     if ($data == 'join') {
         if (isJoin($from_id)) {
