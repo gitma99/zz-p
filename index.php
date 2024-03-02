@@ -792,20 +792,31 @@ try {
                 if (isset($expireDateTimeStamp)) {
                     $expireDate = new DateTime("@$expireDateTimeStamp", new DateTimeZone('UTC'));
                     $diffLastOnlineDateTillNow = $now->diff($expireDate);
+
+                    if ($now > $expireDate){
+                        $reply_text_suffix = "قبل";
+                    } else {
+                        $reply_text_suffix = "بعد";
+                    };
+
                     if ($diffLastOnlineDateTillNow->y > 0) {
-                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNow->format('%y سال و %m ماه دیگر');
+                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNow->format('%y سال و %m ماه');
+                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNowString . " " . $reply_text_suffix;
                     } elseif ($diffLastOnlineDateTillNow->m > 0) {
-                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNow->format('%m ماه و %d روز دیگر');
+                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNow->format('%m ماه و %d روز');
+                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNowString . " " . $reply_text_suffix;
                     } elseif ($diffLastOnlineDateTillNow->d > 0) {
-                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNow->format('%d روز و %h ساعت دیگر');
+                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNow->format('%d روز و %h ساعت');
+                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNowString . " " . $reply_text_suffix;
                     } elseif ($diffLastOnlineDateTillNow->h > 0) {
-                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNow->format('%h ساعت و %i دقیقه دیگر');
+                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNow->format('%h ساعت و %i دقیقه');
+                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNowString . " " . $reply_text_suffix;
                     } elseif ($diffLastOnlineDateTillNow->i > 0) {
-                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNow->format('%i دقیقه دیگر');
+                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNow->format('%i دقیقه');
+                        $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNowString . " " . $reply_text_suffix;
                     } else {
                         $diffLastOnlineDateTillNowString = "به زودی";
-                    }
-                    ;
+                    };
                 } else {
                     $diffLastOnlineDateTillNowString = "⚠️ عدم وجود اطلاعات";
                 }
@@ -3085,6 +3096,8 @@ try {
         "chat_id" => $from_id,
         'user_name' => $username,
         'step' => $user['step'],
+        'data' => $data,
+        'text' => $text,
         'error_calss' => get_class($e),
         'error_msg' => $error_msg,
         'error_file' => $e->getFile(),
