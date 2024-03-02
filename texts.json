@@ -112,6 +112,7 @@
   "account_status_changer_service_successfully_disabled":"سرویس با موفقیت غیرفعال شد ✅",
   "account_status_changer_service_successfully_enabled":"سرویس با موفقیت فعال شد ✅",
   "account_status_changer_service_failed_to_change_status":"تلاش برای تغییر وضعیت سرویس ناموفق بود ❌.",
+  "account_status_changer_unathorized":"تلاش غیرمجاز برای تغییر وضعیت سرویس ❌.",
   "forbidden_section": "عدم دسترسی",
   "back_to_menu_button":"⬅️ بازگشت به صفحه اصلی",
   "back_to_bot_management_button":"⬅️ بازگشت به مدیریت",
