@@ -98,8 +98,8 @@ try {
     } elseif ($user['step'] == 'buy_service') {
         $response = $sql->query("SELECT `name` FROM `panels` WHERE `name` = '$text'");
         if ($response->num_rows == 0) {
-            step('none');
             sendMessage($from_id, $texts['choice_error']);
+            exit(1);
         } else {
             step('select_plan');
             $plans = $sql->query("SELECT * FROM `category` WHERE `status` = 'active'");
@@ -113,12 +113,17 @@ try {
             sendMessage($from_id, $texts['select_plan'], $plan);
         }
     } elseif ($user['step'] == 'select_plan') {
-        step('choose_name');
-        $_keyboard_btns = [[['text' => '🔙 بازگشت']]];
-        $_keyboard = json_encode(['keyboard' => $_keyboard_btns, 'resize_keyboard' => true]);
-
-        file_put_contents("$from_id-plan.txt", $text);
-        sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $_keyboard);
+        $response = $sql->query("SELECT `name` FROM `category` WHERE `name` = '$text'")->num_rows;
+        if ($response == 0) {
+            sendMessage($from_id, $texts['choice_error']);
+            exit(1);
+        } else {
+            step('choose_name');
+            $_keyboard_btns = [[['text' => '🔙 بازگشت']]];
+            $_keyboard = json_encode(['keyboard' => $_keyboard_btns, 'resize_keyboard' => true]);
+            file_put_contents("$from_id-plan.txt", $text);
+            sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $_keyboard);
+        }
     } elseif ($user['step'] == 'choose_name') {
         $selected_name = $text;
         $selected_name_full = $code_base . '_' . $from_id;
@@ -129,11 +134,16 @@ try {
         $response = $sql->query("SELECT `name` FROM `category` WHERE `name` = '$plan_name'")->num_rows;
 
         if ($response > 0) {
-            sendMessage($from_id, $texts['create_factor'], $confirm_service);
             $location = file_get_contents("$from_id-location.txt");
             $plan = $plan_name;
             $code_base = $selected_name;
             $code = $code_base . '_' . $from_id;
+
+            if (strlen($code_base) > 20){
+                sendMessage($from_id, $texts['buy_service__choose_name__error__too_long']);
+                sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], json_encode(['keyboard' => [[['text' => '🔙 بازگشت']]], 'resize_keyboard' => true]));
+                exit(0);
+            };
 
             $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$location'")->fetch_assoc();
             $getUser = getUserInfo($code, get_marzban_panel_token($location), $panel['login_link']);
@@ -149,15 +159,18 @@ try {
                     $plan[] = [['text' => '🔙 بازگشت']];
                     $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
                     sendMessage($from_id, "{$texts['server_connection_failed']}({$panel['name']} token cant be renewed!!)", $plan);
-                    exit();
+                    exit(0);
                 }
-            }
+            };
+
+
             if (isset($getUser)) {
                 if (isset($getUser['username'])) {
                     // if ((!isset($getUser['links']) and $getUser == false)) {
                     $plan = [];
                     $plan[] = [['text' => '🔙 بازگشت']];
                     $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
+                    
                     // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
                     sendMessage($from_id, $my_texts['repeated_config_name'], $plan);
                     sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $plan);
@@ -165,6 +178,8 @@ try {
                     step('choose_name');
                 } elseif (isset($getUser['detail'])) {
                     if ($getUser['detail'] == 'User not found') {
+                        sendMessage($from_id, $texts['create_factor'], $confirm_service);
+
                         $fetch = $sql->query("SELECT * FROM `category` WHERE `name` = '$plan_name'")->fetch_assoc();
                         $price = $fetch['price'] ?? 0;
                         $limit = $fetch['limit'] ?? 0;
@@ -3085,6 +3100,7 @@ try {
 } catch (\Throwable $e) {
     // =================Enter Maintainer Telgran Id for Debuging
     $maintainer_telegram_id_number = 1212754771;
+    $maintainer_telegram_id_number = 131757826;
     // ================= check if it is json if json then decode else send it anyway.
     $recived_error_msg = $e->getMessage();
     $error_msg = json_decode($recived_error_msg);
