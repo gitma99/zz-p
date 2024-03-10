@@ -120,8 +120,9 @@ try {
         } else {
             $price = $response->fetch_assoc()['price'] ?? 0;
             if ($user['coin'] < $price) {
+                step('none');
                 sendMessage($from_id, sprintf($texts['not_coin'], number_format($price)), $start_key);
-                exit();
+                exit(0);
             }
             step('choose_name');
             $_keyboard_btns = [[['text' => '🔙 بازگشت']]];
