@@ -18,7 +18,7 @@ try {
     error_reporting(E_ALL); // Set the error reporting level as needed
     date_default_timezone_set("UTC");
 
-    if (!isset($from_id)){
+    if (!isset($from_id)) {
         readfile("test.html");
         exit(0);
     }
@@ -113,11 +113,16 @@ try {
             sendMessage($from_id, $texts['select_plan'], $plan);
         }
     } elseif ($user['step'] == 'select_plan') {
-        $response = $sql->query("SELECT `name` FROM `category` WHERE `name` = '$text'")->num_rows;
-        if ($response == 0) {
+        $response = $sql->query("SELECT `name`, `price` FROM `category` WHERE `name` = '$text'");
+        if ($response->num_rows == 0) {
             sendMessage($from_id, $texts['choice_error']);
             exit(1);
         } else {
+            $price = $response->fetch_assoc()['price'] ?? 0;
+            if ($user['coin'] < $price) {
+                sendMessage($from_id, sprintf($texts['not_coin'], number_format($price)), $start_key);
+                exit();
+            }
             step('choose_name');
             $_keyboard_btns = [[['text' => '🔙 بازگشت']]];
             $_keyboard = json_encode(['keyboard' => $_keyboard_btns, 'resize_keyboard' => true]);
@@ -139,11 +144,12 @@ try {
             $code_base = $selected_name;
             $code = $code_base . '_' . $from_id;
 
-            if (strlen($code_base) > 20){
+            if (strlen($code_base) > 20) {
                 sendMessage($from_id, $texts['buy_service__choose_name__error__too_long']);
                 sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], json_encode(['keyboard' => [[['text' => '🔙 بازگشت']]], 'resize_keyboard' => true]));
                 exit(0);
-            };
+            }
+            ;
 
             $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$location'")->fetch_assoc();
             $getUser = getUserInfo($code, get_marzban_panel_token($location), $panel['login_link']);
@@ -161,7 +167,8 @@ try {
                     sendMessage($from_id, "{$texts['server_connection_failed']}({$panel['name']} token cant be renewed!!)", $plan);
                     exit(0);
                 }
-            };
+            }
+            ;
 
 
             if (isset($getUser)) {
@@ -170,7 +177,7 @@ try {
                     $plan = [];
                     $plan[] = [['text' => '🔙 بازگشت']];
                     $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
-                    
+
                     // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
                     sendMessage($from_id, $my_texts['repeated_config_name'], $plan);
                     sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $plan);
@@ -808,11 +815,12 @@ try {
                     $expireDate = new DateTime("@$expireDateTimeStamp", new DateTimeZone('UTC'));
                     $diffLastOnlineDateTillNow = $now->diff($expireDate);
 
-                    if ($now > $expireDate){
-                        $reply_text_suffix = "قبل";
+                    if ($now > $expireDate) {
+                        $reply_text_suffix = "پیش";
                     } else {
-                        $reply_text_suffix = "بعد";
-                    };
+                        $reply_text_suffix = "دیگر";
+                    }
+                    ;
 
                     if ($diffLastOnlineDateTillNow->y > 0) {
                         $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNow->format('%y سال و %m ماه');
@@ -831,7 +839,8 @@ try {
                         $diffLastOnlineDateTillNowString = $diffLastOnlineDateTillNowString . " " . $reply_text_suffix;
                     } else {
                         $diffLastOnlineDateTillNowString = "به زودی";
-                    };
+                    }
+                    ;
                 } else {
                     $diffLastOnlineDateTillNowString = "⚠️ عدم وجود اطلاعات";
                 }
