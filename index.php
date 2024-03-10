@@ -817,7 +817,7 @@ try {
                     $diffLastOnlineDateTillNow = $now->diff($expireDate);
 
                     if ($now > $expireDate) {
-                        $reply_text_suffix = "پیش";
+                        $reply_text_suffix = "قبل";
                     } else {
                         $reply_text_suffix = "دیگر";
                     }
@@ -3110,7 +3110,6 @@ try {
 } catch (\Throwable $e) {
     // =================Enter Maintainer Telgran Id for Debuging
     $maintainer_telegram_id_number = 1212754771;
-    $maintainer_telegram_id_number = 131757826;
     // ================= check if it is json if json then decode else send it anyway.
     $recived_error_msg = $e->getMessage();
     $error_msg = json_decode($recived_error_msg);
