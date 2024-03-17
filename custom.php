@@ -487,7 +487,14 @@ function renewal_service($text, $from_id)
 
 
             $fetch = $sql->query("SELECT * FROM `category` WHERE `name` = '$plan_name'")->fetch_assoc();
+
+
             $price = $fetch['price'] ?? 0;
+            if ($user['coin'] < $price) {
+                step('none');
+                sendMessage($from_id, sprintf($texts['not_coin'], number_format($price)), $start_key);
+                exit(0);
+            }
             $limit = $fetch['limit'] ?? 0;
             $date = $fetch['date'] ?? 0;
             $renewal_data['new_plan_price'] = $price;
