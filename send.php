@@ -23,5 +23,5 @@ if ($send['send'] == 'yes') {
         die('Error');
     }
 }
-
+sendMessage($send['user'],"صف با موفقیت ارسال شد ✅");
 echo json_encode(['status' => true, 'msg' => 'send is successfuly.', 'status_code' => 200], 448);;

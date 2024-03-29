@@ -3,7 +3,7 @@
 
 // //============================ Debug code ================== START //
 // $debug_array = [];
-// send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448));
+// send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448), $from_id, false);
 // // ============================ Debug code ================== END //
 
 try {
@@ -22,7 +22,7 @@ try {
         readfile("test.html");
         exit(0);
     }
-
+    
     if ($data == 'join') {
         if (isJoin($from_id)) {
             deleteMessage($from_id, $message_id);
@@ -1355,7 +1355,8 @@ try {
             sendMessage($from_id, "⚙️ به مدیریت پلن ها خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :", $manage_server);
         } elseif ($text == '👤 مدیریت کاربران') {
             sendMessage($from_id, "👤 به مدیریت کاربران خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :", $manage_user);
-        } elseif ($text == '📤 مدیریت پیام') {
+        } elseif (in_array($text,['📤 مدیریت پیام', '⬅️ بازگشت به مدیریت پیام ها'])) {
+            step('none');
             sendMessage($from_id, "📤 به مدیریت پیام خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :", $manage_message);
         } elseif ($text == '👮‍♂️مدیریت ادمین') {
             sendMessage($from_id, "👮‍♂️ به مدیریت ادمین خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :", $manage_admin);
@@ -2394,7 +2395,7 @@ try {
         // ----------- manage message ----------- //
         // elseif ($text == '🔎 وضعیت ارسال / فوروارد همگانی') {
         elseif ($text == '🔎 وضعیت ارسال همگانی') {
-            $info_send = $sql->query("SELECT * FROM `sends`")->fetch_assoc();
+            $info_send = $sql->query("SELECT * FROM `sends` WHERE `user` = '$from_id'")->fetch_assoc();
             if ($info_send['send'] == 'yes')
                 $send_status = '✅';
             else
@@ -2409,12 +2410,14 @@ try {
                 $status_forward = '❌';
             sendMessage($from_id, "👇🏻وضعیت ارسال های شما به شرح زیر است :\n\nℹ️ در صف ارسال : <b>$send_status</b>\n⬅️ ارسال همگانی : <b>$status_send</b>\n\n🟥 برای لغو ارسال همگانی دستور /cancel_send را ارسال کنید.", $manage_message);
         } elseif ($text == '/cancel_send') {
-            $sql->query("UPDATE `sends` SET `send` = 'no', `text` = 'null', `type` = 'null', `step` = 'null'");
+            // $sql->query("UPDATE `sends` SET `send` = 'no', `text` = 'null', `type` = 'null', `step` = 'null' WHERE `user` = '$from_id'");
+            $sql->query("DELETE from `sends`");
             sendMessage($from_id, "✅ ارسال/فوروارد همگانی شما با موفقیت لغو شد.", $manage_message);
         } elseif ($text == '📬 ارسال همگانی') {
             step('send_all');
-            sendMessage($from_id, "👇 متن خود را در قالب یک پیام ارسال کنید :", $back_panel);
+            sendMessage($from_id, "👇 متن خود را در قالب یک پیام ارسال کنید :", $back_to_manage_message);
         } elseif ($user['step'] == 'send_all') {
+            $sql->query("DELETE from `sends`");
             step('none');
             if (isset($update->message->text)) {
                 $type = 'text';
@@ -2422,19 +2425,21 @@ try {
                 $type = $update->message->photo[count($update->message->photo) - 1]->file_id;
                 $text = $update->message->caption;
             }
-            $sql->query("UPDATE `sends` SET `send` = 'yes', `text` = '$text', `type` = '$type', `step` = 'send'");
+            $sql->query("INSERT INTO sends (`send`,`text`,`type`,`step`,`user`) VALUES ('yes','$text','$type','send',$from_id)");
+            // $sql->query("UPDATE `sends` SET `send` = 'yes', `text` = '$text', `type` = '$type', `step` = 'send'");
+            // $sql->query("UPDATE sends SET send = 'yes', text = '$text', type = '$type', step = 'send'");
             sendMessage($from_id, "✅ پیام شما با موفقیت به صف ارسال همگانی اضافه شد !", $manage_message);
         } elseif ($text == '📞 ارسال پیام به کاربر' or $text == '📤 ارسال پیام به کاربر') {
             step('sendmessage_user1');
-            sendMessage($from_id, "🔢 ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_panel);
+            sendMessage($from_id, "🔢 ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_to_manage_message);
         } elseif ($user['step'] == 'sendmessage_user1' and $text != $texts['back_to_bot_management_button']) {
             if ($sql->query("SELECT `from_id` FROM `users` WHERE `from_id` = '$text'")->num_rows > 0) {
                 step('sendmessage_user2');
                 file_put_contents('id.txt', $text);
-                sendMessage($from_id, "👇 پیام خود را در قالب یک متن ارسال کنید :", $back_panel);
+                sendMessage($from_id, "👇 پیام خود را در قالب یک متن ارسال کنید :", $back_to_manage_message);
             } else {
                 step('sendmessage_user1');
-                sendMessage($from_id, "❌ آیدی عددی ارسالی شما عضو ربات نیست !", $back_panel);
+                sendMessage($from_id, "❌ آیدی عددی ارسالی شما عضو ربات نیست !", $back_to_manage_message);
             }
         } elseif ($user['step'] == 'sendmessage_user2' and $text != $texts['back_to_bot_management_button']) {
             step('none');
@@ -2449,7 +2454,13 @@ try {
             }
             unlink('id.txt');
         } elseif ($text == 'ارسال پیام ها 📧') {
-            sendmessage($from_id, "درحال ارسال پیام های صف ⌛");
+            $info_send = $sql->query("SELECT * FROM `sends` WHERE `user` = '$from_id'")->fetch_assoc();
+            if (isset($info_send)){
+                sendmessage($from_id, "درحال ارسال پیام های صف ⌛");
+            }else {
+                sendmessage($from_id, "صف خالی است ❌");
+                exit(0);
+            };
             $url = "http://127.0.0.1/ZanborPanelBot/send.php";
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $url);
@@ -2460,8 +2471,10 @@ try {
             curl_setopt($ch, CURLOPT_TIMEOUT, 1);
             $response = curl_exec($ch);
             curl_close($ch);
+            $sql->query("DELETE from `sends`");
             exit(0);
         }
+
 
         // ----------- manage users ----------- //
         elseif ($text == '🔎 اطلاعات کاربر') {
@@ -3116,11 +3129,12 @@ try {
     if (!isset($error_msg)) {
         $error_msg = $recived_error_msg;
     }
-    // ================= build debug array
+    // ================= Generate debug array
     $error_data = [
         "chat_id" => $from_id,
         'user_name' => $username,
         'step' => $user['step'],
+        'update' => $update,
         'data' => $data,
         'text' => $text,
         'error_calss' => get_class($e),
@@ -3130,7 +3144,7 @@ try {
         'error_trace' => $e->getTrace(),
         'error_trace_string' => $e->getTraceAsString(),
     ];
-    // ================= send debug array
+    // ================= Send debug array
     send_debug_msg_to_maintainer("Faital Error Detected:\n\n" . json_encode($error_data, 448), $maintainer_telegram_id_number);
     sendMessage($from_id, $texts['error_encounter_msg']);
 }

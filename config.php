@@ -27,23 +27,25 @@ if (file_exists('texts.json'))
 $update = json_decode(file_get_contents('php://input'));
 
 if (isset($update->message)) {
-    $from_id = $update->message->from->id;
-    $chat_id = $update->message->chat->id;
-    $message_id = $update->message->message_id;
+    $received_msg = $update->message;
+    $from_id = $received_msg->from->id;
+    $chat_id = $received_msg->chat->id;
+    $message_id = $received_msg->message_id;
     $query_id = null;
-    $first_name = isset($update->message->from->first_name) ? $update->message->from->first_name : '❌';
-    $username = isset($update->message->from->username) ? '@' . $update->message->from->username : '❌';
-    $text = $update->message->text;
+    $first_name = isset($received_msg->from->first_name) ? $received_msg->from->first_name : '❌';
+    $username = isset($received_msg->from->username) ? '@' . $received_msg->from->username : '❌';
+    $text = $received_msg->text;
     // $data = null;
 } elseif (isset($update->callback_query)) {
-    $from_id = $update->callback_query->from->id;
-    $chat_id = $update->callback_query->message->chat->id;
-    $message_id = $update->callback_query->message->message_id;
-    $query_id = $update->callback_query->id;
-    $first_name = isset($update->callback_query->message->chat->first_name) ? $update->callback_query->message->chat->first_name : '❌';
-    $username = isset($update->callback_query->chat->username) ? '@' . $update->callback_query->chat->username : "ندارد";
+    $received_query = $update->callback_query;
+    $from_id = $received_query->from->id;
+    $chat_id = $received_query->message->chat->id;
+    $message_id = $received_query->message->message_id;
+    $query_id = $received_query->id;
+    $first_name = isset($received_query->message->chat->first_name) ? $received_query->message->chat->first_name : '❌';
+    $username = isset($received_query->chat->username) ? '@' . $received_query->chat->username : "ندارد";
     $text = null;
-    $data = $update->callback_query->data;
+    $data = $received_query->data;
 }
 
 # ----------------- [ <- others -> ] ----------------- #
@@ -863,12 +865,20 @@ $manage_service = json_encode([
 $manage_message = json_encode([
     'keyboard' => [
         // [['text' => '🔎 وضعیت ارسال / فوروارد همگانی']],
-        [['text' => '🔎 وضعیت ارسال همگانی']],
-        // [['text' => '📬 فوروارد همگانی'], ['text' => '📬 ارسال همگانی']],
-        [['text' => '📬 ارسال همگانی']],
+        [
+            ['text' => '📬 ارسال همگانی'],
+            // ['text' => '📬 فوروارد همگانی']
+        ],
+        [['text' => 'ارسال پیام ها 📧'],['text' => '🔎 وضعیت ارسال همگانی']],
         [['text' => '📞 ارسال پیام به کاربر']],
-        [['text' => 'ارسال پیام ها 📧']],
         [['text' => '⬅️ بازگشت به مدیریت']]
+    ],
+    'resize_keyboard' => true
+]);
+
+$back_to_manage_message = json_encode([
+    'keyboard' => [
+        [['text' => '⬅️ بازگشت به مدیریت پیام ها']]
     ],
     'resize_keyboard' => true
 ]);

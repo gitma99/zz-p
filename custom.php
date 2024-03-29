@@ -1,20 +1,5 @@
 <?php
 $my_texts = $texts;
-// [
-//     'renewal_service_config_found' => 'سرویس پیدا شد ✅',
-//     'renewal_service_config_not_found' => 'سرويس پیدا نشد ❌ مجدد امتحان کنید 🙏',
-//     'renewal_service_config_name' => 'نام سرویس را وارد کنید 🖋',
-//     'renewal_service_server_selection' => ' حالا از دکمه های زیر جهت ادامه روند تمدید کلیک کنید ❇️⬇️',
-//     'buy_service_choose_name_hint' => "لطفا نام کاربری خود را انتخاب کنید ✏️ \n\n ✨ نام کاربری تنها می‌تواند شامل موارد زیر باشد :\n(حروف انگلیسی) و (علامت _ ) و (اعداد) و (بدون فاصله) ✨\n📝 به عنوان مثال :\n arash یا arash_rasoli یا arash_rasoli23",
-//     'error_show_service__config_not_found' => 'خطا❗️سرویس مورد نظر حذف شده ⛔️',
-//     'error_show_service__server_not_found_internally' => 'خطا❗️سرویس مورد نظر حذف شده ⛔️',
-//     'error_show_service__token_reset_success' => 'سرویس بروز شد . لطفا دوباره امتحان کنید',
-//     'error_show_service__token_reset_failed' => "بروزرسانی سرور با خطا روبه رو شد . لطفا به ادمین ربات اطلاع رسانی کنی\n\n(خطا : marzban token cant be reset automatiacally. please rest it manually)",
-// ];
-
-// $t = json_encode($renewal_service, 448);
-// sendMessage($from_id, "test : $t");
-// exit();
 $BOT_CONFIG = json_decode(file_get_contents("bot_config.json"), true);
 
 function send_debug_data_to_maintainer($text_string, $dev_id, $exit = false)
