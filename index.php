@@ -9,6 +9,7 @@
 try {
     include_once 'config.php';
     include_once 'api/sanayi.php';
+    include_once 'api/marzban.php';
     include_once 'custom.php';
     # include_once  'api/hiddify.php';
 
@@ -22,7 +23,7 @@ try {
         readfile("test.html");
         exit(0);
     }
-    
+
     if ($data == 'join') {
         if (isJoin($from_id)) {
             deleteMessage($from_id, $message_id);
@@ -132,92 +133,89 @@ try {
         }
     } elseif ($user['step'] == 'choose_name') {
         $selected_name = $text;
-        $selected_name_full = $code_base . '_' . $from_id;
+        // $selected_name_full = $code_base . '_' . $from_id;
 
 
 
         $plan_name = file_get_contents("$from_id-plan.txt");
         $response = $sql->query("SELECT `name` FROM `category` WHERE `name` = '$plan_name'")->num_rows;
+        if ($response == 0) {
+            sendMessage($from_id, $texts['choice_error']);
+        }
 
-        if ($response > 0) {
-            $location = file_get_contents("$from_id-location.txt");
-            $plan = $plan_name;
-            $code_base = $selected_name;
-            $code = $code_base . '_' . $from_id;
+        $location = file_get_contents("$from_id-location.txt");
+        $plan = $plan_name;
+        $code_base = $selected_name;
+        $code = $code_base . '_' . $from_id;
 
-            if (strlen($code_base) > 20) {
-                sendMessage($from_id, $texts['buy_service__choose_name__error__too_long']);
-                sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], json_encode(['keyboard' => [[['text' => '🔙 بازگشت']]], 'resize_keyboard' => true]));
-                exit(0);
-            }
-            ;
+        if (strlen($code_base) > 20) {
+            sendMessage($from_id, $texts['buy_service__choose_name__error__too_long']);
+            sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], json_encode(['keyboard' => [[['text' => '🔙 بازگشت']]], 'resize_keyboard' => true]));
+            exit(0);
+        }
+        ;
 
-            $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$location'")->fetch_assoc();
-            $getUser = getUserInfo($code, get_marzban_panel_token($location), $panel['login_link']);
-            # if ($getUser['detail'] == 'Could not validate credentials') {
-            if (in_array($getUser['detail'], ['Could not validate credentials', 'Not authenticated'])) {
-                $new_marzban_token = get_marzban_panel_token($panel['name']);
+        $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$location'")->fetch_assoc();
+        $getUser = getUserInfo($code, get_marzban_panel_token($location), $panel['login_link']);
+        # if ($getUser['detail'] == 'Could not validate credentials') {
+        // if (in_array($getUser['detail'], ['Could not validate credentials', 'Not authenticated'])) {
+        if ($getUser[0] == false) {
+            $new_marzban_token = get_marzban_panel_token($panel['name']);
 
-                if ($new_marzban_token !== false) {
-                    $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$location'")->fetch_assoc();
-                    $getUser = getUserInfo($code, get_marzban_panel_token($location), $panel['login_link']);
-                } else {
-                    $plan = [];
-                    $plan[] = [['text' => '🔙 بازگشت']];
-                    $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
-                    sendMessage($from_id, "{$texts['server_connection_failed']}({$panel['name']} token cant be renewed!!)", $plan);
-                    exit(0);
-                }
-            }
-            ;
-
-
-            if (isset($getUser)) {
-                if (isset($getUser['username'])) {
-                    // if ((!isset($getUser['links']) and $getUser == false)) {
-                    $plan = [];
-                    $plan[] = [['text' => '🔙 بازگشت']];
-                    $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
-
-                    // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
-                    sendMessage($from_id, $my_texts['repeated_config_name'], $plan);
-                    sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $plan);
-
-                    step('choose_name');
-                } elseif (isset($getUser['detail'])) {
-                    if ($getUser['detail'] == 'User not found') {
-                        sendMessage($from_id, $texts['create_factor'], $confirm_service);
-
-                        $fetch = $sql->query("SELECT * FROM `category` WHERE `name` = '$plan_name'")->fetch_assoc();
-                        $price = $fetch['price'] ?? 0;
-                        $limit = $fetch['limit'] ?? 0;
-                        $date = $fetch['date'] ?? 0;
-
-                        $sql->query("INSERT INTO `service_factors` (`from_id`, `location`, `protocol`, `plan`, `price`, `code`, `status`) VALUES ('$from_id', '$location', 'null', '$plan', '$price', '$code_base', 'active')");
-                        $copen_key = json_encode(['inline_keyboard' => [[['text' => '🎁 کد تخفیف', 'callback_data' => 'use_copen-' . $code]]]]);
-                        // sendMessage($from_id, sprintf($texts['service_factor'], $location, $limit, $date, $code_base, number_format($price)), $copen_key);
-                        sendMessage($from_id, sprintf($texts['service_factor'], $location, $limit, $date, $code_base, number_format($price)));
-                        step('confirm_service');
-                    } else {
-                        $_keys = [[['text' => '🔙 بازگشت']]];
-                        $_keyboard = json_encode(['keyboard' => $_keys, 'resize_keyboard' => true]);
-                        // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
-                        sendMessage($from_id, "{$texts['config_name_verification_failed']}({$getUser['detail']})", $_keyboard);
-                        exit();
-                    }
-                } else {
-                }
+            if ($new_marzban_token !== false) {
+                $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$location'")->fetch_assoc();
+                $getUser = getUserInfo($code, get_marzban_panel_token($location), $panel['login_link']);
             } else {
                 $plan = [];
                 $plan[] = [['text' => '🔙 بازگشت']];
                 $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
+                sendMessage($from_id, "{$texts['server_connection_failed']}({$panel['name']} token cant be renewed!!)", $plan);
+                exit(0);
+            }
+        }
+        ;
+
+
+        if (isset($getUser[2])) {
+            if ($getUser[1] == true) {
+                // if ((!isset($getUser['links']) and $getUser == false)) {
+                $plan = [];
+                $plan[] = [['text' => '🔙 بازگشت']];
+                $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
+
                 // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
-                sendMessage($from_id, $texts['invalid_config_name'], $plan);
+                sendMessage($from_id, $my_texts['repeated_config_name'], $plan);
                 sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $plan);
+
                 step('choose_name');
+            } elseif ($getUser[1] == false) {
+                sendMessage($from_id, $texts['create_factor'], $confirm_service);
+
+                $fetch = $sql->query("SELECT * FROM `category` WHERE `name` = '$plan_name'")->fetch_assoc();
+                $price = $fetch['price'] ?? 0;
+                $limit = $fetch['limit'] ?? 0;
+                $date = $fetch['date'] ?? 0;
+
+                $sql->query("INSERT INTO `service_factors` (`from_id`, `location`, `protocol`, `plan`, `price`, `code`, `status`) VALUES ('$from_id', '$location', 'null', '$plan', '$price', '$code_base', 'active')");
+                $copen_key = json_encode(['inline_keyboard' => [[['text' => '🎁 کد تخفیف', 'callback_data' => 'use_copen-' . $code]]]]);
+                // sendMessage($from_id, sprintf($texts['service_factor'], $location, $limit, $date, $code_base, number_format($price)), $copen_key);
+                sendMessage($from_id, sprintf($texts['service_factor'], $location, $limit, $date, $code_base, number_format($price)));
+                step('confirm_service');
+            } else {
+                $_keys = [[['text' => '🔙 بازگشت']]];
+                $_keyboard = json_encode(['keyboard' => $_keys, 'resize_keyboard' => true]);
+                // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
+                sendMessage($from_id, "{$texts['config_name_verification_failed']}({$getUser[2]['detail']})", $_keyboard);
+                exit();
             }
         } else {
-            sendMessage($from_id, $texts['choice_error']);
+            $plan = [];
+            $plan[] = [['text' => '🔙 بازگشت']];
+            $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
+            // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
+            sendMessage($from_id, $texts['invalid_config_name'], $plan);
+            sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $plan);
+            step('choose_name');
         }
     } elseif ($data == 'cancel_copen') {
         step('confirm_service');
@@ -307,6 +305,11 @@ try {
             // sendMessage($from_id, json_encode($inbounds, 448));
             # ---------------- create service ---------------- #
             $token = loginPanel($panel['login_link'], $panel['username'], $panel['password'])['access_token'];
+            if ($token == false) {
+                step('none');
+                sendmessage($from_id, $my_texts['error_show_service__token_is_incorrect'], $start_key);
+                exit();
+            }
             $create_service = createService($name, convertToBytes($limit . 'GB'), strtotime("+ $date day"), $proxies, ($panel_inbounds->num_rows > 0) ? $inbounds : 'null', $token, $panel['login_link']);
             $create_status = json_decode($create_service, true);
             # ---------------- check errors ---------------- #
@@ -506,14 +509,19 @@ try {
                 $service_location = $row['location'];
                 $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();
                 ;
-                $marzban_res = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
+                $getUserInfoRes = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
+                $marzban_res = $getUserInfoRes[2];
                 $service_status = $marzban_res['status'];
-                if ($service_status == 'active') {
+                if ($getUserInfoRes[0] == false){
+                    $status = '❗️';
+                } elseif ($getUserInfoRes[1] == false){
+                    $status = '❌';
+                } elseif ($service_status == 'active') {
                     $status = '🟢';
                 } elseif (in_array($service_status, array("disabled", "limited", "expired"))) {
                     $status = '🔴';
                 } else {
-                    $status = '❌';
+                    $status = '❗️❗️';
                 }
                 $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'serv_stat-' . $row['code'] . '-' . "my_services_menu"];
             }
@@ -625,14 +633,33 @@ try {
             foreach ($curlHandles as $i => $curlHandle) {
                 $curlResponse = json_decode(curl_multi_getcontent($curlHandle), true);
                 $serviceStatus = $curlResponse['status'];
-                if ($serviceStatus == 'active') {
+                
+                if (
+                    isset($curlResponse['detail'])
+                    && in_array($curlResponse['detail'], ['Could not validate credentials', 'Not authenticated'])
+                ) {
+                    $token_acccepted = false;
+                    $user_existed = null;
+                } else if (isset($curlResponse['username'])) {
+                    $token_acccepted = true;
+                    $user_existed = true;
+                } else {
+                    $token_acccepted = true;
+                    $user_existed = false;
+                }
+
+                
+                if ($token_acccepted == false){
+                    $status = '❗️';
+                } elseif ($user_existed == false){
+                    $status = '❌';
+                } elseif ($serviceStatus == 'active') {
                     $status = '🟢';
                 } elseif (in_array($serviceStatus, array("disabled", "limited", "expired"))) {
                     $status = '🔴';
                 } else {
-                    $status = '❌';
+                    $status = '🔴❗️🔴';
                 }
-                ;
                 $services_base_details[$i]['status'] = $status;
 
                 curl_multi_remove_handle($curlMultiHandle, $curlHandle);
@@ -784,29 +811,33 @@ try {
         if ($getService['type'] == 'marzban') {
 
             $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '{$getService['location']}'")->fetch_assoc();
-            $getUser = getUserInfo($code, get_marzban_panel_token($getService['location']), $panel['login_link']);
+            $getUserInfoRes = getUserInfo($code, get_marzban_panel_token($getService['location']), $panel['login_link']);
+            $getUser = $getUserInfoRes[2];
 
-            if (isset($getUser['detail'])) {
-                $marzban_error_msg = $getUser['detail'];
-                if ($marzban_error_msg == "Could not validate credentials") {
-                    // $reset_token_result = reset_panel_panel_token($panel['name'], $panel['login_link']);
-                    $reset_token_result = get_marzban_panel_token($panel['name']);
-                    if ($reset_token_result !== false) {
-                        $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '{$getService['location']}'")->fetch_assoc();
-                        $getUser = getUserInfo($code, get_marzban_panel_token($getService['location']), $panel['login_link']);
-                    } else {
-                        alert($my_texts['error_show_service__token_reset_failed']);
-                        exit();
-                    }
-                } elseif ($getUser['detail'] == "User not found") {
-                    alert($my_texts['error_show_service__config_not_found']);
-                    $sql->query("DELETE FROM `orders` WHERE `code` = '$code_base'");
-                    exit();
-                }
-                ;
-            }
+            if ($getUserInfoRes[0] == false) {
+                step('none');
+                alert($my_texts['error_show_service__token_is_incorrect']);
+                exit();
+            } else if ($getUserInfoRes[1] == false) {
+                step('none');
+                alert($my_texts['error_show_service__config_not_found']);
+                $sql->query("DELETE FROM `orders` WHERE `code` = '$code_base'");
+                exit();
+            };
 
-            // $getUser = getUserInfo(base64_encode($code) . '_' . $from_id, $panel['token'], $panel['login_link']);
+            // if ($getUserInfoRes[0] == false) {
+            //     // $reset_token_result = reset_panel_panel_token($panel['name'], $panel['login_link']);
+            //     $reset_token_result = get_marzban_panel_token($panel['name']);
+            //     if ($reset_token_result !== false) {
+            //         $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '{$getService['location']}'")->fetch_assoc();
+            //         $getUserInfoRes = getUserInfo($code, get_marzban_panel_token($getService['location']), $panel['login_link']);
+            //         $getUser = $getUserInfoRes[2];
+            //     } else {
+            //         alert($my_texts['error_show_service__token_reset_failed']);
+            //         exit();
+            //     }
+            // }
+
             if (isset($getUser['links']) and $getUser != false) {
                 $links = implode("\n\n", $getUser['links']) ?? 'NULL';
                 $subscribe = (strpos($getUser['subscription_url'], 'http') !== false) ? $getUser['subscription_url'] : $panel['login_link'] . $getUser['subscription_url'];
@@ -938,7 +969,8 @@ try {
 
         if ($type == 'marzban') {
             $token = loginPanel($panel['login_link'], $panel['username'], $panel['password'])['access_token'];
-            $getUser = getUserInfo($code, $token, $panel['login_link']);
+            $getUserInfoRes = getUserInfo($code, $token, $panel['login_link']);
+            $getUser = $getUserInfoRes[2];
             // $getUser = getUserInfo(base64_encode($code) . '_' . $from_id, $token, $panel['login_link']);
             if (isset($getUser['links']) and $getUser != false) {
                 $subscribe = (strpos($getUser['subscription_url'], 'http') !== false) ? $getUser['subscription_url'] : $panel['login_link'] . $getUser['subscription_url'];
@@ -1031,7 +1063,8 @@ try {
         if ($user['coin'] >= $plan['price']) {
             if ($service['type'] == 'marzban') {
                 $token = loginPanel($panel['login_link'], $panel['username'], $panel['password'])['access_token'];
-                $getUser = getUserInfo(base64_encode($service_code) . '_' . $from_id, $token, $panel['login_link']);
+                $getUserInfoRes = getUserInfo(base64_encode($service_code) . '_' . $from_id, $token, $panel['login_link']);
+                $getUser = $getUserInfoRes[2];
                 $response = Modifyuser(base64_encode($service_code) . '_' . $from_id, array('expire' => $getUser['expire'] += 86400 * $plan['date']), $token, $panel['login_link']);
             } elseif ($service['type'] == 'sanayi') {
                 include_once 'api/sanayi.php';
@@ -1078,7 +1111,8 @@ try {
         if ($user['coin'] >= $plan['price']) {
             if ($service['type'] == 'marzban') {
                 $token = loginPanel($panel['login_link'], $panel['username'], $panel['password'])['access_token'];
-                $getUser = getUserInfo(base64_encode($service_code) . '_' . $from_id, $token, $panel['login_link']);
+                $getUserInfoRes = getUserInfo(base64_encode($service_code) . '_' . $from_id, $token, $panel['login_link']);
+                $getUser = $getUserInfoRes[2];
                 $response = Modifyuser(base64_encode($service_code) . '_' . $from_id, array('data_limit' => $getUser['data_limit'] += $plan['limit'] * pow(1024, 3)), $token, $panel['login_link']);
             } elseif ($service['type'] == 'sanayi') {
                 include_once 'api/sanayi.php';
@@ -1355,7 +1389,7 @@ try {
             sendMessage($from_id, "⚙️ به مدیریت پلن ها خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :", $manage_server);
         } elseif ($text == '👤 مدیریت کاربران') {
             sendMessage($from_id, "👤 به مدیریت کاربران خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :", $manage_user);
-        } elseif (in_array($text,['📤 مدیریت پیام', '⬅️ بازگشت به مدیریت پیام ها'])) {
+        } elseif (in_array($text, ['📤 مدیریت پیام', '⬅️ بازگشت به مدیریت پیام ها'])) {
             step('none');
             sendMessage($from_id, "📤 به مدیریت پیام خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :", $manage_message);
         } elseif ($text == '👮‍♂️مدیریت ادمین') {
@@ -2455,12 +2489,13 @@ try {
             unlink('id.txt');
         } elseif ($text == 'ارسال پیام ها 📧') {
             $info_send = $sql->query("SELECT * FROM `sends` WHERE `user` = '$from_id'")->fetch_assoc();
-            if (isset($info_send)){
+            if (isset($info_send)) {
                 sendmessage($from_id, "درحال ارسال پیام های صف ⌛");
-            }else {
+            } else {
                 sendmessage($from_id, "صف خالی است ❌");
                 exit(0);
-            };
+            }
+            ;
             $url = "http://127.0.0.1/ZanborPanelBot/send.php";
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $url);
@@ -2569,8 +2604,8 @@ try {
                         $service_name = $row['code'] . "_" . $text;
                         $service_location = $row['location'];
                         $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();
-                        ;
-                        $marzban_res = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
+                        $getUserInfoRes = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
+                        $marzban_res = $getUserInfoRes[2];
                         $service_status = $marzban_res['status'];
                         if ($service_status == 'active') {
                             $count_all_active = $count_all_active + 1;

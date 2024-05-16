@@ -28,11 +28,12 @@ function send_debug_msg_to_maintainer($text, $dev_id, $exit = false)
 
 function get_users_usage($user_id)
 {
-    global $from_id, $sql;
+    global $from_id, $sql, $my_texts;
     $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$user_id'");
     if ($services->num_rows > 0) {
         $total_traffic_bought = 0;
         $total_traffic_used = 0;
+        $error = false;
 
         while ($row = $services->fetch_assoc()) {
             $config_name = $row['code'] . '_' . $user_id;
@@ -41,17 +42,36 @@ function get_users_usage($user_id)
             $info_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$config_location'");
             $panel = $info_panel->fetch_assoc();
 
-            $marzban_res = getUserInfo($config_name, get_marzban_panel_token($config_location), $panel['login_link']);
+            $getUserInfoRes = getUserInfo($config_name, get_marzban_panel_token($config_location), $panel['login_link']);
             // $t = json_encode($a, 448);
             // sendMessage($from_id, "test : $t");
-            if ($marzban_res['username'] == $config_name) {
-                if ($marzban_res['status'] == 'active') {
-                    $total_traffic_bought = $total_traffic_bought + $marzban_res['data_limit'];
-                    $total_traffic_used = $total_traffic_used + $marzban_res['used_traffic'];
+            if ($getUserInfoRes[0] == false) {
+                alert($my_texts['error_show_service__token_is_incorrect']);
+                $error = true;
+                break;
+            } else if ($getUserInfoRes[1] == false) {
+                alert($my_texts['error_show_service__user_not_found']);
+                $error = true;
+                break;
+            } else {
+                //============================ Debug code ================== START //
+                $debug_array = [$getUserInfoRes[2]];
+                send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448), $from_id, false);
+                // ============================ Debug code ================== END //
+                $marzban_res = $getUserInfoRes[2];
+                if ($marzban_res['username'] == $config_name) {
+                    if ($marzban_res['status'] == 'active') {
+                        $total_traffic_bought = $total_traffic_bought + $marzban_res['data_limit'];
+                        $total_traffic_used = $total_traffic_used + $marzban_res['used_traffic'];
+                    }
                 }
             }
+            ;
         }
-
+        if ($error == true) {
+            return null;
+        }
+        ;
         $total_traffic_bought = Conversion($total_traffic_bought, "GB");
         // $total_traffic_bought = round($total_traffic_bought / 1024 / 1024 / 1024 ,2);
         $total_traffic_used = Conversion($total_traffic_used, "GB");
@@ -193,7 +213,17 @@ function change_account_status($text, $from_id)
                 $panel_url = $panel_info['login_link'];
 
                 $user_config_info = getUserInfo($config_name, $panel_token, $panel_url);
-                $user_config_status = $user_config_info['status'];
+                if ($user_config_info[0] == false) {
+                    step('none');
+                    alert($my_texts['error_show_service__token_is_incorrect']);
+                    exit();
+                } else if ($user_config_info[1] == false) {
+                    step('none');
+                    alert($my_texts['error_show_service__user_not_found']);
+                    exit();
+                };
+
+                $user_config_status = $user_config_info[2]['status'];
 
                 if ($user_config_status == "active") {
                     $new_status = 'disabled';
@@ -264,42 +294,7 @@ function change_account_status($text, $from_id)
 //     }
 // };
 
-function get_marzban_panel_token($panel_name)
-{
-    global $sql, $token_tested;
-    $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$panel_name'")->fetch_assoc();
-    $panel_url = $panel['login_link'];
-    $panel_token = $panel['token'];
-    if (isset($token_tested)) {
-        return $panel_token;
-    } else {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $panel_url . "/api/system");
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $panel_token, 'Content-Type: application/json'));
-        $test_response = curl_exec($ch);
-        curl_close($ch);
 
-        $token_test_res = json_decode($test_response, true);
-        if (isset($token_test_res['version'])) {
-            $token_tested = true;
-            return $panel_token;
-        } else {
-            $panel_username = $panel['username'];
-            $panel_password = $panel['password'];
-            $new_token = reset_panel_panel_token($panel_name, $panel_url, $panel_username, $panel_password);
-            $token_tested = true;
-            if ($new_token !== false) {
-                return $new_token;
-            } else {
-                return false;
-            }
-        }
-    }
-    // return  $panel;
-}
 function reset_panel_panel_token($panel_name, $panel_login_address, $panel_username, $panel_password)
 {
     global $sql;
@@ -333,47 +328,7 @@ function write_renewal_json($user_id, $user_array)
     file_put_contents($json_file_name, $user_json);
 }
 
-function marzban_renewal_api($username, $new_traffic_limit, $new_expire_time, $token, $url)
-{
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url . "/api/user/$username");
-    // curl_setopt($ch, CURLOPT_PUT, true);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token, 'Content-Type: application/json'));
-    curl_setopt(
-        $ch,
-        CURLOPT_POSTFIELDS,
-        json_encode(
-            array(
-                'expire' => $new_expire_time,
-                'data_limit' => $new_traffic_limit,
-                'data_limit_reset_strategy' => 'no_reset',
-                'status' => 'active'
-            )
-        )
-    );
-    $new_limit_response = curl_exec($ch);
-    curl_close($ch);
 
-    $new_limit_response = json_decode($new_limit_response, true);
-    if (isset($new_limit_response['username'])) {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url . "/api/user/$username/reset");
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token, 'Content-Type: application/json'));
-        $reset_data_usage_response = curl_exec($ch);
-        curl_close($ch);
-        return $reset_data_usage_response;
-    } else {
-        return $new_limit_response;
-    }
-}
 
 function renewal_service($text, $from_id)
 {
@@ -468,7 +423,7 @@ function renewal_service($text, $from_id)
 
             $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$location'")->fetch_assoc();
 
-            $getUser = getUserInfo($code, $panel['token'], $panel['login_link']);
+            // $getUser = getUserInfo($code, $panel['token'], $panel['login_link']);
 
 
             $fetch = $sql->query("SELECT * FROM `category` WHERE `name` = '$plan_name'")->fetch_assoc();
@@ -534,14 +489,19 @@ function renewal_service($text, $from_id)
         # ---------------- create service proccess ---------------- #
         if ($panel['type'] == 'marzban') {
             # ---------------- create service ---------------- #
-            $token = get_marzban_panel_token($panel['name']);
             // $token = loginPanel($panel['login_link'], $panel['username'], $panel['password'])['access_token'];
+            $token = get_marzban_panel_token($panel['name']);
             // for ($i = 0; $i < 2; $i++) {
-            foreach ([1, 2] as $tttt) {
-                $renewal_service = marzban_renewal_api($name, convertToBytes($limit . 'GB'), strtotime("+ $date day"), $token, $panel['login_link']);
-                sleep(2);
+            //     $renewal_service = marzban_renewal_api($name, convertToBytes($limit . 'GB'), strtotime("+ $date day"), $token, $panel['login_link']);
+            //     sleep(2);
+            // };
+            if ($token == false) {
+                step('none');
+                sendmessage($from_id, $my_texts['error_show_service__token_is_incorrect'], $start_key);
+                exit();
             }
-            ;
+            $renewal_service = marzban_renewal_api($name, convertToBytes($limit . 'GB'), strtotime("+ $date day"), $token, $panel['login_link']);
+
             $renewal_status = json_decode($renewal_service, true);
 
             # ---------------- check errors ---------------- #

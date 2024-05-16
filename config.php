@@ -517,76 +517,7 @@ function loginPanelSanayi($address, $username, $password)
     return $response;
 }
 
-function loginPanel($address, $username, $password)
-{
-    global $from_id, $cancel_add_server;
-    $fields = array('username' => $username, 'password' => $password);
-    $curl = curl_init($address . '/api/admin/token');
-    $marzban_login_headers = array(
-        'Content-Type: application/x-www-form-urlencoded',
-        'accept: application/json'
 
-    );
-    curl_setopt_array(
-        $curl,
-        array(
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => http_build_query($fields),
-            CURLOPT_HTTPHEADER => $marzban_login_headers
-        )
-    );
-    $response = curl_exec($curl);
-    if ($response === false) {
-        sendMessage($from_id, curl_error($curl), $cancel_add_server);
-        error_log('cURL Error: ' . curl_error($curl));
-        curl_close($curl);
-    } else {
-        curl_close($curl);
-        return json_decode($response, true);
-    }
-}
-
-function createService($username, $limit, $expire_data, $proxies, $inbounds, $token, $url)
-{
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url . '/api/user');
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token, 'Content-Type: application/json'));
-    if ($inbounds != 'null') {
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(array('proxies' => $proxies, 'inbounds' => $inbounds, 'expire' => $expire_data, 'data_limit' => $limit, 'username' => $username, 'data_limit_reset_strategy' => 'no_reset')));
-    } else {
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(array('proxies' => $proxies, 'expire' => $expire_data, 'data_limit' => $limit, 'username' => $username, 'data_limit_reset_strategy' => 'no_reset')));
-    }
-    $response = curl_exec($ch);
-    curl_close($ch);
-    return $response;
-}
-
-function getUserInfo($sevice_name, $token, $url)
-{
-    $api_url = $url . '/api/user/' . $sevice_name;
-    $req_headers = array(
-        'Accept: application/json',
-        'Authorization: Bearer ' . $token,
-
-    );
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $api_url);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-    curl_setopt($ch, CURLOPT_HTTPGET, true);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $req_headers);
-    $response = json_decode(curl_exec($ch), true);
-    curl_close($ch);
-    return $response;
-}
 
 function resetUserDataUsage($username, $token, $url)
 {
@@ -869,7 +800,7 @@ $manage_message = json_encode([
             ['text' => '📬 ارسال همگانی'],
             // ['text' => '📬 فوروارد همگانی']
         ],
-        [['text' => 'ارسال پیام ها 📧'],['text' => '🔎 وضعیت ارسال همگانی']],
+        [['text' => 'ارسال پیام ها 📧'], ['text' => '🔎 وضعیت ارسال همگانی']],
         [['text' => '📞 ارسال پیام به کاربر']],
         [['text' => '⬅️ بازگشت به مدیریت']]
     ],
