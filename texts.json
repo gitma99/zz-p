@@ -90,6 +90,8 @@
   "buy_service__choose_name__error__too_long": "این نام طولانی میباشد ❌ مجدد امتحان کنید 🙏",
   "error_show_service__config_not_found": "خطا❗️سرویس مورد نظر حذف شده ⛔️",
   "error_show_service__server_not_found_internally": "خطا❗️سرویس مورد نظر حذف شده ⛔️",
+  "error_show_service__token_is_incorrect": "خطا❗️توکن سرور نامعتبر است",
+  "error_show_service__user_not_found": "خطا❗️کاربر پیدا نشد⛔️",
   "error_show_service__token_reset_success": "سرویس بروز شد . لطفا دوباره امتحان کنید",
   "error_show_service__token_reset_failed": "بروزرسانی سرور با خطا روبه رو شد . لطفا به ادمین ربات اطلاع رسانی کنی\n\n(خطا : marzban token cant be reset automatiacally. please rest it manually)",
   "show_service_list__error__no_service_list_available": "لیست برای نمایش وجود ندارد",

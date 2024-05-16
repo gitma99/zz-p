@@ -1,11 +1,11 @@
 {
-    "main_domin": "[*DOMAIN*]",
-    "token": "[*TOKEN*]",
-    "dev": "[*DEV*]",
+    "main_domin": "telemos.axiotodo.online",
+    "token": "6938663740:AAH9mdwlFWLW7vvC1J6gLNRIxI-KEEsC-f4",
+    "dev": "131757826",
     "database": {
-        "db_name": "[*DB-NAME*]",
-        "db_username": "[*DB-USER*]",
-        "db_password": "[*DB-PASS*]"
+        "db_name": "ZanborPanel_dskasktkju",
+        "db_username": "shi7gape",
+        "db_password": "dskasktkju"
     },
     "show_account_status_changer_btn": true,
     "show_charge_account_btn": true
