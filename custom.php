@@ -332,7 +332,7 @@ function write_renewal_json($user_id, $user_array)
 
 function renewal_service($text, $from_id)
 {
-    global $user, $sql, $texts, $start_key, $confirm_service, $message_id, $config, $my_texts, $first_name, $qrcode_dir;
+    global $user, $sql, $texts, $start_key, $confirm_service, $message_id, $config, $my_texts, $first_name;
 
     // sendMessage($from_id, "text : $text",);
     // $curent_step = $user['step'];
@@ -575,9 +575,7 @@ function renewal_service($text, $from_id)
         if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0)
             $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
         sendMessage($from_id, sprintf($texts['start'], $first_name), $start_key);
-        exit();
     }
-    exit();
 }
 
 
