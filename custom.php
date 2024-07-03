@@ -54,10 +54,10 @@ function get_users_usage($user_id)
                 $error = true;
                 break;
             } else {
-                //============================ Debug code ================== START //
-                $debug_array = [$getUserInfoRes[2]];
-                send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448), $from_id, false);
-                // ============================ Debug code ================== END //
+                // //============================ Debug code ================== START //
+                // $debug_array = [$getUserInfoRes[2]];
+                // send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448), $from_id, false);
+                // // ============================ Debug code ================== END //
                 $marzban_res = $getUserInfoRes[2];
                 if ($marzban_res['username'] == $config_name) {
                     if ($marzban_res['status'] == 'active') {
