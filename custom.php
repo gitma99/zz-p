@@ -221,7 +221,7 @@ function change_account_status($text, $from_id)
                     step('none');
                     alert($my_texts['error_show_service__user_not_found']);
                     exit();
-                };
+                }
 
                 $user_config_status = $user_config_info[2]['status'];
 
@@ -332,7 +332,7 @@ function write_renewal_json($user_id, $user_array)
 
 function renewal_service($text, $from_id)
 {
-    global $user, $sql, $texts, $start_key, $confirm_service, $message_id, $config, $my_texts, $first_name;
+    global $user, $sql, $texts, $start_key, $confirm_service, $message_id, $config, $my_texts, $first_name, $qrcode_dir;
 
     // sendMessage($from_id, "text : $text",);
     // $curent_step = $user['step'];
@@ -410,9 +410,9 @@ function renewal_service($text, $from_id)
         $plan_name = $text;
         $renewal_data = read_renewal_json($from_id);
         $renewal_data['new_plan'] = $plan_name;
-        $response = $sql->query("SELECT `name` FROM `category` WHERE `name` = '$plan_name'")->num_rows;
+        $plan_details_sql_response = $sql->query("SELECT `name` FROM `category` WHERE `name` = '$plan_name'")->num_rows;
 
-        if ($response > 0) {
+        if ($plan_details_sql_response > 0) {
             step('renewal_service_confirm_service');
             sendMessage($from_id, $texts['create_factor'], $confirm_service);
             $location = $renewal_data['new_server'];
@@ -517,14 +517,48 @@ function renewal_service($text, $from_id)
 
             if ($info_panel->num_rows > 0) {
                 $getMe = json_decode(file_get_contents("https://api.telegram.org/bot{$config['token']}/getMe"), true);
+                if (!isset($getMe['result'])) {
+                    $bot_username = "getMe result Error";
+                } else if (!isset($getMe['result']['username'])) {
+                    $bot_username = "getMe username Error";
+                } else {
+                    $bot_username = $getMe['result']['username'];
+                }
                 $subscribe = (strpos($renewal_status['subscription_url'], 'http') !== false) ? $renewal_status['subscription_url'] : $panel['login_link'] . $renewal_status['subscription_url'];
                 if ($panel['qr_code'] == 'active') {
                     $encode_url = urlencode($subscribe);
-                    bot('sendPhoto', ['chat_id' => $from_id, 'photo' => "https://api.qrserver.com/v1/create-qr-code/?data=$encode_url&size=800x800", 'caption' => sprintf($texts['success_create_service'], $name, $location, $date, $limit, number_format($price), '', '@' . $getMe['result']['username']), 'parse_mode' => 'html', 'reply_markup' => $start_key]);
+                    $bot_data = [
+                        'chat_id' => $from_id,
+                        'photo' => "https://api.qrserver.com/v1/create-qr-code/?data=$encode_url&size=800x800",
+                        'caption' => sprintf(
+                            $texts['success_create_service'],
+                            $name,
+                            $location,
+                            $date,
+                            $limit,
+                            number_format($price),
+                            '',
+                            '@' . $bot_username
+                        ),
+                        'parse_mode' => 'html',
+                        'reply_markup' => $start_key
+                    ];
+                    bot('sendPhoto', $bot_data);
                 } else {
-                    sendmessage($from_id, sprintf($texts['success_create_service'], $name_base, $location, $date, $limit, number_format($price), $subscribe, '@' . $getMe['result']['username']), $start_key);
+                    $bot_text = sprintf(
+                        $texts['success_create_service'],
+                        $name_base,
+                        $location,
+                        $date,
+                        $limit,
+                        number_format($price),
+                        $subscribe,
+                        '@' . $bot_username
+                    );
+                    sendmessage($from_id, $bot_text, $start_key);
                 }
                 $sql->query("UPDATE `orders` SET `location` = '$location', `date` = '$date', `volume` = '$limit', `link` = '$links', `price` = '$price' WHERE `code` = '$code_base'");
+                exit();
                 // $sql->query("INSERT INTO `orders` (`from_id`, `location`, `protocol`, `date`, `volume`, `link`, `price`, `code`, `status`, `type`) VALUES ('$from_id', '$location', 'null', '$date', '$limit', '$links', '$price', '$code', 'active', 'marzban')");
                 // sendmessage($config['dev'], sprintf($texts['success_create_notif']), $first_name, $username, $from_id, $user['count_service'], $user['coin'], $location, $plan, $limit, $date, $code, number_format($price));
             } else {
@@ -541,7 +575,9 @@ function renewal_service($text, $from_id)
         if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0)
             $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
         sendMessage($from_id, sprintf($texts['start'], $first_name), $start_key);
+        exit();
     }
+    exit();
 }
 
 
