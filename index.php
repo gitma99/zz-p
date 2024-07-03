@@ -3165,13 +3165,15 @@ try {
         $error_msg = $recived_error_msg;
     }
     // ================= Generate debug array
-    $error_data = [
+    $user_data = [
         "chat_id" => $from_id,
         'user_name' => $username,
         'step' => $user['step'],
         'update' => $update,
         'data' => $data,
         'text' => $text,
+    ];
+    $error_data = [
         'error_calss' => get_class($e),
         'error_msg' => $error_msg,
         'error_file' => $e->getFile(),
@@ -3180,6 +3182,8 @@ try {
         'error_trace_string' => $e->getTraceAsString(),
     ];
     // ================= Send debug array
-    send_debug_msg_to_maintainer("Faital Error Detected:\n\n" . json_encode($error_data, 448), $maintainer_telegram_id_number);
+    send_debug_msg_to_maintainer("Faital Error Detected:\n\n", $maintainer_telegram_id_number);
+    send_debug_msg_to_maintainer(json_encode($user_data, 448), $maintainer_telegram_id_number);
+    send_debug_msg_to_maintainer(json_encode($error_data, 448), $maintainer_telegram_id_number);
     sendMessage($from_id, $texts['error_encounter_msg']);
 }
