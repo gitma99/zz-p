@@ -113,7 +113,7 @@
   "account_status_changer_service_config_name":"نام سرویس را وارد کنید 🖋",
   "account_status_changer_service_config_found":"سرویس پیدا شد ✅",
   "account_status_changer_service_config_not_found":"سرويس پیدا نشد ❌ مجدد امتحان کنید 🙏",
-  "account_status_changer_service_successfully_disabled":"سرویس با موفقیت غیرفعال شد ✅",
+  "account_status_changer_service_successfully_disabled":"سرویس با موفقیت غیرفعال شد ☑️",
   "account_status_changer_service_successfully_enabled":"سرویس با موفقیت فعال شد ✅",
   "account_status_changer_service_failed_to_change_status":"تلاش برای تغییر وضعیت سرویس ناموفق بود ❌.",
   "account_status_changer_unathorized":"مهلت یا حجم سرویس شما به اتمام رسیده است ❌\nبرای فعال سازی ، از قسمت تمدید سرویس اقدام کنید ♻️",
