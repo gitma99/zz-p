@@ -220,6 +220,8 @@ function change_account_status($text, $from_id)
                 } else if ($user_config_info[1] == false) {
                     step('none');
                     alert($my_texts['error_show_service__user_not_found']);
+                    throw new Exception(json_encode($user_config_info, 448));
+                    
                     exit();
                 }
 
