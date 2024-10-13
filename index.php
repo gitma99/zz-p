@@ -1359,9 +1359,10 @@ try {
         $user_usage = get_users_usage($target_user_id);
         $total_trafic = $user_usage['total_traffic_bought'];
         $used_trafic = $user_usage['total_traffic_used'];
+        $users_not_found_count = $user_usage['users_not_found_count'];
 
 
-        alert(sprintf($texts['services_overview__alert__msg'], $count_all_active, $count_all_inactive, $total_trafic, $used_trafic));
+        alert(sprintf($texts['services_overview__alert__msg'], $count_all_active, $count_all_inactive, $users_not_found_count, $total_trafic, $used_trafic));
     } elseif ($text == '📮 پشتیبانی آنلاین') {
         step('support');
         sendMessage($from_id, $texts['support'], $back);

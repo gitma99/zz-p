@@ -34,7 +34,8 @@ function get_users_usage($user_id)
         $total_traffic_bought = 0;
         $total_traffic_used = 0;
         $error = false;
-
+        
+        $users_not_found_count = 0
         while ($row = $services->fetch_assoc()) {
             $config_name = $row['code'] . '_' . $user_id;
             $config_location = $row['location'];
@@ -51,10 +52,8 @@ function get_users_usage($user_id)
                 break;
             } else if ($getUserInfoRes[1] == false) {
                 alert($my_texts['error_show_service__user_not_found']);
-                throw new Exception(json_encode($getUserInfoRes, 448));
-
-                $error = true;
-                break;
+                users_not_found_count = users_not_found_count + 1;
+                continue;
             } else {
                 // //============================ Debug code ================== START //
                 // $debug_array = [$getUserInfoRes[2]];
@@ -80,7 +79,8 @@ function get_users_usage($user_id)
         // $total_traffic_used = round($total_traffic_used / 1024 / 1024 / 1024 ,2);
         return [
             "total_traffic_bought" => $total_traffic_bought,
-            "total_traffic_used" => $total_traffic_used
+            "total_traffic_used" => $total_traffic_used,
+            "users_not_found_count" => $users_not_found_count,
         ];
     } else {
         return null;
