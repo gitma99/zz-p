@@ -51,6 +51,8 @@ function get_users_usage($user_id)
                 break;
             } else if ($getUserInfoRes[1] == false) {
                 alert($my_texts['error_show_service__user_not_found']);
+                throw new Exception(json_encode($getUserInfoRes, 448));
+
                 $error = true;
                 break;
             } else {
@@ -219,9 +221,7 @@ function change_account_status($text, $from_id)
                     exit();
                 } else if ($user_config_info[1] == false) {
                     step('none');
-                    alert($my_texts['error_show_service__user_not_found']);
-                    throw new Exception(json_encode($user_config_info, 448));
-                    
+                    alert($my_texts['error_show_service__user_not_found']);                    
                     exit();
                 }
 
