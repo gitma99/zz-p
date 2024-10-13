@@ -35,7 +35,7 @@ function get_users_usage($user_id)
         $total_traffic_used = 0;
         $error = false;
         
-        $users_not_found_count = 0
+        $users_not_found_count = 0;
         while ($row = $services->fetch_assoc()) {
             $config_name = $row['code'] . '_' . $user_id;
             $config_location = $row['location'];
