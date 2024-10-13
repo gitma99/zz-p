@@ -52,7 +52,7 @@ function get_users_usage($user_id)
                 break;
             } else if ($getUserInfoRes[1] == false) {
                 alert($my_texts['error_show_service__user_not_found']);
-                users_not_found_count = users_not_found_count + 1;
+                $users_not_found_count = $users_not_found_count + 1;
                 continue;
             } else {
                 // //============================ Debug code ================== START //
@@ -80,7 +80,7 @@ function get_users_usage($user_id)
         return [
             "total_traffic_bought" => $total_traffic_bought,
             "total_traffic_used" => $total_traffic_used,
-            "users_not_found_count" => $users_not_found_count,
+            "users_not_found_count" => $users_not_found_count
         ];
     } else {
         return null;
