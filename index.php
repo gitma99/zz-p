@@ -6,6 +6,9 @@
 // send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448), $from_id, false);
 // // ============================ Debug code ================== END //
 
+
+// =================Enter Maintainer Telgran Id for Debuging
+$maintainer_telegram_id_number = 1212754771;
 try {
     include_once 'config.php';
     include_once 'api/sanayi.php';
@@ -3157,8 +3160,6 @@ try {
         }
     }
 } catch (\Throwable $e) {
-    // =================Enter Maintainer Telgran Id for Debuging
-    $maintainer_telegram_id_number = 1212754771;
     // ================= check if it is json if json then decode else send it anyway.
     $recived_error_msg = $e->getMessage();
     $error_msg = json_decode($recived_error_msg);
