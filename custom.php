@@ -51,7 +51,7 @@ function get_users_usage($user_id)
                 $error = true;
                 break;
             } else if ($getUserInfoRes[1] == false) {
-                alert($my_texts['error_show_service__user_not_found']);
+                // alert($my_texts['error_show_service__user_not_found']);
                 $users_not_found_count = $users_not_found_count + 1;
                 continue;
             } else {
