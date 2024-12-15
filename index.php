@@ -2530,9 +2530,15 @@ try {
                     $first_name = $res_get->result->user->first_name;
                     $username = '@' . $res_get->result->user->username;
                 } else {
-                    $username = 'خطا: ' . $res_get->error_code;
-                    $first_name = 'خطا: ' . $res_get->description;
+                    if (!isset($res_get->error_code) || !isset($res_get->description)) {
+                        throw new Exception(json_encode($res_get, 448));
+                    };
+                    $username = '⚠ خطا ⚠';
+                    $first_name = '⚠ خطا ⚠';
+                    // $username = 'خطا: ' . $res_get->error_code;
+                    // $first_name = 'خطا: ' . $res_get->description;
                 };
+                
                 $coin = number_format($info['coin']) ?? 0;
                 $count_service = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'")->num_rows ?? 0;
                 $count_payment = $info['count_charge'] ?? 0;
