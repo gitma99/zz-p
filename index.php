@@ -2526,8 +2526,13 @@ try {
                 step('none');
                 $info = $info->fetch_assoc();
                 $res_get = bot('getchatmember', ['user_id' => $text, 'chat_id' => $text]);
-                $first_name = $res_get->result->user->first_name;
-                $username = '@' . $res_get->result->user->username;
+                if ($res_get->ok) {
+                    $first_name = $res_get->result->user->first_name;
+                    $username = '@' . $res_get->result->user->username;
+                } else {
+                    $username = 'خطا: ' . $res_get->error_code;
+                    $first_name = 'خطا: ' . $res_get->description;
+                };
                 $coin = number_format($info['coin']) ?? 0;
                 $count_service = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'")->num_rows ?? 0;
                 $count_payment = $info['count_charge'] ?? 0;
