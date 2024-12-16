@@ -2526,11 +2526,11 @@ try {
                 step('none');
                 $info = $info->fetch_assoc();
                 $res_get = bot('getchatmember', ['user_id' => $text, 'chat_id' => $text]);
-                if ($res_get->ok) {
-                    $first_name = $res_get->result->user->first_name;
-                    $username = '@' . $res_get->result->user->username;
+                if ($res_get['ok']) {
+                    $first_name = $res_get['result']['user']['first_name'];
+                    $username = '@' . $res_get['result']['user']['username'];
                 } else {
-                    if (!isset($res_get->error_code) || !isset($res_get->description)) {
+                    if (!isset($res_get['error_code']) || !isset($res_get['description'])) {
                         throw new Exception(json_encode($res_get, 448));
                     };
                     $username = '⚠ خطا ⚠';
