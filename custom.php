@@ -334,7 +334,7 @@ function write_renewal_json($user_id, $user_array)
 
 function renewal_service($text, $from_id)
 {
-    global $user, $sql, $texts, $start_key, $confirm_service, $message_id, $config, $my_texts, $first_name;
+    global $user, $sql, $texts, $start_key, $confirm_service, $message_id, $config, $my_texts, $first_name, $maintainer_telegram_id_number;
 
     // sendMessage($from_id, "text : $text",);
     // $curent_step = $user['step'];
@@ -508,6 +508,7 @@ function renewal_service($text, $from_id)
 
             # ---------------- check errors ---------------- #
             if (!isset($renewal_status['username'])) {
+                send_debug_msg_to_maintainer($renewal_status, $maintainer_telegram_id_number);
                 sendMessage($from_id, sprintf($texts['create_error'], 1), $start_key);
                 sendMessage($from_id, sprintf($renewal_status['username'], 1), $start_key);
                 exit();
