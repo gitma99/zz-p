@@ -180,7 +180,8 @@ try {
 
 
         if (isset($getUser[2])) {
-            if ($getUser[1] == true) {
+            $repeated_db_order_code_count = $sql->query("SELECT `code` FROM `orders` WHERE `code` = '{$code_base}'")->num_rows;
+            if ($getUser[1] == true || $repeated_db_order_code_count != 0) {
                 // if ((!isset($getUser['links']) and $getUser == false)) {
                 $plan = [];
                 $plan[] = [['text' => '🔙 بازگشت']];
@@ -189,8 +190,8 @@ try {
                 // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
                 sendMessage($from_id, $my_texts['repeated_config_name'], $plan);
                 sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $plan);
-
                 step('choose_name');
+                exit();
             } elseif ($getUser[1] == false) {
                 sendMessage($from_id, $texts['create_factor'], $confirm_service);
 
@@ -204,6 +205,7 @@ try {
                 // sendMessage($from_id, sprintf($texts['service_factor'], $location, $limit, $date, $code_base, number_format($price)), $copen_key);
                 sendMessage($from_id, sprintf($texts['service_factor'], $location, $limit, $date, $code_base, number_format($price)));
                 step('confirm_service');
+                exit();
             } else {
                 $_keys = [[['text' => '🔙 بازگشت']]];
                 $_keyboard = json_encode(['keyboard' => $_keys, 'resize_keyboard' => true]);
@@ -219,6 +221,7 @@ try {
             sendMessage($from_id, $texts['invalid_config_name'], $plan);
             sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $plan);
             step('choose_name');
+            exit();
         }
     } elseif ($data == 'cancel_copen') {
         step('confirm_service');
