@@ -508,7 +508,8 @@ function renewal_service($text, $from_id)
 
             # ---------------- check errors ---------------- #
             if (!isset($renewal_status['username'])) {
-                sendMessage($from_id, sprintf($texts['create_error'], 1), $start_key);
+                step('none');
+                sendMessage($from_id, sprintf($texts['renew_error'], 1), $start_key);
                 // sendMessage($from_id, sprintf($renewal_status['username'], 1), $start_key);
                 exit();
             }
