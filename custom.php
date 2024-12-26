@@ -508,9 +508,8 @@ function renewal_service($text, $from_id)
 
             # ---------------- check errors ---------------- #
             if (!isset($renewal_status['username'])) {
-                send_debug_msg_to_maintainer($renewal_status, $maintainer_telegram_id_number);
                 sendMessage($from_id, sprintf($texts['create_error'], 1), $start_key);
-                sendMessage($from_id, sprintf($renewal_status['username'], 1), $start_key);
+                // sendMessage($from_id, sprintf($renewal_status['username'], 1), $start_key);
                 exit();
             }
             # ---------------- get links and subscription_url for send the user ---------------- #
