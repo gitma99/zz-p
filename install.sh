@@ -170,6 +170,7 @@ else
 fi
 
 sshpass -p $ROOT_PASSWORD mysql -u root -p -e "SET GLOBAL validate_password.policy = LOW;"
+sshpass -p $ROOT_PASSWORD mysql -u root -p -e "SET GLOBAL validate_password_policy = LOW;"
 sshpass -p $ROOT_PASSWORD mysql -u root -p -e "CREATE DATABASE $dbname;" -e "CREATE USER '$dbuser'@'%' IDENTIFIED WITH mysql_native_password BY '$dbpass';GRANT ALL PRIVILEGES ON * . * TO '$dbuser'@'%';FLUSH PRIVILEGES;" -e "CREATE USER '$dbuser'@'localhost' IDENTIFIED WITH mysql_native_password BY '$dbpass';GRANT ALL PRIVILEGES ON * . * TO '$dbuser'@'localhost';FLUSH PRIVILEGES;"
 sshpass -p $ROOT_PASSWORD mysql -u root -p -e "GRANT ALL PRIVILEGES ON *.* TO 'phpmyadmin'@'localhost' WITH GRANT OPTION;"
 
@@ -188,7 +189,7 @@ echo " "
 
 DOMAIN=$domain
 
-if [ 'http' in "$DOMAIN" ]; then
+if [[ $DOMAIN == *"http"* ]]; then
     colorized_echo red "Input invalid !"
     exit 1
 fi
