@@ -9,23 +9,28 @@
 
 // =================Enter Maintainer Telgran Id for Debuging
 $maintainer_telegram_id_number = 1212754771;
+$logDir = 'Logs';
+
+ini_set('display_errors', 0); // Disable error display on the screen
+ini_set('log_errors', 1); // Enable error logging to a file
+if (!is_dir($logDir)) {
+    mkdir($logDir, 0777, true); // Create directory with recursive permissions
+}
+ini_set('error_log', $logDir . '/error.log'); // Specify the path to the error log file
+error_reporting(E_ALL); // Set the error reporting level as needed
+date_default_timezone_set("UTC");
+
 try {
     include_once 'config.php';
-    include_once 'api/sanayi.php';
-    include_once 'api/marzban.php';
-    include_once 'custom.php';
-    # include_once  'api/hiddify.php';
-
-    ini_set('display_errors', 0); // Disable error display on the screen
-    ini_set('log_errors', 1); // Enable error logging to a file
-ini_set('error_log', 'Logs/error.log'); // Specify the path to the error log file
-    error_reporting(E_ALL); // Set the error reporting level as needed
-    date_default_timezone_set("UTC");
-
     if (!isset($from_id)) {
         readfile("Templates/under_maintenance.html");
         exit(0);
     }
+
+    include_once 'api/sanayi.php';
+    include_once 'api/marzban.php';
+    include_once 'custom.php';
+    # include_once  'api/hiddify.php';
 
     if ($data == 'join') {
         if (isJoin($from_id)) {
