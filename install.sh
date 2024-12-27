@@ -217,16 +217,11 @@ sleep 1
 # touch('/var/www/html/ZanborPanelBot/install/zanbor.install')
 echo "{\"development\":\"@ZanborPanel\",\"install_location\":\"server\",\"main_domin\":\"${DOMAIN}\",\"token\":\"${TOKEN}\",\"dev\":\"${CHAT_ID}\",\"db_name\":\"${dbname}\",\"db_username\":\"${randdbdb}\",\"db_password\":\"${randdbpass}\"}" > /var/www/html/ZanborPanelBot/install/zanbor.install
 
-
 # ================================= Make bot_config file ===========================================
 
-# source_file="/var/www/html/ZanborPanelBot/config.php"
-# destination_file="/var/www/html/ZanborPanelBot/config.php.tmp"
-source_file="/var/www/html/ZanborPanelBot/bot_config.json"
-destination_file="/var/www/html/ZanborPanelBot/bot_config.json.tmp"
-replace=$(cat "$source_file" | sed -e "s/\[\*DOMAIN\*\]/${DOMAIN}/g" -e "s/\[\*TOKEN\*\]/${TOKEN}/g" -e "s/\[\*DEV\*\]/${CHAT_ID}/g" -e "s/\[\*DB-NAME\*\]/${dbname}/g" -e "s/\[\*DB-USER\*\]/${dbuser}/g" -e "s/\[\*DB-PASS\*\]/${dbpass}/g")
-echo "$replace" > "$destination_file"
-mv "$destination_file" "$source_file"
+config_template_path="/var/www/html/ZanborPanelBot/Templates/bot_config.json"
+edited_config_file=$(cat "$config_template_path" | sed -e "s/\[\*DOMAIN\*\]/${DOMAIN}/g" -e "s/\[\*TOKEN\*\]/${TOKEN}/g" -e "s/\[\*DEV\*\]/${CHAT_ID}/g" -e "s/\[\*DB-NAME\*\]/${dbname}/g" -e "s/\[\*DB-USER\*\]/${dbuser}/g" -e "s/\[\*DB-PASS\*\]/${dbpass}/g")
+echo "$edited_config_file" > "/var/www/html/ZanborPanelBot/bot_config.json"
 
 sleep 1
 sudo chmod 777 /var/www/html/ZanborPanelBot/bot_config.json
