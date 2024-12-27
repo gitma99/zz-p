@@ -3109,7 +3109,7 @@ try {
             step('none');
             $texts['start'] = str_replace('
         ', '\n', $text);
-            file_put_contents('texts.json', json_encode($texts, 448));
+            file_put_contents($TEXTS_JSON_PATH, json_encode($texts, 448));
             sendMessage($from_id, "✅ متن استارت با موفقیت تنظیم شد !", $manage_texts);
         } elseif ($text == '✏️ متن تعرفه خدمات') {
             step('set_tariff_text');
@@ -3118,7 +3118,7 @@ try {
             step('none');
             $texts['service_tariff'] = str_replace('
         ', '\n', $text);
-            file_put_contents('texts.json', json_encode($texts, 448));
+            file_put_contents($TEXTS_JSON_PATH, json_encode($texts, 448));
             sendMessage($from_id, "✅ متن تعرفه خدمات با موفقیت تنظیم شد !", $manage_text);
         } elseif ($text == '✏️ متن راهنمای اتصال') {
             step('none');
@@ -3134,10 +3134,10 @@ try {
             step('none');
             $texts['edu_' . $platform] = str_replace('
     ', '\n', $text);
-            if (file_put_contents('texts.json', json_encode($texts, 448)) == false) {
-                throw new Exception('file_put_contents(\'texts.json\', $new_texts) failed');
+            if (file_put_contents($TEXTS_JSON_PATH, json_encode($texts, 448)) == false) {
+                throw new Exception("file_put_contents('{$TEXTS_JSON_PATH}', {$new_texts}) failed");
             }
-            sendMessage($from_id, "✅ متن شما با موفقیت تنظیم شد.\n\n#️⃣ سیستم عامل : <b>$platform</b>", $manage_texts);
+            sendMessage($from_id, "✅ متن شما با موفقیت تنظیم شد.\n\n#️⃣ سیستم عامل : <b>{$platform}</b>", $manage_texts);
         }
 
         // -----------------manage admins ----------------- //

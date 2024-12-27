@@ -19,9 +19,9 @@ if ($sql->connect_error) {
 }
 
 define('API_KEY', $config['token']);
-
-if (file_exists('texts.json'))
-    $texts = json_decode(file_get_contents('texts.json'), true);
+$TEXTS_JSON_PATH = 'App/texts.json';
+if (file_exists($TEXTS_JSON_PATH))
+    $texts = json_decode(file_get_contents($TEXTS_JSON_PATH), true);
 # ----------------- [ <- variables -> ] ----------------- #
 
 $update = json_decode(file_get_contents('php://input'));
