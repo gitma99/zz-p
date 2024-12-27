@@ -23,7 +23,7 @@ try {
     date_default_timezone_set("UTC");
 
     if (!isset($from_id)) {
-        readfile("test.html");
+        readfile("Templates/under_maintenance.html");
         exit(0);
     }
 
