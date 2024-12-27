@@ -18,7 +18,7 @@ try {
 
     ini_set('display_errors', 0); // Disable error display on the screen
     ini_set('log_errors', 1); // Enable error logging to a file
-    ini_set('error_log', 'error.log'); // Specify the path to the error log file
+ini_set('error_log', 'Logs/error.log'); // Specify the path to the error log file
     error_reporting(E_ALL); // Set the error reporting level as needed
     date_default_timezone_set("UTC");
 
