@@ -21,8 +21,13 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/install.sh)
 - وارد سرور خود شوید.
 - دستور زیر رو برای آپدیت ربات ارسال کنید.
 
+آنلاین:
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/update.sh)
+```
+آفلاین:
+```bash
+bash /var/www/html/ZanborPanelBot/update.sh
 ```
 
 - گزینه 1 برای آپدیت ربات
@@ -74,8 +79,13 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backu
 - وارد سرور خود شوید.
 - دستور زیر رو برای ساخت یوزر جدید ارسال کنید.
 
+آنلاین:
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/phpmyadmin.sh)
+```
+آفلاین:
+```bash
+bash /var/www/html/ZanborPanelBot/Scripts/phpmyadmin.sh
 ```
 
 - بعد از اجرای این دستور باید یوزر برای آن انتخاب کنید (در صورت خالی گذاشتن به صورت پیشفرض `phpadmin` در نظر گرفته می شود).
@@ -83,8 +93,13 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/phpmy
 
 ## تعمیرات تخصصی
 
+آنلاین:
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/fix.sh)
+```
+آفلاین:
+```bash
+bash /var/www/html/ZanborPanelBot/Scripts/fix.sh
 ```
 
 - fix telegram webhook : درصورتی که ربات ارتباط خود را با تلگرام از دست داد اجرا شود
