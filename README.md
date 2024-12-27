@@ -2,7 +2,13 @@
 
 - وارد سرور خود شوید.
 - دستور زیر رو برای نصب ربات ارسال کنید.
+### توجه:
+اسکریپت ها به دو دسته آنلاین و آفلاین تقسیم میشود بسته به شرایط هر کدام قابل استفاده است.
+- اسکریپت های آنلاین : مستقیم از سرور گیتهاب گرفته میشودند.
+- اسکریپت های آقلاین : زمیانی که ربات در سرور مورد نظر نصب شده باشد
 
+
+آتلاین:
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/install.sh)
 ```
@@ -38,6 +44,7 @@ bash /var/www/html/ZanborPanelBot/update.sh
 
 - دستور زیر را وارد کنید
 
+آنلاین:
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backup_service.sh)
 ```
@@ -52,6 +59,7 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backu
 
 - دستور زیر را وارد کنید
 
+آنلاین:
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backup.sh)
 ```
@@ -65,6 +73,7 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backu
 - فایل زیپ را در مسیر روت قرار دهید (توجه کنید که نام فایل باید `zz-p-backup.zip` باشد)
 - دستور زیر را وارد کنید
 
+آنلاین:
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backup.sh)
 ```
