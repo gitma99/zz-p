@@ -53,6 +53,7 @@ do
                     if [ -f "/var/www/html/ZanborPanelBot/bot_config.json" ]; then
                         # if [ -s "/var/www/html/ZanborPanelBot/install/zanbor.install" ]; then
                         if [ -s "/var/www/html/ZanborPanelBot/bot_config.json" ]; then
+                            apt install -y jq
                             content=$(cat $CONFIG_JSON)
                             token=$(echo "$content" | jq -r '.token')
                             dev=$(echo "$content" | jq -r '.dev')
