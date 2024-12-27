@@ -1,6 +1,6 @@
 <?php
 $my_texts = $texts;
-$BOT_CONFIG = json_decode(file_get_contents("bot_config.json"), true);
+$BOT_CONFIG = json_decode(file_get_contents("Config/bot_config.json"), true);
 
 function send_debug_data_to_maintainer($text_string, $dev_id, $exit = false)
 {
@@ -90,7 +90,7 @@ function get_users_usage($user_id)
 function modify_bot_config()
 {
     global $BOT_CONFIG;
-    $json_file_name = "bot_config.json";
+    $json_file_name = "Config/bot_config.json";
     $bot_config_data_json = json_encode($BOT_CONFIG, JSON_PRETTY_PRINT);
     file_put_contents($json_file_name, $bot_config_data_json);
 }

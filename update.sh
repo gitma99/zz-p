@@ -1,7 +1,7 @@
 #!/bin/bash
 
 GITHUB_REPO_ADDRESS='https://github.com/gitma99/zz-p.git'
-CONFIG_JSON='/var/www/html/ZanborPanelBot/bot_config.json'
+BOT_CONFIG_JSON_PATH='/var/www/html/ZanborPanelBot/config/bot_config.json'
 
 if [ "$(id -u)" -ne 0 ]; then
     echo -e "\033[33mPlease run as root\033[0m"
@@ -50,9 +50,9 @@ do
             if [ "$answer" != "${answer#[Yy]}" ]; then
                 if [ -d "/var/www/html/ZanborPanelBot" ]; then
                     # if [ -f "/var/www/html/ZanborPanelBot/install/zanbor.install" ]; then
-                    if [ -f "/var/www/html/ZanborPanelBot/bot_config.json" ]; then
+                    if [ -f "$BOT_CONFIG_JSON_PATH" ]; then
                         # if [ -s "/var/www/html/ZanborPanelBot/install/zanbor.install" ]; then
-                        if [ -s "/var/www/html/ZanborPanelBot/bot_config.json" ]; then
+                        if [ -s "$BOT_CONFIG_JSON_PATH" ]; then
                             colorized_echo green "Please wait, Updating . . ."
                             # update proccess !
                             sudo apt update && apt upgrade -y
@@ -60,7 +60,7 @@ do
                             sudo apt install curl -y
                             sudo apt install jq -y
                             sleep 2
-                            mv /var/www/html/ZanborPanelBot/bot_config.json /var/www/html/bot_config.json
+                            mv $BOT_CONFIG_JSON_PATH /var/www/html/bot_config.json
                             # mv /var/www/html/ZanborPanelBot/install/zanbor.install /var/www/html/zanbor.install
                             sleep 1
                             rm -r /var/www/html/ZanborPanelBot/
@@ -68,13 +68,13 @@ do
 
                             git clone $GITHUB_REPO_ADDRESS /var/www/html/ZanborPanelBot/
                             sudo chmod -R 777 /var/www/html/ZanborPanelBot/
-                            mv /var/www/html/bot_config.json /var/www/html/ZanborPanelBot/bot_config.json
-                            sudo chmod 777 /var/www/html/ZanborPanelBot/bot_config.json
+                            mv /var/www/html/bot_config.json $BOT_CONFIG_JSON_PATH
+                            sudo chmod 777 $BOT_CONFIG_JSON_PATH
                             # mv /var/www/html/zanbor.install /var/www/html/ZanborPanelBot/install/zanbor.install
                             sleep 2
                             
                             # content=$(cat /var/www/html/ZanborPanelBot/install/zanbor.install)
-                            content=$(cat $CONFIG_JSON)
+                            content=$(cat $BOT_CONFIG_JSON_PATH)
                             token=$(echo "$content" | jq -r '.token')
                             dev=$(echo "$content" | jq -r '.dev')
                             domain=$(echo "$content" | jq -r '.main_domin')
@@ -82,14 +82,14 @@ do
                             db_username=$(echo "$content" | jq -r '.database.db_username')
                             db_password=$(echo "$content" | jq -r '.database.db_password')
 
-                            source_file=$CONFIG_JSON
-                            destination_file="$CONFIG_JSON.tmp"
+                            source_file=$BOT_CONFIG_JSON_PATH
+                            destination_file="$BOT_CONFIG_JSON_PATH.tmp"
                             replace=$(cat "$source_file" | sed -e "s/\[\*TOKEN\*\]/${token}/g" -e "s/\[\*DEV\*\]/${dev}/g" -e "s/\[\*DB-NAME\*\]/${db_name}/g" -e "s/\[\*DB-USER\*\]/${db_username}/g" -e "s/\[\*DB-PASS\*\]/${db_password}/g")
                             echo "$replace" > "$destination_file"
                             mv "$destination_file" "$source_file"
 
                             sleep 1
-                            sudo chmod 777 /var/www/html/ZanborPanelBot/bot_config.json
+                            sudo chmod 777 $BOT_CONFIG_JSON_PATH
                             sleep 1
                             sudo chown -R www-data:www-data /var/www/html/ZanborPanelBot
                             sleep 1
@@ -97,7 +97,7 @@ do
                             curl --location "https://${domain}/ZanborPanelBot/sql/sql.php?db_password=${db_password}&db_name=${db_name}&db_username=${db_username}"
                             echo -e "\n"
                             # ============================= reset apache server and telegram webhook ============================= #
-                            echo "" > /var/www/html/ZanborPanelBot/Logs/error.log
+                            echo "" > /var/www/html/ZanborPanelBot/error.log
                             sudo systemctl restart apache2
                             curl -s -X POST "https://api.telegram.org/bot${token}/setWebhook"  -d url="https://${domain}/ZanborPanelBot/index.php" -d drop_pending_updates="true"
                             
@@ -148,11 +148,11 @@ do
             if [ "$answer" != "${answer#[Yy]}" ]; then
                 if [ -d "/var/www/html/ZanborPanelBot" ]; then
                     # if [ -f "/var/www/html/ZanborPanelBot/install/zanbor.install" ]; then
-                    if [ -f "/var/www/html/ZanborPanelBot/bot_config.json" ]; then
+                    if [ -f "$BOT_CONFIG_JSON_PATH" ]; then
                         # if [ -s "/var/www/html/ZanborPanelBot/install/zanbor.install" ]; then
-                        if [ -s "/var/www/html/ZanborPanelBot/bot_config.json" ]; then
+                        if [ -s "$BOT_CONFIG_JSON_PATH" ]; then
                             colorized_echo green "Please wait, Updating . . ."
-                            mv /var/www/html/ZanborPanelBot/bot_config.json /var/www/html/bot_config.json
+                            mv $BOT_CONFIG_JSON_PATH /var/www/html/bot_config.json
                             # mv /var/www/html/ZanborPanelBot/install/zanbor.install /var/www/html/zanbor.install
                             sleep 1
                             rm -r /var/www/html/ZanborPanelBot/
@@ -160,13 +160,13 @@ do
 
                             git clone $GITHUB_REPO_ADDRESS /var/www/html/ZanborPanelBot/
                             sudo chmod -R 777 /var/www/html/ZanborPanelBot/
-                            mv /var/www/html/bot_config.json /var/www/html/ZanborPanelBot/bot_config.json
-                            sudo chmod 777 /var/www/html/ZanborPanelBot/bot_config.json
+                            mv /var/www/html/bot_config.json $BOT_CONFIG_JSON_PATH
+                            sudo chmod 777 $BOT_CONFIG_JSON_PATH
                             # mv /var/www/html/zanbor.install /var/www/html/ZanborPanelBot/install/zanbor.install
                             sleep 2
                             
                             # content=$(cat /var/www/html/ZanborPanelBot/install/zanbor.install)
-                            content=$(cat $CONFIG_JSON)
+                            content=$(cat $BOT_CONFIG_JSON_PATH)
                             token=$(echo "$content" | jq -r '.token')
                             dev=$(echo "$content" | jq -r '.dev')
                             domain=$(echo "$content" | jq -r '.main_domin')
@@ -174,21 +174,21 @@ do
                             db_username=$(echo "$content" | jq -r '.database.db_username')
                             db_password=$(echo "$content" | jq -r '.database.db_password')
 
-                            source_file=$CONFIG_JSON
-                            destination_file="$CONFIG_JSON.tmp"
+                            source_file=$BOT_CONFIG_JSON_PATH
+                            destination_file="$BOT_CONFIG_JSON_PATH.tmp"
                             replace=$(cat "$source_file" | sed -e "s/\[\*TOKEN\*\]/${token}/g" -e "s/\[\*DEV\*\]/${dev}/g" -e "s/\[\*DB-NAME\*\]/${db_name}/g" -e "s/\[\*DB-USER\*\]/${db_username}/g" -e "s/\[\*DB-PASS\*\]/${db_password}/g")
                             echo "$replace" > "$destination_file"
                             mv "$destination_file" "$source_file"
 
                             sleep 1
-                            sudo chmod 777 /var/www/html/ZanborPanelBot/bot_config.json
+                            sudo chmod 777 $BOT_CONFIG_JSON_PATH
                             sleep 1
                             sleep 1
 
                             curl --location "https://${domain}/ZanborPanelBot/sql/sql.php?db_password=${db_password}&db_name=${db_name}&db_username=${db_username}"
                             echo -e "\n"
                             # ============================= reset apache server and telegram webhook ============================= #
-                            echo "" > /var/www/html/ZanborPanelBot/Logs/error.log
+                            echo "" > /var/www/html/ZanborPanelBot/error.log
                             sudo systemctl restart apache2
                             curl -s -X POST "https://api.telegram.org/bot${token}/setWebhook"  -d url="https://${domain}/ZanborPanelBot/index.php" -d drop_pending_updates="true"
                             

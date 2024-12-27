@@ -1,7 +1,7 @@
 #!/bin/bash
 
 GITHUB_REPO_ADDRESS='https://github.com/gitma99/zz-p.git'
-CONFIG_JSON='/var/www/html/ZanborPanelBot/bot_config.json'
+BOT_CONFIG_JSON_PATH='/var/www/html/ZanborPanelBot/config/bot_config.json'
 
 if [ "$(id -u)" -ne 0 ]; then
     echo -e "\033[33mPlease run as root\033[0m"
@@ -50,11 +50,11 @@ do
             if [ "$answer" != "${answer#[Yy]}" ]; then
                 if [ -d "/var/www/html/ZanborPanelBot" ]; then
                     # if [ -f "/var/www/html/ZanborPanelBot/install/zanbor.install" ]; then
-                    if [ -f "/var/www/html/ZanborPanelBot/bot_config.json" ]; then
+                    if [ -f "$BOT_CONFIG_JSON_PATH" ]; then
                         # if [ -s "/var/www/html/ZanborPanelBot/install/zanbor.install" ]; then
-                        if [ -s "/var/www/html/ZanborPanelBot/bot_config.json" ]; then
+                        if [ -s "$BOT_CONFIG_JSON_PATH" ]; then
                             apt install -y jq
-                            content=$(cat $CONFIG_JSON)
+                            content=$(cat $BOT_CONFIG_JSON_PATH)
                             token=$(echo "$content" | jq -r '.token')
                             dev=$(echo "$content" | jq -r '.dev')
                             domain=$(echo "$content" | jq -r '.main_domin')

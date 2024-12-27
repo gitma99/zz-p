@@ -112,7 +112,8 @@ wait
 
 git clone $GITHUB_REPO_ADDRESS /var/www/html/ZanborPanelBot
 sudo chmod -R 777 /var/www/html/ZanborPanelBot/
-sudo chmod 777 /var/www/html/ZanborPanelBot/bot_config.json
+BOT_CONFIG_JSON_PATH="/var/www/html/ZanborPanelBot/config/bot_config.json"
+sudo chmod 777 $BOT_CONFIG_JSON_PATH
 colorized_echo green "\n\tAll ZanborPanel robot files/folders have been successfully installed on your server!"
 
 wait
@@ -221,10 +222,10 @@ echo "{\"development\":\"@ZanborPanel\",\"install_location\":\"server\",\"main_d
 
 config_template_path="/var/www/html/ZanborPanelBot/Templates/bot_config_template.json"
 edited_config_file=$(cat "$config_template_path" | sed -e "s/\[\*DOMAIN\*\]/${DOMAIN}/g" -e "s/\[\*TOKEN\*\]/${TOKEN}/g" -e "s/\[\*DEV\*\]/${CHAT_ID}/g" -e "s/\[\*DB-NAME\*\]/${dbname}/g" -e "s/\[\*DB-USER\*\]/${dbuser}/g" -e "s/\[\*DB-PASS\*\]/${dbpass}/g")
-echo "$edited_config_file" > "/var/www/html/ZanborPanelBot/bot_config.json"
+echo "$edited_config_file" > $BOT_CONFIG_JSON_PATH
 
 sleep 1
-sudo chmod 777 /var/www/html/ZanborPanelBot/bot_config.json
+sudo chmod 777 $BOT_CONFIG_JSON_PATH
 sleep 1
 sudo chown -R www-data:www-data /var/www/html/ZanborPanelBot
 sleep 1

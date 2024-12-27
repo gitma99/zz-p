@@ -1,5 +1,6 @@
 #!/bin/bash
 
+BOT_CONFIG_JSON_PATH='/var/www/html/ZanborPanelBot/config/bot_config.json'
 
 colorized_echo() {
     local color=$1
@@ -40,21 +41,21 @@ do
             read -p "Are you sure you want to Backup? [y/n] : " answer
             if [ "$answer" != "${answer#[Yy]}" ]; then
                 if [ -d "/var/www/html/ZanborPanelBot" ]; then
-                    if [ -f "/var/www/html/ZanborPanelBot/bot_config.json" ]; then
-                        if [ -s "/var/www/html/ZanborPanelBot/bot_config.json" ]; then
+                    if [ -f "$BOT_CONFIG_JSON_PATH" ]; then
+                        if [ -s "$BOT_CONFIG_JSON_PATH" ]; then
 
                             sudo apt update && apt upgrade -y
                             sudo apt install jq -y
                             sudo apt install zip -y
                             
                             colorized_echo green "Please wait, Backuping . . ."
-                            content=$(cat "/var/www/html/ZanborPanelBot/bot_config.json")
+                            content=$(cat "$BOT_CONFIG_JSON_PATH")
                             db_name=$(echo "$content" | jq -r '.database.db_name')
                             db_username=$(echo "$content" | jq -r '.database.db_username')
                             db_password=$(echo "$content" | jq -r '.database.db_password')
                             mysqldump -u $db_username -p$db_password $db_name > /root/zz-p-sql.sql
                             if [ -f "/root/zz-p-sql.sql" ]; then
-                                zip /root/zz-p-backup.zip /var/www/html/ZanborPanelBot/bot_config.json /root/zz-p-sql.sql
+                                zip /root/zz-p-backup.zip $BOT_CONFIG_JSON_PATH /root/zz-p-sql.sql
                                 if [ -f "/root/zz-p-backup.zip" ]; then
                                     colorized_echo green "Backup Finshed. located in (/root/zz-p-baclup.zip)."
                                     exit 1
@@ -99,8 +100,8 @@ do
             read -p "Are you sure you want to Restore? [y/n] : " answer
             if [ "$answer" != "${answer#[Yy]}" ]; then
                 if [ -d "/var/www/html/ZanborPanelBot" ]; then
-                    if [ -f "/var/www/html/ZanborPanelBot/bot_config.json" ]; then
-                        if [ -s "/var/www/html/ZanborPanelBot/bot_config.json" ]; then
+                    if [ -f "$BOT_CONFIG_JSON_PATH" ]; then
+                        if [ -s "$BOT_CONFIG_JSON_PATH" ]; then
 
                             sudo apt update && apt upgrade -y
                             sudo apt install jq -y
@@ -116,9 +117,9 @@ do
                             fi
                             # ================== Restore bot_config.json ======================
                             if [ -f "/root/zz-p-backup.zip" ]; then
-                                cp "/root/extracted_data/var/www/html/ZanborPanelBot/bot_config.json" "/var/www/html/ZanborPanelBot/bot_config.json"
+                                cp "/root/extracted_data$BOT_CONFIG_JSON_PATH" "$BOT_CONFIG_JSON_PATH"
 
-                                content=$(cat "/var/www/html/ZanborPanelBot/bot_config.json")
+                                content=$(cat "$BOT_CONFIG_JSON_PATH")
                                 db_name=$(echo "$content" | jq -r '.database.db_name')
                                 db_username=$(echo "$content" | jq -r '.database.db_username')
                                 db_password=$(echo "$content" | jq -r '.database.db_password')
@@ -127,7 +128,7 @@ do
                                 exit 1
                             fi
 
-                            if [ "$(echo "$(cat "/var/www/html/ZanborPanelBot/bot_config.json")" | jq -r '.database.db_name')" = "$db_name" ]; then
+                            if [ "$(echo "$(cat "$BOT_CONFIG_JSON_PATH")" | jq -r '.database.db_name')" = "$db_name" ]; then
                                 # ================== Restore Database ======================
                                 mysql -e "CREATE USER '$db_username'@'localhost' IDENTIFIED BY '$db_password';GRANT ALL PRIVILEGES ON *.* TO '$db_username'@'localhost' WITH GRANT OPTION;FLUSH PRIVILEGES;"
                                 mysql -u $db_username -p$db_password -e "CREATE DATABASE $db_name" 

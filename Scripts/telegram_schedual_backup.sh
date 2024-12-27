@@ -3,6 +3,7 @@
 # CONFIG_JSON='/var/www/html/ZanborPanelBot/backup_service_config.json'
 target_time_zone='Asia/Tehran'
 CONFIG_JSON='/root/backup_service_config.json'
+BOT_CONFIG_JSON_PATH='/var/www/html/ZanborPanelBot/config/bot_config.json'
 
 telegram_config_content=$(cat $CONFIG_JSON)
 BOT_TOKEN=$(echo "$telegram_config_content" | jq -r '.token')
@@ -34,17 +35,17 @@ colorized_echo() {
 
 send_backup(){
         if [ -d "/var/www/html/ZanborPanelBot" ]; then
-        if [ -f "/var/www/html/ZanborPanelBot/bot_config.json" ]; then
-            if [ -s "/var/www/html/ZanborPanelBot/bot_config.json" ]; then
+        if [ -f "$BOT_CONFIG_JSON_PATH" ]; then
+            if [ -s "$BOT_CONFIG_JSON_PATH" ]; then
 
                 colorized_echo green "Please wait, Backuping . . ."
-                content=$(cat "/var/www/html/ZanborPanelBot/bot_config.json")
+                content=$(cat "$BOT_CONFIG_JSON_PATH")
                 db_name=$(echo "$content" | jq -r '.database.db_name')
                 db_username=$(echo "$content" | jq -r '.database.db_username')
                 db_password=$(echo "$content" | jq -r '.database.db_password')
                 mysqldump -u $db_username -p$db_password $db_name > /root/zz-p-sql.sql
                 if [ -f "/root/zz-p-sql.sql" ]; then
-                    zip /root/zz-p-backup.zip /var/www/html/ZanborPanelBot/bot_config.json /root/zz-p-sql.sql
+                    zip /root/zz-p-backup.zip $BOT_CONFIG_JSON_PATH /root/zz-p-sql.sql
                     if [ -f "/root/zz-p-backup.zip" ]; then
                         colorized_echo green "Backup Finshed. located in (/root/zz-p-baclup.zip)."
                         
