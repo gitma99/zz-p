@@ -34,7 +34,7 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/update.sh)
 - دستور زیر را وارد کنید
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/backup_service.sh)
+bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backup_service.sh)
 ```
 
 - گزینه 1 برای نصب سرویس بکاپ خودکار و راه اندازی آن
@@ -48,7 +48,7 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/backup_servic
 - دستور زیر را وارد کنید
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/backup.sh)
+bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backup.sh)
 ```
 
 - گزینه 1 را وارد کنید
@@ -61,7 +61,7 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/backup.sh)
 - دستور زیر را وارد کنید
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/backup.sh)
+bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backup.sh)
 ```
 
 - گزینه 2 را وارد کنید
@@ -75,7 +75,7 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/backup.sh)
 - دستور زیر رو برای ساخت یوزر جدید ارسال کنید.
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/phpmyadmin.sh)
+bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/phpmyadmin.sh)
 ```
 
 - بعد از اجرای این دستور باید یوزر برای آن انتخاب کنید (در صورت خالی گذاشتن به صورت پیشفرض `phpadmin` در نظر گرفته می شود).
@@ -84,7 +84,7 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/phpmyadmin.sh
 ## تعمیرات تخصصی
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/fix.sh)
+bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/fix.sh)
 ```
 
 - fix telegram webhook : درصورتی که ربات ارتباط خود را با تلگرام از دست داد اجرا شود

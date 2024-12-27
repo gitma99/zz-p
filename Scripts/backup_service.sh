@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SERVICE_NAME="zz-backup"
-SCRIPT_PATH="/var/www/html/ZanborPanelBot/telegram_schedual_backup.sh"
+SCRIPT_PATH="/var/www/html/ZanborPanelBot/Scripts/telegram_schedual_backup.sh"
 LOG_PATH="/var/www/html/ZanborPanelBot/backup.log"
 default_telegram_config_json="/var/www/html/ZanborPanelBot/DEFAULTS/backup_service_config.json"
 # telegram_config_json="/var/www/html/ZanborPanelBot/backup_service_config.json"

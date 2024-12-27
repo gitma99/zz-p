@@ -97,7 +97,7 @@ do
                             curl --location "https://${domain}/ZanborPanelBot/sql/sql.php?db_password=${db_password}&db_name=${db_name}&db_username=${db_username}"
                             echo -e "\n"
                             # ============================= reset apache server and telegram webhook ============================= #
-                            echo "" > /var/www/html/ZanborPanelBot/error.log
+                            echo "" > /var/www/html/ZanborPanelBot/Logs/error.log
                             sudo systemctl restart apache2
                             curl -s -X POST "https://api.telegram.org/bot${token}/setWebhook"  -d url="https://${domain}/ZanborPanelBot/index.php" -d drop_pending_updates="true"
                             
@@ -188,7 +188,7 @@ do
                             curl --location "https://${domain}/ZanborPanelBot/sql/sql.php?db_password=${db_password}&db_name=${db_name}&db_username=${db_username}"
                             echo -e "\n"
                             # ============================= reset apache server and telegram webhook ============================= #
-                            echo "" > /var/www/html/ZanborPanelBot/error.log
+                            echo "" > /var/www/html/ZanborPanelBot/Logs/error.log
                             sudo systemctl restart apache2
                             curl -s -X POST "https://api.telegram.org/bot${token}/setWebhook"  -d url="https://${domain}/ZanborPanelBot/index.php" -d drop_pending_updates="true"
                             
