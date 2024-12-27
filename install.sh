@@ -219,7 +219,7 @@ echo "{\"development\":\"@ZanborPanel\",\"install_location\":\"server\",\"main_d
 
 # ================================= Make bot_config file ===========================================
 
-config_template_path="/var/www/html/ZanborPanelBot/Templates/bot_config.json"
+config_template_path="/var/www/html/ZanborPanelBot/Templates/bot_config_template.json"
 edited_config_file=$(cat "$config_template_path" | sed -e "s/\[\*DOMAIN\*\]/${DOMAIN}/g" -e "s/\[\*TOKEN\*\]/${TOKEN}/g" -e "s/\[\*DEV\*\]/${CHAT_ID}/g" -e "s/\[\*DB-NAME\*\]/${dbname}/g" -e "s/\[\*DB-USER\*\]/${dbuser}/g" -e "s/\[\*DB-PASS\*\]/${dbpass}/g")
 echo "$edited_config_file" > "/var/www/html/ZanborPanelBot/bot_config.json"
 
