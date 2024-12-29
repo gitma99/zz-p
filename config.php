@@ -2,8 +2,8 @@
 date_default_timezone_set('Asia/Tehran');
 error_reporting(E_ALL ^ E_NOTICE);
 
-
-$config_json = file_get_contents("Config/bot_config.json");
+$BOT_CONFIG_PATH = "Config/bot_config.json";
+$config_json = file_get_contents($BOT_CONFIG_PATH);
 $config = json_decode($config_json, true);
 $config['version'] = '2.5';
 $config['domain'] = 'https://' . $_SERVER['HTTP_HOST'] . '/' . explode('/', explode('html/', $_SERVER['SCRIPT_FILENAME'])[1])[0];
