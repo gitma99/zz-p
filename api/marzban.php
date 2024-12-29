@@ -133,7 +133,19 @@ function createService($username, $limit, $expire_data, $proxies, $inbounds, $to
     }
     $response = curl_exec($ch);
     curl_close($ch);
-    return $response;
+    $paesed_reponse = json_decode($response, true);
+    
+    if (isset($paesed_reponse['detail'])) {
+        return [
+            false, $paesed_reponse['detail']
+        ];
+    } else {
+        return [$paesed_reponse, False];
+    }
+    // if (
+    //     isset($response['detail'])
+    //     && in_array($response['detail'], ['Could not validate credentials', 'Not authenticated'])
+    // )
 }
 
 function getUserInfo($sevice_name, $token, $url)
