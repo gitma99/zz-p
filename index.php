@@ -180,8 +180,6 @@ try {
                 exit(0);
             }
         }
-        ;
-
 
         if (isset($getUser[2])) {
             $repeated_db_order_code_count = $sql->query("SELECT `code` FROM `orders` WHERE `code` = '{$code_base}'")->num_rows;
