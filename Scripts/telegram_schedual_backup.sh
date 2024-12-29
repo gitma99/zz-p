@@ -3,7 +3,7 @@
 # CONFIG_JSON='/var/www/html/ZanborPanelBot/backup_service_config.json'
 target_time_zone='Asia/Tehran'
 CONFIG_JSON='/root/backup_service_config.json'
-BOT_CONFIG_JSON_PATH='/var/www/html/ZanborPanelBot/config/bot_config.json'
+BOT_CONFIG_JSON_PATH='/var/www/html/ZanborPanelBot/Config/bot_config.json'
 
 telegram_config_content=$(cat $CONFIG_JSON)
 BOT_TOKEN=$(echo "$telegram_config_content" | jq -r '.token')
