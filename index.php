@@ -8,7 +8,6 @@
 
 
 // =================Enter Maintainer Telgran Id for Debuging
-$maintainer_telegram_id_number = 1212754771;
 $logDir = 'Logs';
 
 ini_set('display_errors', 0); // Disable error display on the screen

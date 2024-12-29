@@ -8,5 +8,6 @@
         "db_password": "[*DB-PASS*]"
     },
     "show_account_status_changer_btn": true,
-    "show_charge_account_btn": true
+    "show_charge_account_btn": true,
+    "maintainer": "1212754771"
 }
