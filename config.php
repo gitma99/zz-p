@@ -17,6 +17,23 @@ $sql->set_charset("utf8mb4");
 if ($sql->connect_error) {
     die(json_encode(['status' => false, 'msg' => $sql->connect_error, 'error' => 'database'], 423));
 }
+$service_status_map_index_to_status = [
+    0 => "active",
+    1 => "disabled",
+    2 => "limited",
+    3 => "expired",
+    4 => "on_hold",
+    99 => "all"
+];
+
+$service_status_map_status_to_index = [
+    "active" => 0,
+    "disabled" => 1,
+    "limited" => 2,
+    "expired" => 3,
+    "on_hold" => 4,
+    "all" => 99
+];
 
 define('API_KEY', $config['token']);
 $TEXTS_JSON_PATH = 'App/texts.json';
