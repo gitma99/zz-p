@@ -187,3 +187,63 @@ function getUserInfo($sevice_name, $token, $url)
         $response
     ];
 }
+
+function getUsersInfo($token, $url, $list_offset, $max_list_count, $status, $sevice_names)
+{
+    if (!isset($token) || !is_string($token)){
+        throw new Exception("api.marzban.getUsersInfo: token is invalid ($token)", 1);
+    }
+    if (!isset($url) || !isset($url)){
+        throw new Exception("api.marzban.getUsersInfo: url is invalid ($url)", 1);
+    }
+
+    $list_offset = isset($list_offset) ? intval($list_offset) : 0;
+    $max_list_count = isset($max_list_count) ? intval($max_list_count) : 9999;
+    $api_url = $url . "/api/users?limit={$max_list_count}&offset={$list_offset}";
+    $api_url .= (isset($status) && !is_null($status)) ? "&status={$status}" : "";
+    if (isset($sevice_names)){
+        $service_names_query_string = "";
+        foreach($sevice_names as $service_name){
+            // $service_name = urlencode($service_name);
+            if ($service_names_query_string === ""){
+                $service_names_query_string .= "username={$service_name}";
+            } else {
+                $service_names_query_string .= "&username={$service_name}";
+            }
+        }
+        $api_url .= "&{$service_names_query_string}";
+    }
+    // $api_url = $url . "/api/users?limit={$max_list_count}&offset={$list_offset}&{$service_names_query_string}";
+    // if (!is_null($status)){
+    //     $api_url .= "&status={$status}";
+    // }
+//     // //============================ Debug code ================== START //
+// $debug_array = [$api_url];
+// send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448), 131757826, false);
+// // // ============================ Debug code ================== END //
+    $req_headers = array(
+        'Accept: application/json',
+        'Authorization: Bearer ' . $token,
+    );
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $api_url);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_HTTPGET, true);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $req_headers);
+    $response = curl_exec($ch);
+    if (is_bool($response)){
+        return [false, "curl_exec returned boolean (response = {$reponse})"];
+    }
+    $response = json_decode( $response, true);
+    curl_close($ch);
+
+    
+    if (isset($response['detail'])){
+        return [false, $response['detail']];
+    } else {
+        return [$response, false];
+    }
+}
