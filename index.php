@@ -26,7 +26,7 @@ try {
         exit(0);
     }
 
-    include_once 'api/sanayi.php';
+    // include_once 'api/sanayi.php';
     include_once 'api/marzban.php';
     include_once 'custom.php';
     # include_once  'api/hiddify.php';
