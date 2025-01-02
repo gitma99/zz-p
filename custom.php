@@ -1,6 +1,8 @@
 <?php
 $my_texts = $texts;
-$BOT_CONFIG = json_decode(file_get_contents("Config/bot_config.json"), true);
+require_once __DIR__ . "/App/vars.php";
+
+$BOT_CONFIG = json_decode(file_get_contents($BOT_CONFIG_PATH), true);
 
 function get_users_usage($user_id)
 {
@@ -65,10 +67,9 @@ function get_users_usage($user_id)
 
 function modify_bot_config()
 {
-    global $BOT_CONFIG;
-    $json_file_name = "Config/bot_config.json";
+    global $BOT_CONFIG, $BOT_CONFIG_PATH;
     $bot_config_data_json = json_encode($BOT_CONFIG, JSON_PRETTY_PRINT);
-    file_put_contents($json_file_name, $bot_config_data_json);
+    file_put_contents($BOT_CONFIG_PATH, $bot_config_data_json);
 }
 ;
 

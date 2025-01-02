@@ -1,8 +1,9 @@
 <?php
+require_once __DIR__ . "/App/vars.php";
+
 date_default_timezone_set('Asia/Tehran');
 error_reporting(E_ALL ^ E_NOTICE);
 
-$BOT_CONFIG_PATH = "Config/bot_config.json";
 $config_json = file_get_contents($BOT_CONFIG_PATH);
 $config = json_decode($config_json, true);
 $config['version'] = '2.5';
