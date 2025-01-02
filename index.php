@@ -20,6 +20,8 @@ try {
     require_once __DIR__ . "/App/apis/telegram-api/functions/send_alert.php";
     require_once __DIR__ . "/App/apis/telegram-api/functions/send_file.php";
     require_once __DIR__ . "/App/apis/telegram-api/functions/send_message.php";
+    require_once __DIR__ . "/App/Utils/temp_tools.php";
+
     require_once 'config.php';
     if (!isset($from_id)) {
         readfile("Templates/under_maintenance.html");
@@ -598,8 +600,9 @@ try {
                 }
                 $key[] = [
                     'text' => $status . $row['code'] . ' - ' . $mysql_service_panel['name'],
-                    'callback_data' => "^serv_stat@my_services_menu {$service_base_name} {$status_index} {$panel_row} {$current_list_index}"
+                    'callback_data' => "^serv_stat@my_services_menu 0 {$status_index} {$panel_row} {$current_list_index}"
                 ];
+                write_temp_file(json_encode([$service_base_name], 448), "srv-list--{$from_id}.txt", FALSE);
 
             }
             $found_services_keys = array_chunk($key, 1);
@@ -746,6 +749,7 @@ try {
             }
 
             $list_keys = null;
+            $base_names_index_mapper = [];
             foreach($panel_res[0]['users'] as $service_info) {
                 $status = null;
                 switch ($service_info['status']) {
@@ -770,10 +774,13 @@ try {
                 }
                 $service_base_name = substr($service_info['username'], 0, -strlen("_{$from_id}"));
                 $tel_but_callback = "";
+
+                $base_names_index_mapper[] = $service_base_name;
+                $base_name_index = array_search($service_base_name, $base_names_index_mapper);
                 $list_keys[] = [
                     'text' => "{$status}{$service_base_name} - {$panel_name}",
                     // 'callback_data' => "serv_stat-{$service_base_name}-srv_lst {$list_status_type_index} {$panel_row} {$current_list_index}"
-                    'callback_data' => "^serv_stat@srv_lst@{$previous_menu} {$service_base_name} {$list_status_type_index} {$panel_row} {$current_list_index}"
+                    'callback_data' => "^serv_stat@srv_lst@{$previous_menu} {$base_name_index} {$list_status_type_index} {$panel_row} {$current_list_index}"
                 ];
                 // $service_base_name = explode('__', $data);
                 // if ($token_acccepted == false){
@@ -781,7 +788,7 @@ try {
                 // } elseif ($user_existed == false){
                 //     $status = '❌';
             }
-
+            write_temp_file(json_encode($base_names_index_mapper, 448), "srv-list--{$from_id}.txt", FALSE);
             $current_list_buttons = array_chunk($list_keys, 1);
             $service_list_number = $current_list_index + 1;
 
@@ -1101,7 +1108,9 @@ try {
 
         $callback_parts = explode(' ', $data);
         $previous_menu = substr($callback_parts[0],strpos($callback_parts[0],"@") + 1);
-        $code_base = $callback_parts[1];
+        $code_base_index = intval($callback_parts[1]);
+        $code_base = read_temp_file("srv-list--{$from_id}.txt",TRUE)[0][$code_base_index];
+        unlink("srv-list--{$from_id}.txt");
         $code = "{$code_base}_{$from_id}";
 
         $getService = $sql->query("SELECT * FROM `orders` WHERE `code` = '$code_base'")->fetch_assoc();
@@ -3516,6 +3525,7 @@ try {
     $init_msg .= "⭕ USER_NAME: {$username}";
     // ================= Send debug array
     send_debug_msg_to_maintainer($init_msg, $maintainer_telegram_id_number);
+    send_debug_msg_to_maintainer(json_encode($report, 448), $maintainer_telegram_id_number);
     send_debug_data_to_maintainer(json_encode($report, 448), $maintainer_telegram_id_number,TRUE);
     sendMessage($from_id, $texts['error_encounter_msg']);
 }
