@@ -648,10 +648,7 @@ try {
         $panel_row = intval($callback_parts[2]);
         $panel_name = $sql->query("SELECT `name` FROM `panels` WHERE `row` = {$panel_row}")->fetch_all(MYSQLI_ASSOC)[0]['name'];
         $current_list_index = intval($callback_parts[3]);
-                // //============================ Debug code ================== START //
-        $debug_array = [$list_status_type];
-        // send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448), 131757826, true);
-        // // ============================ Debug code ================== END //
+
         switch ($list_status_type) {
             case "all":
                 $list_status_type__text = $texts["status__all"];
@@ -691,10 +688,7 @@ try {
         //     $current_list_index = 0;
         // }
         $cuurent_list_number = $current_list_index + 1;
-        // //============================ Debug code ================== START //
-        // $debug_array = [$list_status_type__text];
-        // send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448), 131757826, false);
-        // // ============================ Debug code ================== END //
+
         if ($cuurent_list_number < 1) {
             alert($texts["show_service_list__error__no_service_list_available"]);
             exit(0);
@@ -787,10 +781,6 @@ try {
                 // } elseif ($user_existed == false){
                 //     $status = '❌';
             }
-            // //============================ Debug code ================== START //
-            // $debug_array = ["panel__total_services_found_count" =>$panel__total_services_found_count];
-            // send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448), $from_id, False);
-            // // ============================ Debug code ================== END //
 
             $current_list_buttons = array_chunk($list_keys, 1);
             $service_list_number = $current_list_index + 1;
@@ -953,10 +943,6 @@ try {
 //                     $user_existed = false;
 //                 }
 
-//                 // //============================ Debug code ================== START //
-// $debug_array = ["username={$curlResponse['username']}"];
-// send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448), $from_id, false);
-// // // ============================ Debug code ================== END //
 //                 if ($token_acccepted == false){
 //                     $status = '❗️';
 //                 } elseif ($user_existed == false){
@@ -1119,10 +1105,7 @@ try {
         $code = "{$code_base}_{$from_id}";
 
         $getService = $sql->query("SELECT * FROM `orders` WHERE `code` = '$code_base'")->fetch_assoc();
-            //============================ Debug code ================== START //
-            $debug_array = [$callback_parts];
-            // send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448), $from_id, yes);
-            // ============================ Debug code ================== END //
+
         if ($getService['type'] == 'marzban') {
 
             $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '{$getService['location']}'")->fetch_assoc();
