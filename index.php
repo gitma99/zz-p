@@ -3493,25 +3493,29 @@ try {
         $error_msg = $recived_error_msg;
     }
     // ================= Generate debug array
-    $user_data = [
-        "chat_id" => $from_id,
-        'user_name' => $username,
-        'step' => $user['step'],
-        'update' => $update,
-        'data' => $data,
-        'text' => $text,
+    $report = [
+        "USER-DATA" => [
+            "chat_id" => $from_id,
+            'user_name' => $username,
+            'step' => $user['step'],
+            'update' => $update,
+            'data' => $data,
+            'text' => $text,
+        ],
+        "EXCEPTION-DATA" => [
+            'error_calss' => get_class($e),
+            'error_msg' => $error_msg,
+            'error_file' => $e->getFile(),
+            'error_line' => $e->getLine(),
+            'error_trace' => $e->getTrace(),
+            'error_trace_string' => $e->getTraceAsString(),
+        ]
     ];
-    $error_data = [
-        'error_calss' => get_class($e),
-        'error_msg' => $error_msg,
-        'error_file' => $e->getFile(),
-        'error_line' => $e->getLine(),
-        'error_trace' => $e->getTrace(),
-        'error_trace_string' => $e->getTraceAsString(),
-    ];
+    $init_msg = "☢ FATAL_ERROR ☢\n\n";
+    $init_msg .= "⭕ USER_ID: {$from_id}\n";
+    $init_msg .= "⭕ USER_NAME: {$username}";
     // ================= Send debug array
-    send_debug_msg_to_maintainer("Faital Error Detected:\n\n", $maintainer_telegram_id_number);
-    send_debug_msg_to_maintainer(json_encode($user_data, 448), $maintainer_telegram_id_number);
-    send_debug_msg_to_maintainer(json_encode($error_data, 448), $maintainer_telegram_id_number);
+    send_debug_msg_to_maintainer($init_msg, $maintainer_telegram_id_number);
+    send_debug_data_to_maintainer(json_encode($report, 448), $maintainer_telegram_id_number,TRUE);
     sendMessage($from_id, $texts['error_encounter_msg']);
 }
