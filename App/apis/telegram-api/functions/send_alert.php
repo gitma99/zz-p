@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../utils/api_utils.php';
+
 function alert($text, $show = true)
 {
     global $query_id;

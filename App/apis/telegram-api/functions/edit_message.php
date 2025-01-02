@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../utils/api_utils.php';
+
 function editMessage($chat_id, $text, $message_id, $keyboard = null, $mrk = 'html')
 {
     $params = [

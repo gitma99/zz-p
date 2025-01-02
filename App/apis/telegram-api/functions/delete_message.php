@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../utils/api_utils.php';
+
 function deleteMessage($chat_id, $message_id, $only_handler = false)
 {
     $params = [

@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../utils/api_utils.php';
+
 function sendFile($chat_id, $file_path, $file_name, $mime_type, $api_key = API_KEY)
 {
     $params = [
