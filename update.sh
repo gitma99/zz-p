@@ -67,6 +67,8 @@ do
                             colorized_echo green "\nAll file and folder deleted for update bot . . .\n"
 
                             git clone $GITHUB_REPO_ADDRESS /var/www/html/ZanborPanelBot/
+                            mkdir /var/www/html/ZanborPanelBot/Logs
+                            mkdir /var/www/html/ZanborPanelBot/Temp
                             sudo chmod -R 777 /var/www/html/ZanborPanelBot/
                             mv /var/www/html/bot_config.json $BOT_CONFIG_JSON_PATH
                             sudo chmod 777 $BOT_CONFIG_JSON_PATH
@@ -159,6 +161,8 @@ do
                             colorized_echo green "\nAll file and folder deleted for update bot . . .\n"
 
                             git clone $GITHUB_REPO_ADDRESS /var/www/html/ZanborPanelBot/
+                            mkdir /var/www/html/ZanborPanelBot/Logs
+                            mkdir /var/www/html/ZanborPanelBot/Temp
                             sudo chmod -R 777 /var/www/html/ZanborPanelBot/
                             mv /var/www/html/bot_config.json $BOT_CONFIG_JSON_PATH
                             sudo chmod 777 $BOT_CONFIG_JSON_PATH

@@ -112,8 +112,9 @@ sudo systemctl restart apache2.service
 wait
 
 git clone $GITHUB_REPO_ADDRESS /var/www/html/ZanborPanelBot
+mkdir /var/www/html/ZanborPanelBot/Logs
+mkdir /var/www/html/ZanborPanelBot/Temp
 sudo chmod -R 777 /var/www/html/ZanborPanelBot/
-BOT_CONFIG_JSON_PATH="/var/www/html/ZanborPanelBot/config/bot_config.json"
 sudo chmod 777 $BOT_CONFIG_JSON_PATH
 colorized_echo green "\n\tAll ZanborPanel robot files/folders have been successfully installed on your server!"
 
