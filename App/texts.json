@@ -127,6 +127,7 @@
   "sign__disabled": "❌",
   "sign__limited": "🪫",
   "sign__expired": "🕔",
+  "sign__deleted": "🗑",
   "sign__on_hold": "(OH)",
   "sign__online": "🟢",
   "sign__offline": "📴",

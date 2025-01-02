@@ -592,7 +592,7 @@ try {
                         if ($getUserInfoRes[0] == false){
                             $status = '❗️';
                         } elseif ($getUserInfoRes[1] == false){
-                            $status = '❌';
+                            $status = $texts['sign__deleted'];
                         } else {
                             $status = '❗️❗️';
                         }
