@@ -148,6 +148,78 @@ function createService($username, $limit, $expire_data, $proxies, $inbounds, $to
     // )
 }
 
+function resetUserDataUsage($username, $token, $url)
+{
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url . '/api/user/' . $username . '/reset');
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token));
+    $response = json_decode(curl_exec($ch), true);
+    curl_close($ch);
+    return $response;
+}
+
+function getSystemStatus($token, $url)
+{
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url . '/api/system');
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_HTTPGET, true);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token));
+    $response = json_decode(curl_exec($ch), true);
+    curl_close($ch);
+    return $response;
+}
+
+function removeuser($username, $token, $url)
+{
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url . '/api/user/' . $username);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+    curl_setopt($ch, CURLOPT_HTTPGET, true);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token));
+    $response = json_decode(curl_exec($ch), true);
+    curl_close($ch);
+    return $response;
+}
+
+function Modifyuser($username, $data, $token, $url)
+{
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url . '/api/user/' . $username);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token, 'Content-Type: application/json'));
+    $response = json_decode(curl_exec($ch), true);
+    curl_close($ch);
+    return $response;
+}
+
+function inbounds($token, $url)
+{
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url . '/api/inbounds');
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token, 'Content-Type: application/json'));
+    $response = json_decode(curl_exec($ch), true);
+    curl_close($ch);
+    return $response;
+}
+
 function getUserInfo($sevice_name, $token, $url)
 {
     $api_url = $url . '/api/user/' . $sevice_name;
