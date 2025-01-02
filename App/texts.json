@@ -129,7 +129,7 @@
   "sign__expired": "🕔",
   "sign__on_hold": "(OH)",
   "sign__online": "🟢",
-  "sign__offline": "🔴",
+  "sign__offline": "😴",
   "status__active": "فعال ✅",
   "status__disabled": "غیر فعال 🔴",
   "status__limited": "اتمام حجم 🪫",
