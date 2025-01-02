@@ -1,14 +1,6 @@
 <?php
-
-
-// //============================ Debug code ================== START //
-// $debug_array = [];
-// send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448), $from_id, false);
-// // ============================ Debug code ================== END //
-
-
-// =================Enter Maintainer Telgran Id for Debuging
-$logDir = 'Logs';
+// send_multiple_debug_msg_to_maintainer( $from_id, false, "START","","END");
+require_once __DIR__ . "/App/vars.php";
 
 ini_set('display_errors', 0); // Disable error display on the screen
 ini_set('log_errors', 1); // Enable error logging to a file
@@ -117,7 +109,7 @@ try {
             $plan = array_chunk($plan, 2);
             $plan[] = [['text' => '🔙 بازگشت']];
             $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
-            file_put_contents("$from_id-location.txt", $text);
+            file_put_contents("{$TEMP_DIR_PATH}/$from_id-location.txt", $text);
             sendMessage($from_id, $texts['select_plan'], $plan);
         }
     } elseif ($user['step'] == 'select_plan') {
@@ -135,7 +127,7 @@ try {
             step('choose_name');
             $_keyboard_btns = [[['text' => '🔙 بازگشت']]];
             $_keyboard = json_encode(['keyboard' => $_keyboard_btns, 'resize_keyboard' => true]);
-            file_put_contents("$from_id-plan.txt", $text);
+            file_put_contents("{$TEMP_DIR_PATH}/$from_id-plan.txt", $text);
             sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $_keyboard);
         }
     } elseif ($user['step'] == 'choose_name') {
@@ -144,13 +136,13 @@ try {
 
 
 
-        $plan_name = file_get_contents("$from_id-plan.txt");
+        $plan_name = file_get_contents("{$TEMP_DIR_PATH}/$from_id-plan.txt");
         $response = $sql->query("SELECT `name` FROM `category` WHERE `name` = '$plan_name'")->num_rows;
         if ($response == 0) {
             sendMessage($from_id, $texts['choice_error']);
         }
 
-        $location = file_get_contents("$from_id-location.txt");
+        $location = file_get_contents("{$TEMP_DIR_PATH}/$from_id-location.txt");
         $plan = $plan_name;
         $code_base = $selected_name;
         $code = $code_base . '_' . $from_id;
@@ -257,9 +249,9 @@ try {
         step('none');
         sendMessage($from_id, $texts['create_service_proccess']);
         # ---------------- delete extra files ---------------- #
-        foreach ([$from_id . '-location.txt', $from_id . '-protocol.txt', $from_id . '-plan.txt', $from_id . '-service-name.txt'] as $file)
-            if (file_exists($file))
-                unlink($file);
+        foreach (["{$from_id}-location.txt", "{$from_id}-protocol.txt", "{$from_id}-plan.txt", "{$from_id}-service-name.txt"] as $file_name)
+            if (file_exists($TEMP_DIR_PATH . "/{$file_name}"))
+                unlink($TEMP_DIR_PATH . "/{$file_name}");
         # ---------------- get all information for create service ---------------- #
         $select_service = $sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->fetch_assoc();
         $location = $select_service['location'];
