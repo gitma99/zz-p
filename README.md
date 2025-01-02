@@ -48,6 +48,10 @@ bash /var/www/html/ZanborPanelBot/update.sh
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backup_service.sh)
 ```
+آفلاین:
+```bash
+bash /var/www/html/ZanborPanelBot/Scripts/backup_service.sh
+```
 
 - گزینه 1 برای نصب سرویس بکاپ خودکار و راه اندازی آن
 - گزینه 2 برای حذف سرویس بکاپ خودکار
@@ -63,6 +67,10 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backu
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backup.sh)
 ```
+آفلاین:
+```bash
+bash /var/www/html/ZanborPanelBot/Scripts/backup.sh
+```
 
 - گزینه 1 را وارد کنید
 - صبر کنید تمام شود
@@ -76,6 +84,10 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backu
 آنلاین:
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backup.sh)
+```
+آفلاین:
+```bash
+bash /var/www/html/ZanborPanelBot/Scripts/backup.sh
 ```
 
 - گزینه 2 را وارد کنید
