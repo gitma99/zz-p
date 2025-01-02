@@ -195,7 +195,7 @@ do
                             echo "" > /var/www/html/ZanborPanelBot/error.log
                             
                             colorized_echo blue "\n\nMigrating:"
-                            curl "https://${DOMAIN}/ZanborPanelBot/migrate.php"
+                            curl --insecure https://127.0.0.1/ZanborPanelBot/migrate.php
 
                             sudo systemctl restart apache2
                             curl -s -X POST "https://api.telegram.org/bot${token}/setWebhook"  -d url="https://${domain}/ZanborPanelBot/index.php" -d drop_pending_updates="true"
