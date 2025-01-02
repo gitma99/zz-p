@@ -516,24 +516,6 @@ function generateUUID()
     );
 }
 
-function loginPanelSanayi($address, $username, $password)
-{
-    $ch = curl_init();
-    curl_setopt_array($ch, [
-        CURLOPT_URL => $address . '/login',
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_SSL_VERIFYHOST => false,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => http_build_query(['username' => $username, 'password' => $password]),
-        CURLOPT_COOKIEJAR => 'cookie.txt',
-    ]);
-    $response = json_decode(curl_exec($ch), true);
-    curl_close($ch);
-    return $response;
-}
-
 function checkInbound($inbounds, $inbound)
 {
     $inbounds = json_decode($inbounds, true);
