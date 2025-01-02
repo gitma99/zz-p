@@ -131,8 +131,10 @@ do
                             if [ "$(echo "$(cat "$BOT_CONFIG_JSON_PATH")" | jq -r '.database.db_name')" = "$db_name" ]; then
                                 # ================== Restore Database ======================
                                 mysql -e "CREATE USER '$db_username'@'localhost' IDENTIFIED BY '$db_password';GRANT ALL PRIVILEGES ON *.* TO '$db_username'@'localhost' WITH GRANT OPTION;FLUSH PRIVILEGES;"
-                                mysql -u $db_username -p$db_password -e "CREATE DATABASE $db_name" 
+                                mysql -u $db_username -p$db_password -e "CREATE DATABASE $db_name;"
                                 mysql -u $db_username -p$db_password $db_name < /root/extracted_data/root/zz-p-sql.sql
+                                rm -fr /root/extracted_data
+                                systemctl restart apache2
                                 if [ true ]; then
                                     colorized_echo green "Restore Finshed."
                                 else
