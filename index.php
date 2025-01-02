@@ -320,12 +320,12 @@ try {
                 exit();
             }
             $create_service = createService($name, convertToBytes($limit . 'GB'), strtotime("+ $date day"), $proxies, ($panel_inbounds->num_rows > 0) ? $inbounds : 'null', $token, $panel['login_link']);
-            $create_status = json_decode($create_service, true);
             # ---------------- check errors ---------------- #
             if ($create_service[1] !== False){
                 sendMessage($from_id, sprintf($texts['create_error'], 1), $start_key);
                 throw new Exception($create_service[1], 1);
             }
+            $create_status = $create_service[0];
             # ---------------- get links and subscription_url for send the user ---------------- #
             $links = "";
             foreach ($create_status['links'] as $link)
