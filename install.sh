@@ -1,6 +1,7 @@
 #!/bin/bash
 
 GITHUB_REPO_ADDRESS='https://github.com/gitma99/zz-p.git'
+BOT_CONFIG_JSON_PATH="/var/www/html/ZanborPanelBot/bot_config.json"
 
 if [ "$(id -u)" -ne 0 ]; then
     echo -e "\033[33mPlease run as root\033[0m"

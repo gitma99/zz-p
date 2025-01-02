@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BOT_CONFIG_JSON_PATH='/var/www/html/ZanborPanelBot/Config/bot_config.json'
+BOT_CONFIG_JSON_PATH='/var/www/html/ZanborPanelBot/bot_config.json'
 
 colorized_echo() {
     local color=$1
