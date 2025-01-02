@@ -12,16 +12,19 @@ error_reporting(E_ALL); // Set the error reporting level as needed
 date_default_timezone_set("UTC");
 
 try {
-    include_once 'config.php';
+    require_once __DIR__ . "/App/Debug/debug.php";
+    require_once __DIR__ . "/App/apis/telegram-api/api.php";
+    require_once 'config.php';
     if (!isset($from_id)) {
         readfile("Templates/under_maintenance.html");
         exit(0);
     }
-
-    // include_once 'api/sanayi.php';
-    include_once 'api/marzban.php';
-    include_once 'custom.php';
-    # include_once  'api/hiddify.php';
+    
+    require_once __DIR__ . '/App/apis/marzban-api/api.php';
+    require_once __DIR__ . '/custom.php';
+    require_once __DIR__ . "/App/index_maps.php";
+    // require_once __DIR__ . '/api/sanayi.php';
+    // require_once  __DIR__ . '/api/hiddify.php';
 
     if ($data == 'join') {
         if (isJoin($from_id)) {
