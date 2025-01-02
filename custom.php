@@ -2,30 +2,6 @@
 $my_texts = $texts;
 $BOT_CONFIG = json_decode(file_get_contents("Config/bot_config.json"), true);
 
-function send_debug_data_to_maintainer($text_string, $dev_id, $exit = false)
-{
-    $file_name = `debug_` . time() . `.txt`;
-    file_put_contents($file_name, $text_string);
-    sendFile($dev_id, $file_name, $file_name, 'text/plain');
-    unlink($file_name);
-    if ($exit) {
-        exit(0);
-    }
-    ;
-}
-
-function send_debug_msg_to_maintainer($text, $dev_id, $exit = false)
-{
-    $bot_response = sendMessage($dev_id, $text);
-    if ($bot_response["ok"] == false) {
-        return send_debug_data_to_maintainer($text, $exit);
-    }
-    if ($exit) {
-        exit(0);
-    }
-    ;
-}
-
 function get_users_usage($user_id)
 {
     global $from_id, $sql, $my_texts;
