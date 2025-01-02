@@ -8,7 +8,7 @@
 - اسکریپت های آقلاین : زمانی که ربات در سرور مورد نظر نصب شده باشد
 
 
-آتلاین:
+آنلاین:
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/install.sh)
 ```
