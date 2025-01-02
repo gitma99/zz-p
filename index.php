@@ -13,7 +13,13 @@ date_default_timezone_set("UTC");
 
 try {
     require_once __DIR__ . "/App/Debug/debug.php";
-    require_once __DIR__ . "/App/apis/telegram-api/api.php";
+    // require_once __DIR__ . "/App/apis/telegram-api/api.php";
+    require_once __DIR__ . "/App/apis/telegram-api/functions/delete_message.php";
+    require_once __DIR__ . "/App/apis/telegram-api/functions/edit_message.php";
+    require_once __DIR__ . "/App/apis/telegram-api/functions/forward_message.php";
+    require_once __DIR__ . "/App/apis/telegram-api/functions/send_alert.php";
+    require_once __DIR__ . "/App/apis/telegram-api/functions/send_file.php";
+    require_once __DIR__ . "/App/apis/telegram-api/functions/send_message.php";
     require_once 'config.php';
     if (!isset($from_id)) {
         readfile("Templates/under_maintenance.html");
