@@ -4,10 +4,10 @@ require_once __DIR__ . "/App/vars.php";
 
 ini_set('display_errors', 0); // Disable error display on the screen
 ini_set('log_errors', 1); // Enable error logging to a file
-if (!is_dir($logDir)) {
-    mkdir($logDir, 0777, true); // Create directory with recursive permissions
+if (!is_dir($LOG_DIR_PATH)) {
+    mkdir($LOG_DIR_PATH, 0777, true); // Create directory with recursive permissions
 }
-ini_set('error_log', $logDir . '/error.log'); // Specify the path to the error log file
+ini_set('error_log', $LOG_DIR_PATH . '/error.log'); // Specify the path to the error log file
 error_reporting(E_ALL); // Set the error reporting level as needed
 date_default_timezone_set("UTC");
 
