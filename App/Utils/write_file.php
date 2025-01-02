@@ -4,7 +4,9 @@ function write_file($content, $file_path, $json_encode = False){
     //     return "NOT A FILE PATH!";
     // }
     if ($json_encode){
+
         return file_put_contents($file_path, json_encode($content, JSON_PRETTY_PRINT));
+        // return file_put_contents($file_path, json_encode($content_array, 448));
     } else {
         return file_put_contents($file_path, $content);
     }
