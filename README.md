@@ -31,10 +31,6 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/install.sh)
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/update.sh)
 ```
-آفلاین:
-```bash
-bash /var/www/html/ZanborPanelBot/update.sh
-```
 
 - گزینه 1 برای آپدیت ربات
 - گزینه 2 برای حذف ربات
