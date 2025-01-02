@@ -455,7 +455,10 @@ try {
         } else {
             sendMessage($from_id, $texts['already_test_account'], $start_key);
         }
-    } elseif ($text == '🛍 سرویس های من' or in_array($data, array('^my_services_menu', '^back_my_services_menu_from_all_services'))) {
+    } elseif (
+        $text == '🛍 سرویس های من'
+        or in_array($data, array('^my_services_menu', '^back_my_services_menu_from_all_services'))
+        or strpos($data, '^my_services_menu') !== false) {
         step('none');
         $key = [
             [
@@ -558,25 +561,30 @@ try {
                 $service_base_name = $row['code'];
                 $service_name = $row['code'] . "_" . $from_id;
                 $service_location = $row['location'];
-                $mysql_service_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();
-                ;
+                $mysql_service_panel = $sql->query("SELECT `row`, `name`, `login_link` FROM `panels` WHERE `name` = '$service_location'")->fetch_assoc();
+                $panel_row = intval($mysql_service_panel['row']);
                 $getUserInfoRes = getUserInfo($service_name, get_marzban_panel_token($service_location), $mysql_service_panel['login_link']);
 
                 switch ($getUserInfoRes[2]['status']) {
                     case "active":
                         $status = $texts['sign__active'];
+                        $status_index = $service_status_map_status_to_index['active'];
                         break;
                     case "disabled":
                         $status = $texts['sign__disabled'];
+                        $status_index = $service_status_map_status_to_index['disabled'];
                         break;
                     case "limited":
                         $status = $texts['sign__limited'];
+                        $status_index = $service_status_map_status_to_index['limited'];
                         break;
                     case "expired":
                         $status = $texts['sign__expired'];
+                        $status_index = $service_status_map_status_to_index['expired'];
                         break;
                     case "on_hold":
                         $status = $texts['sign__on_hold'];
+                        $status_index = $service_status_map_status_to_index['on_hold'];
                         break;
                     default:
                         if ($getUserInfoRes[0] == false){
@@ -588,7 +596,11 @@ try {
                         }
                         break;
                 }
-                $key[] = ['text' => $status . $row['code'] . ' - ' . $row['location'], 'callback_data' => 'serv_stat-' . $row['code'] . '-' . "my_services_menu"];
+                $key[] = [
+                    'text' => $status . $row['code'] . ' - ' . $mysql_service_panel['name'],
+                    'callback_data' => "^serv_stat@my_services_menu {$service_base_name} {$status_index} {$panel_row} {$current_list_index}"
+                ];
+
             }
             $found_services_keys = array_chunk($key, 1);
             $found_services_keyboard = json_encode(['inline_keyboard' => $found_services_keys]);
@@ -767,7 +779,6 @@ try {
                 $list_keys[] = [
                     'text' => "{$status}{$service_base_name} - {$panel_name}",
                     // 'callback_data' => "serv_stat-{$service_base_name}-srv_lst {$list_status_type_index} {$panel_row} {$current_list_index}"
-                    // 'callback_data' => "^serv_stat@{$previous_menu} {$service_base_name} {$list_status_type_index} {$panel_row} {$current_list_index}"
                     'callback_data' => "^serv_stat@srv_lst@{$previous_menu} {$service_base_name} {$list_status_type_index} {$panel_row} {$current_list_index}"
                 ];
                 // $service_base_name = explode('__', $data);
