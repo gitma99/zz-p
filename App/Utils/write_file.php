@@ -1,10 +1,12 @@
 <?php
-function write_file($content, $path, $json_encode = False){
+function write_file($content, $file_path, $json_encode = False){
+    // if (!is_file($path)){
+    //     return "NOT A FILE PATH!";
+    // }
     if ($json_encode){
-        file_put_contents($path, json_encode($content, JSON_PRETTY_PRINT));
+        return file_put_contents($file_path, json_encode($content, JSON_PRETTY_PRINT));
     } else {
-        file_put_contents($path, $content);
+        return file_put_contents($file_path, $content);
     }
-    return null;
 }
 ?>
