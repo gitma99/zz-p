@@ -1,3 +1,4 @@
 /Config/
-*.log
+/Logs/
+/Temp/
 zanbor.install
