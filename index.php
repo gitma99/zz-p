@@ -510,9 +510,10 @@ try {
                     'callback_data' => "^loc_lst@stat_lst {$service_status_map_status_to_index['active']}"
                 ],
                 [
-                    'text' => $texts["status__on_hold"],
-                    'callback_data' => "^loc_lst@stat_lst {$service_status_map_status_to_index['on_hold']}"
+                    'text' => $texts["status__expired"],
+                    'callback_data' => "^loc_lst@stat_lst {$service_status_map_status_to_index['expired']}"
                 ]
+
             ],
             [
                 [
@@ -524,12 +525,12 @@ try {
                     'callback_data' => "^loc_lst@stat_lst {$service_status_map_status_to_index['limited']}"
                 ]
             ],
-            [
-                [
-                    'text' => $texts["status__expired"],
-                    'callback_data' => "^loc_lst@stat_lst {$service_status_map_status_to_index['expired']}"
-                ]
-            ],
+            // [
+            //     [
+            //         'text' => $texts["status__on_hold"],
+            //         'callback_data' => "^loc_lst@stat_lst {$service_status_map_status_to_index['on_hold']}"
+            //     ]
+            // ],
             [
                 [
                     'text' => '🔙 بازگشت',
@@ -681,7 +682,7 @@ try {
                 $list_status_type__text = 'UNKNOWN';
                 $api_status_parameter = null;
         }
-        $max_list_length = 10; // todo: configurable
+        $max_list_length = 20; // todo: configurable
         //? go_service_list__<TOTAL_SERVICE_COUNT>__<SERVICE_LIST_INDEX>
         //? back_service_list__<TOTAL_SERVICE_COUNT>__<SERVICE_LIST_INDEX>
         // $callback_parts = explode('__', $data);
@@ -817,7 +818,7 @@ try {
                 ],
                 [
                     'text' => $texts["show_service_list__button__5_next_list"],
-                    'callback_data' => "^srv_lst {$list_status_type} {$panel_row} " . intval($current_list_index + 5)
+                    'callback_data' => "^srv_lst@{$previous_menu} {$list_status_type_index} {$panel_row} " . intval($current_list_index + 5)
                 ]
             ];
 
