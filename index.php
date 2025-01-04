@@ -825,7 +825,7 @@ try {
             $current_list_buttons[] = [
                 [
                     'text' => '🔙 بازگشت',
-                    'callback_data' => "^{$previous_menu} {$list_status_type}"
+                    'callback_data' => "^{$previous_menu} {$list_status_type_index}"
                 ]
             ];
 
