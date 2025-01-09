@@ -835,7 +835,7 @@ try {
                 $valid_services_count = $panel__total_services_found_count;
             }
             
-            $reply_msg = sprintf($texts['service_list'], $panel_name, $list_status_type__text, $bot_db__user_services__count, $panel__total_services_found_count, $panel__total_lists_count, count($list_keys));
+            $reply_msg = sprintf($texts['service_list'], $panel_name, $list_status_type__text, $bot_db__user_services__count, $panel__total_lists_count, count($list_keys));
             editMessage($from_id, $reply_msg, $message_id, json_encode(['inline_keyboard' => $current_list_buttons]));
         } else {
             if (isset($text)) {
