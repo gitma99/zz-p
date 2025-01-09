@@ -121,7 +121,7 @@ colorized_echo green "\n\tAll ZanborPanel robot files/folders have been successf
 
 wait
 
-clear
+# clear
 echo -e " \n"
 
 read -p "[+] Enter The Domain without [http:// | https://]: " domain
@@ -142,7 +142,7 @@ sudo certbot certonly --standalone --agree-tos --preferred-challenges http -d $D
 sudo certbot --apache --agree-tos --preferred-challenges http -d $DOMAIN
 
 wait
-clear
+# clear
 echo -e " \n"
 
 wait
