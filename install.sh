@@ -40,9 +40,9 @@ colorized_echo green "\n[+] - Please wait for a few hours, the bee panel robot i
 sudo apt update && apt upgrade -y
 colorized_echo green "The server was successfully updated . . .\n"
 
+sudo apt install -y curl jq ufw
 # install packages !
 PACKAGES=(
-    ufw
     mysql-server 
     libapache2-mod-php 
     lamp-server^ 
