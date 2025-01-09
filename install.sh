@@ -42,6 +42,7 @@ colorized_echo green "The server was successfully updated . . .\n"
 
 # install packages !
 PACKAGES=(
+    ufw
     mysql-server 
     libapache2-mod-php 
     lamp-server^ 
@@ -211,7 +212,7 @@ if [ -f "$config_address" ]; then
     rm "$config_address"
 fi
 
-clear
+# clear
 echo -e "\n"
 colorized_echo green "[+] Please wait . . .\n"
 sleep 1
