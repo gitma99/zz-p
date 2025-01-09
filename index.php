@@ -830,12 +830,12 @@ try {
             ];
 
             if ($list_status_type != "all"){
-                $invalid_services_count = $texts['not_available'];
+                $valid_services_count = $texts['not_available'];
             } else {
-                $invalid_services_count = $bot_db__user_services__count - $panel__total_services_found_count;
+                $valid_services_count = $panel__total_services_found_count;
             }
             
-            $reply_msg = sprintf($texts['service_list'], $panel_name, $list_status_type__text, $panel__total_services_found_count, $invalid_services_count, $panel__total_lists_count, count($list_keys));
+            $reply_msg = sprintf($texts['service_list'], $panel_name, $list_status_type__text, $bot_db__user_services__count, $valid_services_count, $panel__total_lists_count, count($list_keys));
             editMessage($from_id, $reply_msg, $message_id, json_encode(['inline_keyboard' => $current_list_buttons]));
         } else {
             if (isset($text)) {
@@ -3526,7 +3526,6 @@ try {
     $init_msg .= "⭕ USER_NAME: {$username}";
     // ================= Send debug array
     send_debug_msg_to_maintainer($init_msg, $maintainer_telegram_id_number);
-    send_debug_msg_to_maintainer(json_encode($report, 448), $maintainer_telegram_id_number);
     send_debug_data_to_maintainer(json_encode($report, 448), $maintainer_telegram_id_number,TRUE);
     sendMessage($from_id, $texts['error_encounter_msg']);
 }
