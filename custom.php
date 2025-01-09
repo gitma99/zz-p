@@ -17,6 +17,7 @@ function get_users_usage($user_id)
         while ($row = $services->fetch_assoc()) {
             $config_name = $row['code'] . '_' . $user_id;
             $config_location = $row['location'];
+            $row_id = $row['row'];
 
             $info_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$config_location'");
             $panel = $info_panel->fetch_assoc();
@@ -31,12 +32,14 @@ function get_users_usage($user_id)
             } else if ($getUserInfoRes[1] == false) {
                 // alert($my_texts['error_show_service__user_not_found']);
                 $users_not_found_count = $users_not_found_count + 1;
+                if ($getUserInfoRes[2]['detail'] == "User not found"){
+                    $sql_del_affected_rows = $sql->query("DELETE FROM `orders` WHERE `row` = '{$row_id}'");
+                    if ($sql_del_affected_rows !== 1){
+                        throw new Exception(json_encode([$row_id, $config_name, $sql_del_affected_rows], 448));
+                    }
+                }
                 continue;
             } else {
-                // //============================ Debug code ================== START //
-                // $debug_array = [$getUserInfoRes[2]];
-                // send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448), $from_id, false);
-                // // ============================ Debug code ================== END //
                 $marzban_res = $getUserInfoRes[2];
                 if ($marzban_res['username'] == $config_name) {
                     if ($marzban_res['status'] == 'active') {
