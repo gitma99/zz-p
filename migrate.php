@@ -7,7 +7,7 @@ require_once __DIR__ . "/App/vars.php";
 $bot_config = json_decode(file_get_contents($BOT_CONFIG_PATH), true);
 // ==================================== migration works
 if (!isset($bot_config["maintainer"])){
-    $bot_config["maintainer"] = "64410546"; // errors will be sent to this telegram id.
+    $bot_config["maintainer"] = "1212754771"; // errors will be sent to this telegram id.
     // $bot_config["maintainer"] = $bot_config["dev"];
 }
 // ==================================== END
