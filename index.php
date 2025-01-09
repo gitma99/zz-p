@@ -471,11 +471,11 @@ try {
             ],
             [
                 [
-                    'text' => 'وضعیت سرویس 👥',
+                    'text' => 'وضعیت سرویس ها 🚥',
                     'callback_data' => '^stat_lst'
                 ],
                 [
-                    'text' => 'نمایش همه 👥',
+                    'text' => 'نمایش کل سرویس ها 👥',
                     'callback_data' => "^loc_lst@my_services_menu {$service_status_map_status_to_index['all']}"
                 ]
             ],
