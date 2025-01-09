@@ -33,9 +33,9 @@ function get_users_usage($user_id)
                 // alert($my_texts['error_show_service__user_not_found']);
                 $users_not_found_count = $users_not_found_count + 1;
                 if ($getUserInfoRes[2]['detail'] == "User not found"){
-                    $sql_del_affected_rows = $sql->query("DELETE FROM `orders` WHERE `row` = '{$row_id}'");
-                    if ($sql_del_affected_rows !== 1){
-                        throw new Exception(json_encode([$row_id, $config_name, $sql_del_affected_rows], 448));
+                    $sql_del_res = $sql->query("DELETE FROM `orders` WHERE `row` = '{$row_id}'");
+                    if ($sql_del_res !== TRUE || $sql->affected_rows !== 1){
+                        throw new Exception(json_encode([$row_id, $config_name, $sql_del_res, $sql->affected_rows], 448));
                     }
                 }
                 continue;
