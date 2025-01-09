@@ -1,5 +1,9 @@
 <?php
 function open_file($path, $parse_as_json = False){
+    if (empty($path)){
+        return [false , "Error: Emptyfile at '{$path}'!"];
+    }
+    
     $opend_file_content = file_get_contents($path);
     if (is_string($opend_file_content)){
         if ($parse_as_json){
