@@ -7,7 +7,11 @@ require_once __DIR__ . '/../vars.php';
 function send_debug_data_to_maintainer($text_string, $dev_id = null, $delete_debug_file = False, $exit = false) {
     global $LOG_DIR_PATH;
     if (is_null($dev_id)){
-        $dev_id = get_config()[0]['maintainer'];
+        $config = get_config();
+        if ($config[1] !== false){
+            throw new Exception(json_encode($config, 448));
+        }
+        $dev_id = $config[0]['maintainer']; 
     }
     $current_time = time();
     $file_name = "debug-{$current_time}.txt";
@@ -26,7 +30,11 @@ function send_debug_data_to_maintainer($text_string, $dev_id = null, $delete_deb
 function send_debug_msg_to_maintainer($text, $dev_id, $exit = false)
 {
     if (is_null($dev_id)){
-        $dev_id = get_config()[0]['maintainer'];
+        $config = get_config();
+        if ($config[1] !== false){
+            throw new Exception(json_encode($config, 448));
+        }
+        $dev_id = $config[0]['maintainer']; 
     }
     $bot_response = sendMessage($dev_id, $text);
     if ($bot_response["ok"] == false) {
@@ -39,15 +47,6 @@ function send_debug_msg_to_maintainer($text, $dev_id, $exit = false)
 
 function send_multiple_debug_msg_to_maintainer($dev_id, $exit = false, ...$content_array)
 {
-    if (is_null($dev_id)){
-        $dev_id = get_config()[0]['maintainer'];
-    }
-    $bot_response = sendMessage($dev_id, json_encode($content_array, 448));
-    if ($bot_response["ok"] == false) {
-        return send_debug_data_to_maintainer(json_encode($content_array, 448), $exit);
-    }
-    if ($exit) {
-        exit(0);
-    }
+    return send_debug_msg_to_maintainer(json_encode($content_array, 448), $dev_id, $exit = false);
 }
 ?>
