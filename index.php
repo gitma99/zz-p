@@ -475,7 +475,7 @@ try {
                     'callback_data' => '^stat_lst'
                 ],
                 [
-                    'text' => 'نمایش کل سرویس ها 👥',
+                    'text' => 'نمایش سرویس ها 👥',
                     'callback_data' => "^loc_lst@my_services_menu {$service_status_map_status_to_index['all']}"
                 ]
             ],
