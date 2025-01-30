@@ -61,12 +61,14 @@ while true; do
 
     # ==== backup mysql data
     colorized_echo green "Please wait, Backuping data database data ..."
-    mysqldump \ 
-        -u $(echo "$(cat "$ZZ_BOT_CONFIG_JSON_PATH")" | jq -r '.database.db_username') \
-        -p$(echo "$(cat "$ZZ_BOT_CONFIG_JSON_PATH")" | jq -r '.database.db_password') \
-        $(echo "$(cat "$ZZ_BOT_CONFIG_JSON_PATH")" | jq -r '.database.db_name') \
-        > /root/zz-p-sql.sql \
-        2>mysqldump_error.log
+    mysqldump \
+        -u "$(jq -r '.database.db_username' < "$ZZ_BOT_CONFIG_JSON_PATH")" \
+        -p"$(jq -r '.database.db_password' < "$ZZ_BOT_CONFIG_JSON_PATH")" \
+        "$(jq -r '.database.db_name' < "$ZZ_BOT_CONFIG_JSON_PATH")" \
+        # -u $(echo "$(cat "$ZZ_BOT_CONFIG_JSON_PATH")" | jq -r '.database.db_username') \
+        # -p$(echo "$(cat "$ZZ_BOT_CONFIG_JSON_PATH")" | jq -r '.database.db_password') \
+        # $(echo "$(cat "$ZZ_BOT_CONFIG_JSON_PATH")" | jq -r '.database.db_name') \
+        > /root/zz-p-sql.sql 2>mysqldump_error.log
 
     if [ $? -ne 0 ]; then
         handle_error "mysqldump failed: $(cat mysqldump_error.log)" $LINENO
