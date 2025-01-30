@@ -118,11 +118,11 @@ do
             # ==== start service
             systemctl daemon-reload
             systemctl enable "$SERVICE_FILE_NAME"
-            systemctl start "$SERVICE_FILE_NAME"
+            systemctl restart "$SERVICE_FILE_NAME"
 
             colorized_echo green "INFO: Successfully installed service and started."
 
-            systemctl status "$SERVICE_FILE_NAME"
+            journalctl -u "$SERVICE_FILE_NAME" -f 
             break;;
         "Uninstall schedule backup job")
             systemctl stop "$SERVICE_FILE_NAME"
