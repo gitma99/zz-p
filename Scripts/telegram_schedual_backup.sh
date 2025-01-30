@@ -1,14 +1,13 @@
 #!/bin/bash
-
+# === define variables
 target_time_zone='Asia/Tehran'
-CONFIG_JSON='/root/backup_service_config.json'
-BOT_CONFIG_JSON_PATH='/var/www/html/ZanborPanelBot/bot_config.json'
+CONFIG_JSON_PATH='/root/backup_service_config.json'
+ZZ_BOT_CONFIG_JSON_PATH='/var/www/html/ZanborPanelBot/bot_config.json'
 
-telegram_config_content=$(cat $CONFIG_JSON)
-BOT_TOKEN=$(echo "$telegram_config_content" | jq -r '.token')
-USER_ID=$(echo "$telegram_config_content" | jq -r '.chat_id')
+TELEGRAM_BOT_TOKEN=$(echo "$(cat $CONFIG_JSON_PATH)" | jq -r '.token')
+TELEGRAM_USER_ID=$(echo "$(cat $CONFIG_JSON_PATH)" | jq -r '.chat_id')
 
-
+# ==== define base functions
 colorized_echo() {
     local color=$1
     local text=$2
@@ -32,59 +31,70 @@ colorized_echo() {
     esac
 }
 
-send_backup(){
-        if [ -d "/var/www/html/ZanborPanelBot" ]; then
-        if [ -f "$BOT_CONFIG_JSON_PATH" ]; then
-            if [ -s "$BOT_CONFIG_JSON_PATH" ]; then
+handle_error() {
+    local ERROR_MSG=$1
+    local LINE_NO=$2
+    colorized_echo red "[$(date +"%Y-%m-%d %H:%M:%S")] ERROR: Error on line $LINE_NO: $ERROR_MSG"
+    exit 1
+}
 
-                colorized_echo green "Please wait, Backuping . . ."
-                content=$(cat "$BOT_CONFIG_JSON_PATH")
-                db_name=$(echo "$content" | jq -r '.database.db_name')
-                db_username=$(echo "$content" | jq -r '.database.db_username')
-                db_password=$(echo "$content" | jq -r '.database.db_password')
-                mysqldump -u $db_username -p$db_password $db_name > /root/zz-p-sql.sql
-                if [ -f "/root/zz-p-sql.sql" ]; then
-                    zip /root/zz-p-backup.zip $BOT_CONFIG_JSON_PATH /root/zz-p-sql.sql
-                    if [ -f "/root/zz-p-backup.zip" ]; then
-                        colorized_echo green "Backup Finshed. located in (/root/zz-p-baclup.zip)."
-                        
-                        curl -X POST \
-                            -F "document=@/root/zz-p-backup.zip" \
-                            -F "chat_id=$USER_ID" \
-                            https://api.telegram.org/bot$BOT_TOKEN/sendDocument
-
-                    else
-                        colorized_echo red "backup Failed. (Cant create zip file)"
-                    fi
-                else
-                    colorized_echo red "backup Failed. (Cant backup mysql data..)"
-
-                fi
-            else
-                echo -e "\n"
-                colorized_echo red "The bot_config.json file is empty!"
-                echo -e "\n"
-                exit 1
-            fi
-        else
-            echo -e "\n"
-            colorized_echo red "The bot_config.json file was not found and the backup process was canceled!"
-            echo -e "\n"
-            exit 1
-        fi
-    else
+while true; do
+    # ==== check for existence of required directories and files
+    if [ ! -d "/var/www/html/ZanborPanelBot" ]; then
         echo -e "\n"
-        colorized_echo red "The BotPanel folder was not found for the backup process, install the bot first!"
+        handle_error red "The BotPanel folder was not found for the backup process, install the bot first!"
+        echo -e "\n"
+    fi
+
+    if [ ! -f "$ZZ_BOT_CONFIG_JSON_PATH" ]; then
+        echo -e "\n"
+        handle_error red "The bot_config.json file was not found and the backup process was canceled!"
+        echo -e "\n"
+    fi
+
+    if [ ! -s "$ZZ_BOT_CONFIG_JSON_PATH" ]; then
+        echo -e "\n"
+        handle_error red "The bot_config.json file is empty!"
         echo -e "\n"
         exit 1
     fi
-}
 
+    # ==== backup mysql data
+    colorized_echo green "Please wait, Backuping data database data ..."
+    mysqldump \ 
+        -u $(echo "$(cat "$ZZ_BOT_CONFIG_JSON_PATH")" | jq -r '.database.db_username') \
+        -p$(echo "$(cat "$ZZ_BOT_CONFIG_JSON_PATH")" | jq -r '.database.db_password') \
+        $(echo "$(cat "$ZZ_BOT_CONFIG_JSON_PATH")" | jq -r '.database.db_name') \
+        > /root/zz-p-sql.sql \
+        2>mysqldump_error.log
 
+    if [ $? -ne 0 ]; then
+        handle_error "mysqldump failed: $(cat mysqldump_error.log)" $LINENO
+    fi
+    
+    rm -f mysqldump_error.log
 
-while true; do
-    send_backup 
+    if [ ! -f "/root/zz-p-sql.sql" ]; then
+        handle_error red "'mysql' did not backup to /root/zz-p-sql.sql!"
+        exit 1
+    fi
 
+    # ==== zip necessary files for backup
+    zip /root/zz-p-backup.zip $ZZ_BOT_CONFIG_JSON_PATH /root/zz-p-sql.sql
+
+    if [ ! -f "/root/zz-p-backup.zip" ]; then
+        handle_error red "'zip' could not create /root/zz-p-backup.zip!"
+        exit 1
+    fi
+    colorized_echo green "Backup Fished. located in (/root/zz-p-backup.zip)."
+
+    # send zip file to Telegram:
+    curl -X POST \
+        -F "document=@/root/zz-p-backup.zip" \
+        -F "chat_id=$TELEGRAM_USER_ID" \
+        https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendDocument
+
+    # ==== schedule for next backup time
     current_time=$(TZ="$target_time_zone" date +%H:%M)
     current_seconds=$(TZ="$target_time_zone" date -d "$current_time" +%s)
 
@@ -93,6 +103,6 @@ while true; do
     time_remaining=$(($tomorrow_midnight_seconds - $current_seconds))
 
     echo "\n"
-    echo "Chron Info : $time_remaining secconds until next backup!"
+    colorized_echo blue "Chron Info : $time_remaining seconds until next backup!"
     sleep $time_remaining
 done

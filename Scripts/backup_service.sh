@@ -1,36 +1,15 @@
 #!/bin/bash
-
-SERVICE_NAME="zz-backup"
+# === define global variables.
 SCRIPT_PATH="/var/www/html/ZanborPanelBot/Scripts/telegram_schedual_backup.sh"
 LOG_PATH="/var/www/html/ZanborPanelBot/Logs/backup.log"
-default_telegram_config_json="/var/www/html/ZanborPanelBot/Templates/backup_service_config.json"
-telegram_config_json="/root/backup_service_config.json"
 
-if [[ $EUID -ne 0 ]]; then
-echo "This script must be run as root."
-exit 1
-fi
+SERVICE_FILE_TEMPLATE_PATH="/var/www/html/ZanborPanelBot/Templates/zz-backup.service"
+SERVICE_FILE_NAME="zz-backup.service"
 
+telegram_config_json_TEMPLATE_PATH="/var/www/html/ZanborPanelBot/Templates/backup_service_config.json"
+telegram_config_json_PATH="/root/backup_service_config.json"
 
-# Add a cron job to run a script every day at midnight
-
-create_service(){
-cat <<EOF > "/etc/systemd/system/$SERVICE_NAME.service"
-[Unit]
-Description=My Bash Script Service
-After=network.target
-
-[Service]
-ExecStart=$SCRIPT_PATH
-Restart=always
-StandardOutput=append:$LOG_PATH
-StandardError=append:$LOG_PATH
-
-[Install]
-WantedBy=multi-user.target
-EOF
-}
-
+# ==== define base functions
 colorized_echo() {
     local color=$1
     local text=$2
@@ -54,92 +33,129 @@ colorized_echo() {
     esac
 }
 
+handle_error() {
+    local ERROR_MSG=$1
+    local LINE_NO=$2
+    colorized_echo red "[$(date +"%Y-%m-%d %H:%M:%S")] ERROR: Error on line $LINE_NO: $ERROR_MSG"
+    exit 1
+    # You can add more error handling logic here if needed
+}
+
+# ==== Trap errors and call the handle_error function
+trap 'handle_error "$BASH_COMMAND" $LINENO' ERR
+
+# ==== ensure root access.
+if [[ $EUID -ne 0 ]]; then
+    handle_error "run script using as root or 'sudo'!"
+    exit 1
+fi
+
+# ==== check files exists.
+if [ ! -f "$SCRIPT_PATH" ]; then
+    handle_error "File $SCRIPT_PATH does not exist" $LINENO
+    exit 1
+fi
+
+if [ ! -f "$SERVICE_FILE_TEMPLATE_PATH" ]; then
+    handle_error "File $SERVICE_FILE_TEMPLATE_PATH does not exist" $LINENO
+    exit 1
+fi
+
+if [ ! -f "$telegram_config_json_TEMPLATE_PATH" ]; then
+    handle_error "File $telegram_config_json_TEMPLATE_PATH does not exist" $LINENO
+    exit 1
+fi
+
+# ==== script options for user
 colorized_echo green "\n[+] - Please wait for a few seconde !"
-
 echo " "
-
 question="Please select your action?"
-actions=("Create Backup Task" "Delete Backup Task" "Disable Backup Service" "Enable Backup Service" "Exit")
-
-
+actions=("Create Backup Task" "Delete Backup Task" "Disable Service" "Enable Service" "Show Logs" "Exit")
 select opt in "${actions[@]}"
 do
     case $opt in 
         "Create Backup Task")
-            colorized_echo cyan "Enter the Token :"
+            colorized_echo cyan "Enter 'Telegram Token' :"
             printf "" 
             read TOKEN
-            colorized_echo cyan "Enter the chat id number :" 
+            colorized_echo cyan "Enter target Telegram 'chat id' number :" 
             printf "" 
             read CHAT_ID
 
-            apt install zip -y
-            apt install curl -y
+            # ==== install required dependencies
+            apt install zip curl -qqq -y
 
-            default_file=$default_telegram_config_json
-            destination_file="$default_telegram_config_json.tmp"
-            replace=$(cat "$default_file" | sed -e "s/\[\*TOKEN\*\]/${TOKEN}/g" -e "s/\[\*CHAT\*\]/${CHAT_ID}/g")
-            echo "$replace" > "$destination_file"
-            mv "$destination_file" "$telegram_config_json"
+            # ==== telegram works
+            telegram_config_json_TEMP_PATH="$telegram_config_json_TEMPLATE_PATH.tmp"
+            replace=$(cat "$telegram_config_json_TEMPLATE_PATH" | sed -e "s/\[\*TOKEN\*\]/${TOKEN}/g" -e "s/\[\*CHAT\*\]/${CHAT_ID}/g")
+            echo "$replace" > "$telegram_config_json_TEMP_PATH"
+            mv -f "$telegram_config_json_TEMP_PATH" "$telegram_config_json_PATH"
 
-            # Create the systemd service unit file
-            create_service
+            # ==== Create the systemd service unit file
+            SERVICE_FILE_TEMP_PATH="/tmp/$SERVICE_FILE_NAME"
 
-            # Reload systemd
+            # cp template file to temp dir.
+            cp -f $SERVICE_FILE_TEMPLATE_PATH $SERVICE_FILE_TEMP_PATH
+
+            # Open the file and replace some text
+            if [ -f "$SERVICE_FILE_TEMP_PATH" ]; then
+                sed -i 's/{{BACKUP-SCRIPT-PATH}}/'"$SCRIPT_PATH"'/g' $SERVICE_FILE_TEMP_PATH || handle_error "Failed to replace text in $SERVICE_FILE_TEMP_PATH" $LINENO
+                sed -i 's/{{LOG-PATH}}/'"$LOG_PATH"'/g' $SERVICE_FILE_TEMP_PATH || handle_error "Failed to replace text in $SERVICE_FILE_TEMP_PATH" $LINENO
+            else
+                handle_error "File $SERVICE_FILE_TEMP_PATH does not exist" $LINENO
+            fi
+
+            cp -f $SERVICE_FILE_TEMP_PATH /etc/systemd/system/$SERVICE_FILE_NAME
+
+            # remove temp files
+            rm -f $SERVICE_FILE_TEMP_PATH
+
+            # give permissions
+            chmod 755 /etc/systemd/system/$SERVICE_FILE_NAME
+
+            colorized_echo green "INFO: Successfully created $SERVICE_FILE_NAME."
+
+            # ==== start service
             systemctl daemon-reload
+            systemctl enable "$SERVICE_FILE_NAME"
+            systemctl start "$SERVICE_FILE_NAME"
 
-            # Enable and start the service
-            systemctl enable "$SERVICE_NAME.service"
-            systemctl start "$SERVICE_NAME.service"
+            colorized_echo green "INFO: Service $SERVICE_FILE_NAME has been started."
 
-            # Check the status
-            systemctl status "$SERVICE_NAME.service"
-
-            echo "Service $SERVICE_NAME has been created and started."
-
-
-        break;;
+            systemctl status "$SERVICE_FILE_NAME"
+            break;;
         "Delete Backup Task")
-
-            # Stop and disable the service
-            systemctl stop "$SERVICE_NAME.service"
-            systemctl disable "$SERVICE_NAME.service"
-
-            # Remove the service unit file
-            rm "/etc/systemd/system/$SERVICE_NAME.service"
-
-            # Reload systemd
+            systemctl stop "$SERVICE_FILE_NAME"
+            systemctl disable "$SERVICE_FILE_NAME"
+            rm "/etc/systemd/system/$SERVICE_FILE_NAME"
             systemctl daemon-reload
 
-            echo "Service $SERVICE_NAME has been disabled and removed."
+            echo "Service $SERVICE_FILE_NAME has been disabled and removed."
+            break;;
+        "Disable Service")
+            systemctl stop "$SERVICE_FILE_NAME"
+            systemctl disable "$SERVICE_FILE_NAME"
 
-        break;;
-        "Disable Backup Service")
-            systemctl stop "$SERVICE_NAME.service"
-            systemctl disable "$SERVICE_NAME.service"
+            echo "Service $SERVICE_FILE_NAME has been disabled."
 
-            echo "Service $SERVICE_NAME has been disabled."
+            break;;
+        "Enable Service")
+            systemctl start "$SERVICE_FILE_NAME"
+            systemctl enable "$SERVICE_FILE_NAME"
 
-        break;;
-        "Enable Backup Service")
-
-            # Stop and disable the service
-            systemctl start "$SERVICE_NAME.service"
-            systemctl enable "$SERVICE_NAME.service"
-
-
-            echo "Service $SERVICE_NAME has been enabled."
-
-        break;;
+            echo "Service $SERVICE_FILE_NAME has been enabled."
+            break;;
+        "Show Logs")
+            tail -f $LOG_PATH
+            exit 0
+            break;;
         "Exit")
             echo -e "\n"
             colorized_echo green "Exited !"
             echo -e "\n"
-
             break;;
         *) 
             echo "Invalid option!"
-
-        break;;
+            break;;
     esac
 done
