@@ -70,7 +70,7 @@ fi
 colorized_echo green "\n[+] - Please wait for a few seconde !"
 echo " "
 question="Please select your action?"
-actions=("Install/reinstall schedule backup job" "Uninstall schedule backup job" "Start service" "Stop service" "Disable service Auto start" "Enable service Auto start" "Show service status" "Show script live logs" "Exit")
+actions=("Install/reinstall schedule backup job" "Uninstall schedule backup job" "Start service" "Stop service" "Disable service Auto start" "Enable service Auto start" "Show service status" "Show service logs" "Show script live logs" "Exit")
 select opt in "${actions[@]}"
 do
     case $opt in 
@@ -155,6 +155,10 @@ do
             break;;
         "Show service status")
             systemctl status "$SERVICE_FILE_NAME"
+            exit 0
+            break;;
+        "Show service logs")
+           journalctl -u "$SERVICE_FILE_NAME" -f 
             exit 0
             break;;
         "Show script live logs")
