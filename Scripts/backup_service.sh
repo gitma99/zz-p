@@ -124,7 +124,7 @@ do
 
             systemctl status "$SERVICE_FILE_NAME"
             break;;
-        "Uninstall schedule backup Job")
+        "Uninstall schedule backup job")
             systemctl stop "$SERVICE_FILE_NAME"
             systemctl disable "$SERVICE_FILE_NAME"
             rm "/etc/systemd/system/$SERVICE_FILE_NAME"
