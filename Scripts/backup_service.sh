@@ -70,11 +70,11 @@ fi
 colorized_echo green "\n[+] - Please wait for a few seconde !"
 echo " "
 question="Please select your action?"
-actions=("Install/reinstall schedule backup job" "Uninstall schedule backup job" "Start service" "Stop service" "Disable service Auto start" "Enable service Auto start" "Show service status" "Show service logs" "Show script live logs" "Exit")
+actions=("Install/reinstall/update schedule backup job" "Uninstall schedule backup job" "Start service" "Stop service" "Disable service Auto start" "Enable service Auto start" "Show service status" "Show service logs" "Show script live logs" "Exit")
 select opt in "${actions[@]}"
 do
     case $opt in 
-        "Install/reinstall schedule backup job")
+        "Install/reinstall/update schedule backup job")
             colorized_echo cyan "Enter 'Telegram Token' :"
             printf "" 
             read TOKEN
