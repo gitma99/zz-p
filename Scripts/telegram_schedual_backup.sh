@@ -42,19 +42,19 @@ while true; do
     # ==== check for existence of required directories and files
     if [ ! -d "/var/www/html/ZanborPanelBot" ]; then
         echo -e "\n"
-        handle_error red "The BotPanel folder was not found for the backup process, install the bot first!"
+        handle_error "The BotPanel folder was not found for the backup process, install the bot first!" $LINENO
         echo -e "\n"
     fi
 
     if [ ! -f "$ZZ_BOT_CONFIG_JSON_PATH" ]; then
         echo -e "\n"
-        handle_error red "The bot_config.json file was not found and the backup process was canceled!"
+        handle_error "The bot_config.json file was not found and the backup process was canceled!" $LINENO
         echo -e "\n"
     fi
 
     if [ ! -s "$ZZ_BOT_CONFIG_JSON_PATH" ]; then
         echo -e "\n"
-        handle_error red "The bot_config.json file is empty!"
+        handle_error "The bot_config.json file is empty!" $LINENO
         echo -e "\n"
         exit 1
     fi
@@ -75,7 +75,7 @@ while true; do
     rm -f mysqldump_error.log
 
     if [ ! -f "/root/zz-p-sql.sql" ]; then
-        handle_error red "'mysql' did not backup to /root/zz-p-sql.sql!"
+        handle_error "'mysql' did not backup to /root/zz-p-sql.sql!" $LINENO
         exit 1
     fi
 
@@ -83,7 +83,7 @@ while true; do
     zip /root/zz-p-backup.zip $ZZ_BOT_CONFIG_JSON_PATH /root/zz-p-sql.sql
 
     if [ ! -f "/root/zz-p-backup.zip" ]; then
-        handle_error red "'zip' could not create /root/zz-p-backup.zip!"
+        handle_error "'zip' could not create /root/zz-p-backup.zip!" $LINENO
         exit 1
     fi
     colorized_echo green "Backup Fished. located in (/root/zz-p-backup.zip)."

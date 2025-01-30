@@ -46,7 +46,7 @@ trap 'handle_error "$BASH_COMMAND" $LINENO' ERR
 
 # ==== ensure root access.
 if [[ $EUID -ne 0 ]]; then
-    handle_error "run script using as root or 'sudo'!"
+    handle_error "run script using as root or 'sudo'!" $LINENO
     exit 1
 fi
 
@@ -70,11 +70,11 @@ fi
 colorized_echo green "\n[+] - Please wait for a few seconde !"
 echo " "
 question="Please select your action?"
-actions=("Create Backup Task" "Delete Backup Task" "Disable Service" "Enable Service" "Show Logs" "Exit")
+actions=("Install/reinstall schedule backup job" "Uninstall schedule backup job" "Start service" "Stop service" "Disable service Auto start" "Enable service Auto start" "Show service status" "Show script live logs" "Exit")
 select opt in "${actions[@]}"
 do
     case $opt in 
-        "Create Backup Task")
+        "Install/reinstall schedule backup job")
             colorized_echo cyan "Enter 'Telegram Token' :"
             printf "" 
             read TOKEN
@@ -120,42 +120,54 @@ do
             systemctl enable "$SERVICE_FILE_NAME"
             systemctl start "$SERVICE_FILE_NAME"
 
-            colorized_echo green "INFO: Service $SERVICE_FILE_NAME has been started."
+            colorized_echo green "INFO: Successfully installed service and started."
 
             systemctl status "$SERVICE_FILE_NAME"
             break;;
-        "Delete Backup Task")
+        "Uninstall schedule backup Job")
             systemctl stop "$SERVICE_FILE_NAME"
             systemctl disable "$SERVICE_FILE_NAME"
             rm "/etc/systemd/system/$SERVICE_FILE_NAME"
             systemctl daemon-reload
 
-            echo "Service $SERVICE_FILE_NAME has been disabled and removed."
+            colorized_echo green "INFO: Successfully uninstalled service."
             break;;
-        "Disable Service")
+        "Start service")
+            systemctl restart "$SERVICE_FILE_NAME"
+
+            colorized_echo green "INFO: Successfully started service."
+
+            break;;
+        "Stop service")
             systemctl stop "$SERVICE_FILE_NAME"
+
+            colorized_echo green "INFO: Successfully stopped service."
+            break;;
+        "Disable service Auto start")
             systemctl disable "$SERVICE_FILE_NAME"
 
-            echo "Service $SERVICE_FILE_NAME has been disabled."
+            colorized_echo green "INFO: Successfully disabled auto start service."
 
             break;;
-        "Enable Service")
-            systemctl start "$SERVICE_FILE_NAME"
+        "Enable service Auto start")
             systemctl enable "$SERVICE_FILE_NAME"
-
-            echo "Service $SERVICE_FILE_NAME has been enabled."
+            colorized_echo green "INFO: Successfully enabled auto start Service."
             break;;
-        "Show Logs")
+        "Show service status")
+            systemctl status "$SERVICE_FILE_NAME"
+            exit 0
+            break;;
+        "Show script live logs")
             tail -f $LOG_PATH
             exit 0
             break;;
         "Exit")
             echo -e "\n"
-            colorized_echo green "Exited !"
+            colorized_echo green "INFO: Exit Successful!"
             echo -e "\n"
             break;;
         *) 
-            echo "Invalid option!"
+            colorized_echo red "Invalid option! try again."
             break;;
     esac
 done
