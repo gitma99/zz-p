@@ -65,9 +65,6 @@ while true; do
         -u "$(jq -r '.database.db_username' < "$ZZ_BOT_CONFIG_JSON_PATH")" \
         -p"$(jq -r '.database.db_password' < "$ZZ_BOT_CONFIG_JSON_PATH")" \
         "$(jq -r '.database.db_name' < "$ZZ_BOT_CONFIG_JSON_PATH")" \
-        # -u $(echo "$(cat "$ZZ_BOT_CONFIG_JSON_PATH")" | jq -r '.database.db_username') \
-        # -p$(echo "$(cat "$ZZ_BOT_CONFIG_JSON_PATH")" | jq -r '.database.db_password') \
-        # $(echo "$(cat "$ZZ_BOT_CONFIG_JSON_PATH")" | jq -r '.database.db_name') \
         > /root/zz-p-sql.sql
         # > /root/zz-p-sql.sql 2>mysqldump_error.log
     touch mysqldump_error.log
