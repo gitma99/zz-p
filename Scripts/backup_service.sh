@@ -99,8 +99,8 @@ do
 
             # Open the file and replace some text
             if [ -f "$SERVICE_FILE_TEMP_PATH" ]; then
-                sed -i 's/{{BACKUP-SCRIPT-PATH}}/'"$SCRIPT_PATH"'/g' $SERVICE_FILE_TEMP_PATH || handle_error "Failed to replace text in $SERVICE_FILE_TEMP_PATH" $LINENO
-                sed -i 's/{{LOG-PATH}}/'"$LOG_PATH"'/g' $SERVICE_FILE_TEMP_PATH || handle_error "Failed to replace text in $SERVICE_FILE_TEMP_PATH" $LINENO
+                sed -i 's#{{BACKUP-SCRIPT-PATH}}#'"$SCRIPT_PATH"'#g' $SERVICE_FILE_TEMP_PATH || handle_error "Failed to replace text in $SERVICE_FILE_TEMP_PATH" $LINENO
+                sed -i 's#{{LOG-PATH}}#'"$LOG_PATH"'#g' $SERVICE_FILE_TEMP_PATH || handle_error "Failed to replace text in $SERVICE_FILE_TEMP_PATH" $LINENO
             else
                 handle_error "File $SERVICE_FILE_TEMP_PATH does not exist" $LINENO
             fi
