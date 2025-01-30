@@ -1,0 +1,12 @@
+[Unit]
+Description=ZZ BAckup Service
+After=network.target
+
+[Service]
+ExecStart={{BACKUP-SCRIPT-PATH}}
+Restart=always
+StandardOutput=append:{{LOG-PATH}}
+StandardError=append:{{LOG-PATH}}
+
+[Install]
+WantedBy=multi-user.target
