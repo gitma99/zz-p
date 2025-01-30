@@ -68,8 +68,9 @@ while true; do
         # -u $(echo "$(cat "$ZZ_BOT_CONFIG_JSON_PATH")" | jq -r '.database.db_username') \
         # -p$(echo "$(cat "$ZZ_BOT_CONFIG_JSON_PATH")" | jq -r '.database.db_password') \
         # $(echo "$(cat "$ZZ_BOT_CONFIG_JSON_PATH")" | jq -r '.database.db_name') \
-        > /root/zz-p-sql.sql 2>mysqldump_error.log
-
+        > /root/zz-p-sql.sql
+        # > /root/zz-p-sql.sql 2>mysqldump_error.log
+    touch mysqldump_error.log
     if [ $? -ne 0 ]; then
         handle_error "mysqldump failed: $(cat mysqldump_error.log)" $LINENO
     fi
