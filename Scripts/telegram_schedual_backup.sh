@@ -66,14 +66,11 @@ while true; do
         -p"$(jq -r '.database.db_password' < "$ZZ_BOT_CONFIG_JSON_PATH")" \
         "$(jq -r '.database.db_name' < "$ZZ_BOT_CONFIG_JSON_PATH")" \
         > /root/zz-p-sql.sql
-        # > /root/zz-p-sql.sql 2>mysqldump_error.log
-    touch mysqldump_error.log
+
     if [ $? -ne 0 ]; then
-        handle_error "mysqldump failed: $(cat mysqldump_error.log)" $LINENO
+        handle_error "mysqldump failed" $LINENO
     fi
     
-    rm -f mysqldump_error.log
-
     if [ ! -f "/root/zz-p-sql.sql" ]; then
         handle_error "'mysql' did not backup to /root/zz-p-sql.sql!" $LINENO
         exit 1
