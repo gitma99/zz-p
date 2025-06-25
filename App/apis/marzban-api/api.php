@@ -143,7 +143,7 @@ function createService($username, $limit, $expire_data, $proxies, $inbounds, $to
     // } else {
     //     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(array('proxies' => $proxies, 'expire' => $expire_data, 'data_limit' => $limit, 'username' => $username, 'data_limit_reset_strategy' => 'no_reset')));
     // }
-    send_debug_msg_to_maintainer(json_encode($post_fields), 1212754771, true);
+    // send_debug_msg_to_maintainer(json_encode($post_fields), 1212754771, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($post_fields));
     $response = curl_exec($ch);
     curl_close($ch);

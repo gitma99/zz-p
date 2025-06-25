@@ -301,7 +301,7 @@ try {
                 if ($protocol == 'vless' and $panel['flow'] == 'flowon') {
                     $proxies[$protocol] = array('flow' => 'xtls-rprx-vision');
                 } else {
-                    $proxies[$protocol] = array();
+                    $proxies[$protocol] = new stdClass();
                 }
             }
             // sendMessage($from_id, json_encode($protocols, 448));
@@ -401,7 +401,7 @@ try {
                         if ($protocol == 'vless' and $panel_fetch['flow'] == 'flowon') {
                             $proxies[$protocol] = array('flow' => 'xtls-rprx-vision');
                         } else {
-                            $proxies[$protocol] = array();
+                            $proxies[$protocol] = new stdClass();
                         }
                     }
 
