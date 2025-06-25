@@ -3,6 +3,20 @@
 GITHUB_REPO_ADDRESS='https://github.com/gitma99/zz-p.git'
 BOT_CONFIG_JSON_PATH="/var/www/html/ZanborPanelBot/bot_config.json"
 
+# Exit immediately on error
+set -e
+
+# Print status
+function status() {
+    echo -e "\e[1;34m[INFO]\e[0m $1"
+}
+
+# Print error and exit
+function error_exit() {
+    echo -e "\e[1;31m[ERROR]\e[0m $1"
+    exit 1
+}
+
 if [ "$(id -u)" -ne 0 ]; then
     echo -e "\033[33mThis script must be run as root. Try using: sudo\033[0m"
     exit
