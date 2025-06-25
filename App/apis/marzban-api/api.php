@@ -127,7 +127,9 @@ function createService($username, $limit, $expire_data, $proxies, $inbounds, $to
         'proxies' => $proxies,
         'data_limit_reset_strategy' => 'no_reset'
     );
-    if ($inbounds != 'null') {
+    if ($inbounds == 'all'){
+        $post_fields['inbounds'] = new stdClass();
+    } else if ($inbounds != 'null') {
         $post_fields['inbounds'] = $inbounds;
     }
 
@@ -143,11 +145,10 @@ function createService($username, $limit, $expire_data, $proxies, $inbounds, $to
     // } else {
     //     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(array('proxies' => $proxies, 'expire' => $expire_data, 'data_limit' => $limit, 'username' => $username, 'data_limit_reset_strategy' => 'no_reset')));
     // }
-    // send_debug_msg_to_maintainer(json_encode($post_fields), 1212754771, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($post_fields));
     $response = curl_exec($ch);
-    curl_close($ch);
     $paesed_reponse = json_decode($response, true);
+    curl_close($ch);
     
     if (isset($paesed_reponse['detail'])) {
         return [
@@ -156,10 +157,6 @@ function createService($username, $limit, $expire_data, $proxies, $inbounds, $to
     } else {
         return [$paesed_reponse, False];
     }
-    // if (
-    //     isset($response['detail'])
-    //     && in_array($response['detail'], ['Could not validate credentials', 'Not authenticated'])
-    // )
 }
 
 function resetUserDataUsage($username, $token, $url)
@@ -303,10 +300,6 @@ function getUsersInfo($token, $url, $list_offset, $max_list_count, $status, $sev
     // if (!is_null($status)){
     //     $api_url .= "&status={$status}";
     // }
-//     // //============================ Debug code ================== START //
-// $debug_array = [$api_url];
-// send_debug_msg_to_maintainer("Debug Message:\n" . json_encode($debug_array, 448), 131757826, false);
-// // // ============================ Debug code ================== END //
     $req_headers = array(
         'Accept: application/json',
         'Authorization: Bearer ' . $token,
@@ -326,10 +319,5 @@ function getUsersInfo($token, $url, $list_offset, $max_list_count, $status, $sev
     $response = json_decode( $response, true);
     curl_close($ch);
 
-    
-    if (isset($response['detail'])){
-        return [false, $response['detail']];
-    } else {
-        return [$response, false];
-    }
+    return isset($response['detail']) ? [false, $response['detail']] : [$response, false];
 }

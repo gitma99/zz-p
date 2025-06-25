@@ -1,5 +1,5 @@
 <?php
-// send_multiple_debug_msg_to_maintainer( $from_id, false, "START","","END");
+// send_debug_msg_to_maintainer($text, $from_id, true)
 require_once __DIR__ . "/App/vars.php";
 
 ini_set('display_errors', 0); // Disable error display on the screen
@@ -321,12 +321,11 @@ try {
                 sendmessage($from_id, $my_texts['error_show_service__token_is_incorrect'], $start_key);
                 exit();
             }
-            $create_service = createService($name, convertToBytes($limit . 'GB'), strtotime("+ $date day"), $proxies, ($panel_inbounds->num_rows > 0) ? $inbounds : 'null', $token, $panel['login_link']);
+            $create_service = createService($name, convertToBytes($limit . 'GB'), strtotime("+ $date day"), $proxies, ($panel_inbounds->num_rows > 0) ? $inbounds : 'all', $token, $panel['login_link']);
             # ---------------- check errors ---------------- #
             if ($create_service[1] !== False){
                 sendMessage($from_id, sprintf($texts['create_error'], 1), $start_key);
                 throw new Exception(json_encode($create_service), 1);
-                // throw new Exception($create_service[1], 1);
             }
             $create_status = $create_service[0];
             # ---------------- get links and subscription_url for send the user ---------------- #
@@ -415,7 +414,7 @@ try {
                     # ---------------------------------------------- #
                     $code = rand(111111, 999999);
                     $name = base64_encode($code) . '_' . $from_id;
-                    $create_service = createService($name, convertToBytes($test_account_setting['volume'] . 'GB'), strtotime("+ {$test_account_setting['time']} hour"), $proxies, ($panel_inbounds->num_rows > 0) ? $inbounds : 'null', $panel_fetch['token'], $panel_fetch['login_link']);
+                    $create_service = createService($name, convertToBytes($test_account_setting['volume'] . 'GB'), strtotime("+ {$test_account_setting['time']} hour"), $proxies, ($panel_inbounds->num_rows > 0) ? $inbounds : 'all', $panel_fetch['token'], $panel_fetch['login_link']);
                     $create_status = json_decode($create_service, true);
                     if (isset($create_status['username'])) {
                         $links = "";
@@ -738,7 +737,6 @@ try {
             $panel_res = getUsersInfo(get_marzban_panel_token($panel_name), $panel_login_link, $list_offset, $max_list_length, $api_status_parameter, $user__service_names);
             if ($panel_res[1] !== false){
                 throw new Exception($panel_res[1], 1);
-                exit(1);
             }
 
             $panel__total_services_found_count = $panel_res[0]['total']; // todo: check if the number of sent data is same as the recived ones.
