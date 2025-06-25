@@ -4,7 +4,7 @@ GITHUB_REPO_ADDRESS='https://github.com/gitma99/zz-p.git'
 BOT_CONFIG_JSON_PATH="/var/www/html/ZanborPanelBot/bot_config.json"
 
 # Exit immediately on error
-set -e
+# set -e
 
 # Print status
 function status() {
