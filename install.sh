@@ -4,7 +4,7 @@ GITHUB_REPO_ADDRESS='https://github.com/gitma99/zz-p.git'
 BOT_CONFIG_JSON_PATH="/var/www/html/ZanborPanelBot/bot_config.json"
 
 if [ "$(id -u)" -ne 0 ]; then
-    echo -e "\033[33mPlease run as root\033[0m"
+    echo -e "\033[33mThis script must be run as root. Try using: sudo\033[0m"
     exit
 fi
 
@@ -86,6 +86,9 @@ wait
 sudo apt-get install -y php-soap
 sudo apt-get install libapache2-mod-php
 
+PHP_VERSION=$(php -v | head -n1 | awk '{print $2}' | cut -d '.' -f 1,2)
+PHP_MODULE="php${PHP_VERSION}"
+
 # service proccessing !
 sudo systemctl enable mysql.service
 sudo systemctl start mysql.service
@@ -94,6 +97,28 @@ sudo systemctl start apache2
 
 ufw allow 'Apache Full'
 sudo systemctl restart apache2
+
+# Disable mpm_event if enabled
+if apache2ctl -M | grep -q 'mpm_event_module'; then
+    status "Disabling mpm_event module..."
+    a2dismod mpm_event
+else
+    status "mpm_event is not enabled. Skipping disable step."
+fi
+
+# Enable mpm_prefork
+status "Enabling mpm_prefork module..."
+a2enmod mpm_prefork
+
+# Enable PHP module
+status "Enabling Apache PHP module: ${PHP_MODULE}..."
+a2enmod "${PHP_MODULE}"
+
+# Restart Apache to apply changes
+status "Restarting Apache server..."
+systemctl restart apache2
+
+status "Apache has been configured to use mpm_prefork with PHP ${PHP_VERSION}."
 
 colorized_echo green "Installing BotPanel . . ."
 
@@ -109,6 +134,12 @@ sudo apt-get install -y php-ssh2
 sudo apt-get install -y libssh2-1-dev libssh2-1
 
 sudo systemctl restart apache2.service
+
+
+
+
+
+
 
 wait
 
