@@ -119,6 +119,18 @@ function loginPanel($address, $username, $password)
 
 function createService($username, $limit, $expire_data, $proxies, $inbounds, $token, $url)
 {
+    $post_fields = array(
+        'username' => $username, 
+        'status' => 'active',
+        'expire' => $expire_data, 
+        'data_limit' => $limit, 
+        'proxies' => $proxies,
+        'data_limit_reset_strategy' => 'no_reset'
+    );
+    if ($inbounds != 'null') {
+        $post_fields['inbounds'] = $inbounds;
+    }
+
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url . '/api/user');
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
@@ -126,19 +138,13 @@ function createService($username, $limit, $expire_data, $proxies, $inbounds, $to
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token, 'Content-Type: application/json'));
-    $post_body = "Nullified";
-    if ($inbounds != 'null') {
-        $post_body = json_encode(array('proxies' => $proxies, 'inbounds' => $inbounds, 'expire' => $expire_data, 'data_limit' => $limit, 'username' => $username, 'data_limit_reset_strategy' => 'no_reset'));
-    } else {
-        $post_body = json_encode(array('proxies' => $proxies, 'expire' => $expire_data, 'data_limit' => $limit, 'username' => $username, 'data_limit_reset_strategy' => 'no_reset'));
-    }
     // if ($inbounds != 'null') {
     //     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(array('proxies' => $proxies, 'inbounds' => $inbounds, 'expire' => $expire_data, 'data_limit' => $limit, 'username' => $username, 'data_limit_reset_strategy' => 'no_reset')));
     // } else {
     //     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(array('proxies' => $proxies, 'expire' => $expire_data, 'data_limit' => $limit, 'username' => $username, 'data_limit_reset_strategy' => 'no_reset')));
     // }
-    send_debug_data_to_maintainer($post_body,1212754771,true,true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $post_body);
+    send_debug_msg_to_maintainer(json_encode($post_fields), 131757826, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($post_fields));
     $response = curl_exec($ch);
     curl_close($ch);
     $paesed_reponse = json_decode($response, true);
