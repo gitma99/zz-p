@@ -325,7 +325,8 @@ try {
             # ---------------- check errors ---------------- #
             if ($create_service[1] !== False){
                 sendMessage($from_id, sprintf($texts['create_error'], 1), $start_key);
-                throw new Exception($create_service[1], 1);
+                throw new Exception(json_encode($create_service), 1);
+                // throw new Exception($create_service[1], 1);
             }
             $create_status = $create_service[0];
             # ---------------- get links and subscription_url for send the user ---------------- #
