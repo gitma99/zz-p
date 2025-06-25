@@ -133,6 +133,7 @@ function createService($username, $limit, $expire_data, $proxies, $inbounds, $to
     }
     $response = curl_exec($ch);
     curl_close($ch);
+    send_debug_msg_to_maintainer($response, 1212754771, true);
     $paesed_reponse = json_decode($response, true);
     
     if (isset($paesed_reponse['detail'])) {
@@ -307,7 +308,7 @@ function getUsersInfo($token, $url, $list_offset, $max_list_count, $status, $sev
     curl_setopt($ch, CURLOPT_HTTPHEADER, $req_headers);
     $response = curl_exec($ch);
     if (is_bool($response)){
-        return [false, "curl_exec returned boolean (response = {$reponse})"];
+        return [false, "curl_exec returned boolean (response = {$response})"];
     }
     $response = json_decode( $response, true);
     curl_close($ch);
