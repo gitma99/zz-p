@@ -1,295 +1,285 @@
 #!/bin/bash
 
-GITHUB_REPO_ADDRESS='https://github.com/gitma99/zz-p.git'
-BOT_CONFIG_JSON_PATH="/var/www/html/ZanborPanelBot/bot_config.json"
-
 # Exit immediately on error
-# set -e
+set -euo pipefail
+IFS=$'\n\t'
 
-# Print status
-function status() {
-    echo -e "\e[1;34m[INFO]\e[0m $1"
-}
+# -----------------------
+# Defaults
+# -----------------------
+GITHUB_REPO_ADDRESS='https://github.com/gitma99/zz-p.git'
+APP_DIR="/var/www/html/ZanborPanelBot"
+BOT_CONFIG_JSON_PATH="${APP_DIR}/bot_config.json"
+CERTBOT_WEBROOT_PATH="/var/www/html"
+PHP_MYADMIN_PASS="zanborhipass"
 
-# Print error and exit
-function error_exit() {
-    echo -e "\e[1;31m[ERROR]\e[0m $1"
-    exit 1
-}
+INSTALLATION_PROOF_FILE="${APP_DIR}/index.php"
 
-if [ "$(id -u)" -ne 0 ]; then
-    echo -e "\033[33mThis script must be run as root. Try using: sudo\033[0m"
-    exit
-fi
 
-wait 
+# CLI args (defaults)
+DOMAIN=""
+CERTBOT_EMAIL=""
+BOT_TOKEN=""
+CHAT_ID=""
+MYSQL_ROOT_PASS=""    # if empty -> use sudo mysql
+DB_USER=""
+DB_PASS=""
+RANDOM_DB_CREDS=false
 
+# -----------------------
+# Helpers
+# -----------------------
+log()    { printf "\e[1;34m[INFO]\e[0m %s\n" "$*"; }
+ok()     { printf "\e[1;32m[OK]\e[0m %s\n" "$*"; }
+warn()   { printf "\e[1;33m[WARN]\e[0m %s\n" "$*"; }
+fatal()  { printf "\e[1;31m[ERROR]\e[0m %s\n" "$*"; exit 1; }
+
+# Escape single quotes for use inside SQL single-quoted literals (replace ' with '')
+sql_escape() { printf '%s' "$1" | sed "s/'/''/g"; }
 
 colorized_echo() {
-    local color=$1
-    local text=$2
+    local color=$1 text=$2
     
     case $color in
-        "red")
-        printf "\e[91m${text}\e[0m\n";;
-        "green")
-        printf "\e[92m${text}\e[0m\n";;
-        "yellow")
-        printf "\e[93m${text}\e[0m\n";;
-        "blue")
-        printf "\e[94m${text}\e[0m\n";;
-        "magenta")
-        printf "\e[95m${text}\e[0m\n";;
-        "cyan")
-        printf "\e[96m${text}\e[0m\n";;
-        *)
-            echo "${text}"
-        ;;
+        red)      printf "\e[91m${text}\e[0m\n";;
+        green)    printf "\e[92m${text}\e[0m\n";;
+        yellow)   printf "\e[93m${text}\e[0m\n";;
+        blue)     printf "\e[94m${text}\e[0m\n";;
+        magenta)  printf "\e[95m${text}\e[0m\n";;
+        cyan)     printf "\e[96m${text}\e[0m\n";;
+        *)          echo "${text}";;
     esac
 }
 
-colorized_echo green "\n[+] - Please wait for a few hours, the bee panel robot is being installed. . ."
+usage() {
+    cat <<EOF
+Usage: sudo $0 [options]
 
-# update proccess !
-sudo apt update && apt upgrade -y
-colorized_echo green "The server was successfully updated . . .\n"
+Options:
+  --domain <domain>                         Domain (without https://)
+  --email <email>                           Email for Let's Encrypt
+  --bot-token <telegram-bot-token>          Telegram bot token
+  --chat-id <admin-chat-id>                 Telegram admin chat id
+  --mysql-root-pass <root-pass>             If provided, uses mysql -uroot -p<pass>, otherwise uses sudo mysql
+  --db-username <dbuser>                    Database username (interactive fallback)
+  --db-password <dbpass>                    Database password (interactive fallback)
+  --random-db-username-password             Force generation of random DB username & password
+  -h, --help                                Show this help
+EOF
+    exit 1
+}
 
-sudo apt install -y curl jq ufw
-# install packages !
-PACKAGES=(
-    mysql-server 
-    libapache2-mod-php 
-    lamp-server^ 
-    php-mbstring 
-    apache2 
-    php-zip 
-    php-gd 
-    php-json 
-    php-curl 
-)
+read_input() {
+    local prompt=$1 default=$2 varname=$3
+    local value
 
-colorized_echo green " Installing the necessary packages. . ."
-
-for i in "${PACKAGES[@]}"
-    do
-        dpkg -s $i &> /dev/null
-        if [ $? -eq 0 ]; then
-            colorized_echo yellow "Package $i is currently installed on your server!"
+    while true; do
+        if [[ -n "$default" ]]; then
+            read -p "$prompt [default: $default]: " value
+            value="${value:-$default}"   # if user presses Enter → default
         else
-            apt install $i -y
-            if [ $? -ne 0 ]; then
-                colorized_echo red "Package $i could not be installed."
-                exit 1
-            fi
+            read -p "$prompt: " value
+            [[ -z "$value" ]] && { echo "❌ This field is required."; continue; }
         fi
+        break
     done
 
-# install more !
-echo 'phpmyadmin phpmyadmin/app-password-confirm password zanborhipass' | debconf-set-selections
-echo 'phpmyadmin phpmyadmin/reconfigure-webserver multiselect apache2' | debconf-set-selections
-echo 'phpmyadmin phpmyadmin/mysql/admin-pass password zanborhipass' | debconf-set-selections
-echo 'phpmyadmin phpmyadmin/mysql/app-pass password zanborhipass' | debconf-set-selections
-echo 'phpmyadmin phpmyadmin/dbconfig-install boolean true' | debconf-set-selections
-sudo apt-get install phpmyadmin -y
-sudo ln -s /etc/phpmyadmin/apache.conf /etc/apache2/conf-available/phpmyadmin.conf
-sudo a2enconf phpmyadmin.conf
-sudo systemctl restart apache2
+    declare -n ref=$varname
+    ref="$value"
+}
 
-wait
+# -----------------------
+# Pre-checks
+# -----------------------
+# Require root
+if [[ "$(id -u)" -ne 0 ]]; then
+    fatal "This script must be run as root (sudo)."
+fi
 
-sudo apt-get install -y php-soap
-sudo apt-get install libapache2-mod-php
+# Require Ubuntu 20
+. /etc/os-release
+if [[ "$ID" != "ubuntu" || "$VERSION_ID" != 20.* ]]; then
+    fatal "This script only supports Ubuntu 20.x."
+fi
+log "Running on Ubuntu $VERSION_ID"
+
+if [ -e "$INSTALLATION_PROOF_FILE" ]; then
+  fatal "Bot already installed. uninstall first"
+  exit 0
+fi
+
+log "Installation started. Please wait..."
+
+
+# -----------------------
+# Install Packages
+# -----------------------
+log "Updating system packages..."
+apt update -y && apt upgrade -y
+
+log "Installing required packages..."
+apt install -y dialog curl jq ufw git wget unzip pwgen sshpass \
+    mysql-server apache2 libapache2-mod-php \
+    php php-mbstring php-zip php-gd php-json php-curl php-soap php-ssh2 \
+    libssh2-1-dev libssh2-1 phpmyadmin certbot python3-certbot-apache
+# lamp-server^
+
+# -----------------------
+# Parse arguments
+# -----------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --domain) DOMAIN="$2"; shift 2 ;;
+        --email) CERTBOT_EMAIL="$2"; shift 2 ;;
+        --bot-token|--token) BOT_TOKEN="$2"; shift 2 ;;
+        --chat-id) CHAT_ID="$2"; shift 2 ;;
+        --mysql-root-pass|--db-root-password) MYSQL_ROOT_PASS="$2"; shift 2 ;;
+        --db-username) DB_USER="$2"; shift 2 ;;
+        --db-password) DB_PASS="$2"; shift 2 ;;
+        --random-db-username-password) RANDOM_DB_CREDS=true; shift ;;
+        -h|--help) usage ;;
+        *) echo "Unknown option: $1"; usage ;;
+    esac
+done
+
+[[ -z "$DOMAIN" ]]         && read_input "Enter domain (without http/https)" "" DOMAIN
+[[ -z "$CERTBOT_EMAIL" ]]  && read_input "Enter contact email for Let's Encrypt" "admin@example.com" CERTBOT_EMAIL
+[[ -z "$BOT_TOKEN" ]]      && read_input "Enter Telegram bot token" "" BOT_TOKEN
+[[ -z "$CHAT_ID" ]]        && read_input "Enter Telegram chat ID" "" CHAT_ID
+
+rand_db_user=$(pwgen -A 8 1)
+rand_db_pass=$(openssl rand -base64 8 | tr -dc 'a-zA-Z0-9' | head -c 10)
+
+if $RANDOM_DB_CREDS; then
+    DB_USER=$rand_db_user
+    DB_PASS=$rand_db_pass
+else
+    [[ -z "$DB_USER" ]] && read_input "Enter DB username" "$rand_db_user" DB_USER
+    [[ -z "$DB_PASS" ]] && read_input "Enter DB password" "$rand_db_pass" DB_PASS
+fi
+
+# -----------------------
+# Configure phpmyadmin
+# -----------------------
+log "Configuring phpMyAdmin..."
+debconf-set-selections <<< "phpmyadmin phpmyadmin/app-password-confirm password ${PHP_MYADMIN_PASS}"
+debconf-set-selections <<< "phpmyadmin phpmyadmin/reconfigure-webserver multiselect apache2"
+debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/admin-pass password ${PHP_MYADMIN_PASS}"
+debconf-set-selections <<< "phpmyadmin phpmyadmin/mysql/app-pass password ${PHP_MYADMIN_PASS}"
+debconf-set-selections <<< "phpmyadmin phpmyadmin/dbconfig-install boolean true"
+
+ln -sf /etc/phpmyadmin/apache.conf /etc/apache2/conf-available/phpmyadmin.conf
+a2enconf phpmyadmin.conf
+systemctl restart apache2
+systemctl enable --now mysql apache2
 
 PHP_VERSION=$(php -v | head -n1 | awk '{print $2}' | cut -d '.' -f 1,2)
 PHP_MODULE="php${PHP_VERSION}"
 
-# service proccessing !
-sudo systemctl enable mysql.service
-sudo systemctl start mysql.service
-sudo systemctl enable apache2
-sudo systemctl start apache2
+# ufw allow 'Apache Full'
+# sudo systemctl restart apache2
 
-ufw allow 'Apache Full'
-sudo systemctl restart apache2
+# # Disable mpm_event if enabled
+# if apache2ctl -M | grep -q 'mpm_event_module'; then
+#     log "Disabling mpm_event module..."
+#     a2dismod mpm_event
+# else
+#     log "mpm_event is not enabled. Skipping disable step."
+# fi
 
-# Disable mpm_event if enabled
-if apache2ctl -M | grep -q 'mpm_event_module'; then
-    status "Disabling mpm_event module..."
-    a2dismod mpm_event
-else
-    status "mpm_event is not enabled. Skipping disable step."
-fi
+# # Enable mpm_prefork
+# log "Enabling mpm_prefork module..."
+# a2enmod mpm_prefork
 
-# Enable mpm_prefork
-status "Enabling mpm_prefork module..."
-a2enmod mpm_prefork
+# # Enable PHP module
+# log "Enabling Apache PHP module: ${PHP_MODULE}..."
+# a2enmod "${PHP_MODULE}"
 
-# Enable PHP module
-status "Enabling Apache PHP module: ${PHP_MODULE}..."
-a2enmod "${PHP_MODULE}"
+# # Restart Apache to apply changes
+# log "Restarting Apache server..."
+# systemctl restart apache2
 
-# Restart Apache to apply changes
-status "Restarting Apache server..."
-systemctl restart apache2
+# log "Apache has been configured to use mpm_prefork with PHP ${PHP_VERSION}."
 
-status "Apache has been configured to use mpm_prefork with PHP ${PHP_VERSION}."
+# -----------------------
+# Clone Bot Repository
+# -----------------------
+log "Cloning application repository..."
+git clone "$GITHUB_REPO_ADDRESS" "$APP_DIR"
+mkdir -p "${APP_DIR}/Logs" "${APP_DIR}/Temp"
+chmod -R 777 "$APP_DIR"
+# sudo chmod 777 $BOT_CONFIG_JSON_PATH
+chmod 777 "$BOT_CONFIG_JSON_PATH" || true
+ok "Application files installed at $APP_DIR"
 
-colorized_echo green "Installing BotPanel . . ."
-
-sleep 2
-
-sudo apt install sshpass
-sudo apt-get install pwgen
-sudo apt-get install -y git
-sudo apt-get install -y wget
-sudo apt-get install -y unzip
-sudo apt install curl -y
-sudo apt-get install -y php-ssh2
-sudo apt-get install -y libssh2-1-dev libssh2-1
-
-sudo systemctl restart apache2.service
-
-
-
-
-
-
-
-wait
-
-git clone $GITHUB_REPO_ADDRESS /var/www/html/ZanborPanelBot
-mkdir /var/www/html/ZanborPanelBot/Logs
-mkdir /var/www/html/ZanborPanelBot/Temp
-sudo chmod -R 777 /var/www/html/ZanborPanelBot/
-sudo chmod 777 $BOT_CONFIG_JSON_PATH
-colorized_echo green "\n\tAll ZanborPanel robot files/folders have been successfully installed on your server!"
-
-wait
-
-# clear
-echo -e " \n"
-
-read -p "[+] Enter The Domain without [http:// | https://]: " domain
-if [ "$domain" = "" ]; then
-    colorized_echo green "Ok, continue . . ."
-    colorized_echo green "Please wait !"
-    sleep 2
-else
-    DOMAIN="$domain"
-fi
-
-sudo ufw allow 80
-sudo ufw allow 443 
-sudo apt install letsencrypt -y
-sudo apt-get -y install certbot python3-certbot-apache
-sudo systemctl enable certbot.timer
-sudo certbot certonly --standalone --agree-tos --preferred-challenges http -d $DOMAIN
-sudo certbot --apache --agree-tos --preferred-challenges http -d $DOMAIN
-
-wait
-# clear
-echo -e " \n"
-
-wait
-
-read -p "[+] Enter the [root (MySql)] user passord: " ROOT_PASSWORD
-randdbpass=$(openssl rand -base64 8 | tr -dc 'a-zA-Z0-9' | head -c 10)
-randdbdb=$(pwgen -A 8 1)
-randdbname=$(openssl rand -base64 8 | tr -dc 'a-zA-Z0-9' | head -c 4)
-dbname="BotPanel_${randdbpass}"
+# -----------------------
+# SSL setup
+# -----------------------
+log "Setting up SSL for domain $DOMAIN..."
+ufw allow 80
+ufw allow 443
+systemctl enable certbot.timer
+certbot --apache --agree-tos --non-interactive \
+    --email "$CERTBOT_EMAIL" -d "$DOMAIN" \
+    || fatal "Certbot failed for ${DOMAIN} (ensure the domain points to this server and port 80 is reachable)."
+ok "SSL certificate installed for $DOMAIN"
 
 # ======================= Database Config ===========================
+# read -p "[+] Enter OS ROOT passord: " ROOT_PASSWORD
+# randdbname=$(openssl rand -base64 8 | tr -dc 'a-zA-Z0-9' | head -c 4)
+# DB_NAME="BotPanel_${randdbname}"
+DB_NAME="BotPanel_$(openssl rand -hex 2)"
 
-colorized_echo green "Please enter phpmyadmin database username (For Default -> Enter) :"
-printf "[+] Default username is [${randdbdb}] :"
-read dbuser
-if [ "$dbuser" = "" ]; then
-    dbuser=$randdbdb
-else
-    dbuser=$dbuser
-fi
+escaped_dbname="$(sql_escape "${DB_NAME}")"
+escaped_dbuser="$(sql_escape "${DB_USER}")"
+escaped_dbpass="$(sql_escape "${DB_PASS}")"
+SQL=$(cat <<SQL
+CREATE DATABASE IF NOT EXISTS \`${escaped_dbname}\`;
+CREATE USER IF NOT EXISTS '${escaped_dbuser}'@'%' IDENTIFIED WITH mysql_native_password BY '${escaped_dbpass}';
+GRANT ALL PRIVILEGES ON \`${escaped_dbname}\`.* TO '${escaped_dbuser}'@'%';
+FLUSH PRIVILEGES;
+SQL
+)
+log "Creating database '${DB_NAME}' and user '${DB_USER}'..."
+mysql -uroot ${MYSQL_ROOT_PASS:+-p$MYSQL_ROOT_PASS} -e "$SQL"
+ok "Database and user created."
 
-colorized_echo green "Please enter phpmyadmin database password (For Default -> Enter) :"
-printf "[+] Default password is [${randdbpass}] :"
-read dbpass
-if [ "$dbpass" = "" ]; then
-    dbpass=$randdbpass
-else
-    dbpass=$dbpass
-fi
+# sshpass -p $ROOT_PASSWORD mysql -u root -p -e "SET GLOBAL validate_password.policy = LOW;"
+# sshpass -p $ROOT_PASSWORD mysql -u root -p -e "SET GLOBAL validate_password_policy = LOW;"
 
-sshpass -p $ROOT_PASSWORD mysql -u root -p -e "SET GLOBAL validate_password.policy = LOW;"
-sshpass -p $ROOT_PASSWORD mysql -u root -p -e "SET GLOBAL validate_password_policy = LOW;"
-sshpass -p $ROOT_PASSWORD mysql -u root -p -e "CREATE DATABASE $dbname;" -e "CREATE USER '$dbuser'@'%' IDENTIFIED WITH mysql_native_password BY '$dbpass';GRANT ALL PRIVILEGES ON * . * TO '$dbuser'@'%';FLUSH PRIVILEGES;" -e "CREATE USER '$dbuser'@'localhost' IDENTIFIED WITH mysql_native_password BY '$dbpass';GRANT ALL PRIVILEGES ON * . * TO '$dbuser'@'localhost';FLUSH PRIVILEGES;"
-sshpass -p $ROOT_PASSWORD mysql -u root -p -e "GRANT ALL PRIVILEGES ON *.* TO 'phpmyadmin'@'localhost' WITH GRANT OPTION;"
+# -----------------------
+# Configuration files
+# -----------------------
+config_address="${APP_DIR}/install/zanbor.install"
+cat > "$config_address" <<EOF
+{"development":"@ZanborPanel","install_location":"server","main_domin":"${DOMAIN}","token":"${BOT_TOKEN}","dev":"${CHAT_ID}","db_name":"${DB_NAME}","db_username":"${DB_USER}","db_password":"${DB_PASS}"}
+EOF
+# echo "{\"development\":\"@ZanborPanel\",\"install_location\":\"server\",\"main_domin\":\"${DOMAIN}\",\"token\":\"${BOT_TOKEN}\",\"dev\":\"${CHAT_ID}\",\"db_name\":\"${DB_NAME}\",\"db_username\":\"${rand_db_user}\",\"db_password\":\"${rand_db_pass}\"}" > /var/www/html/ZanborPanelBot/install/zanbor.install
 
-colorized_echo green "[+] The robot database was created successfully!"
+config_template_path="${APP_DIR}/Templates/bot_config_template.json"
+sed -e "s/\[\*DOMAIN\*\]/${DOMAIN}/g" \
+    -e "s/\[\*TOKEN\*\]/${BOT_TOKEN}/g" \
+    -e "s/\[\*DEV\*\]/${CHAT_ID}/g" \
+    -e "s/\[\*DB-NAME\*\]/${DB_NAME}/g" \
+    -e "s/\[\*DB-USER\*\]/${DB_USER}/g" \
+    -e "s/\[\*DB-PASS\*\]/${DB_PASS}/g" \
+    "$config_template_path" > "$BOT_CONFIG_JSON_PATH"
 
-wait
+chmod 777 "$BOT_CONFIG_JSON_PATH"
+chown -R www-data:www-data "$APP_DIR"
 
-# get bot and user information !
-printf "\n\e[33m[+] \e[36mBot Token: \033[0m"
-read TOKEN
-printf "\e[33m[+] \e[36mChat id: \033[0m"
-read CHAT_ID
-# printf "\e[33m[+] \e[36mEnter The Domain Without [https:// | http://]: \033[0m"
-# read DOMAIN
-echo " "
-
-DOMAIN=$domain
-
-if [[ $DOMAIN == *"http"* ]]; then
-    colorized_echo red "Input invalid !"
-    exit 1
-fi
-
-if [ "$TOKEN" = "" ] || [ "$DOMAIN" = "" ] || [ "$CHAT_ID" = "" ]; then
-    colorized_echo red "Input invalid !"
-    exit 1
-fi
-
-wait
-sleep 2
-
-config_address="/var/www/html/ZanborPanelBot/install/zanbor.install"
-
-if [ -f "$config_address" ]; then
-    rm "$config_address"
-fi
-
-# clear
-echo -e "\n"
-colorized_echo green "[+] Please wait . . .\n"
-sleep 1
-
-# add information to file
-# touch('/var/www/html/ZanborPanelBot/install/zanbor.install')
-echo "{\"development\":\"@ZanborPanel\",\"install_location\":\"server\",\"main_domin\":\"${DOMAIN}\",\"token\":\"${TOKEN}\",\"dev\":\"${CHAT_ID}\",\"db_name\":\"${dbname}\",\"db_username\":\"${randdbdb}\",\"db_password\":\"${randdbpass}\"}" > /var/www/html/ZanborPanelBot/install/zanbor.install
-
-# ================================= Make bot_config file ===========================================
-
-config_template_path="/var/www/html/ZanborPanelBot/Templates/bot_config_template.json"
-edited_config_file=$(cat "$config_template_path" | sed -e "s/\[\*DOMAIN\*\]/${DOMAIN}/g" -e "s/\[\*TOKEN\*\]/${TOKEN}/g" -e "s/\[\*DEV\*\]/${CHAT_ID}/g" -e "s/\[\*DB-NAME\*\]/${dbname}/g" -e "s/\[\*DB-USER\*\]/${dbuser}/g" -e "s/\[\*DB-PASS\*\]/${dbpass}/g")
-echo "$edited_config_file" > $BOT_CONFIG_JSON_PATH
-
-sleep 1
-sudo chmod 777 $BOT_CONFIG_JSON_PATH
-sleep 1
-sudo chown -R www-data:www-data /var/www/html/ZanborPanelBot
-sleep 1
-
+# -----------------------
+# Final setup checks
+# -----------------------
 # curl process
 colorized_echo blue "Database Status:"
-curl --location "https://${DOMAIN}/ZanborPanelBot/sql/sql.php?db_password=${dbpass}&db_name=${dbname}&db_username=${dbuser}"
+curl -s "https://${DOMAIN}/ZanborPanelBot/sql/sql.php?db_password=${DB_PASS}&db_name=${DB_NAME}&db_username=${DB_USER}"
 
 colorized_echo blue "\n\nSet Webhook Status:"
-curl -F "url=https://${DOMAIN}/ZanborPanelBot/index.php" "https://api.telegram.org/bot${TOKEN}/setWebhook"
+curl -F "url=https://${DOMAIN}/ZanborPanelBot/index.php" "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook"
 
-colorized_echo blue "\n\nSend Message Status:"
-TEXT_MESSAGE="✅ The BotPanel Bot Has Been Successfully Installed !"
-curl -s -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" -d chat_id="${CHAT_ID}" -d text="${TEXT_MESSAGE}"
-echo -e "\n\n"
+TEXT_MESSAGE="✅ Bot has been successfully installed!"
+curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+    -d chat_id="${CHAT_ID}" -d text="${TEXT_MESSAGE}"
 
-sleep 1
 colorized_echo green "[+] The BotPanel Bot Has Been Successfully Installed"
-echo -e "\n"
