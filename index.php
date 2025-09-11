@@ -27,12 +27,16 @@ try {
         readfile("Templates/under_maintenance.html");
         exit(0);
     }
-    
+
     require_once __DIR__ . '/App/apis/marzban-api/api.php';
     require_once __DIR__ . '/custom.php';
     require_once __DIR__ . "/App/index_maps.php";
     // require_once __DIR__ . '/api/sanayi.php';
     // require_once  __DIR__ . '/api/hiddify.php';
+
+    if ($user['status'] == 'inactive' and $from_id != $config['dev']) {
+        sendMessage($from_id, $texts['block']);
+    }
 
     if ($data == 'join') {
         if (isJoin($from_id)) {
@@ -73,10 +77,7 @@ try {
         change_account_status($text, $from_id);
     }
 
-
-    if ($user['status'] == 'inactive' and $from_id != $config['dev']) {
-        sendMessage($from_id, $texts['block']);
-    } elseif ($text == '/start' or $text == '🔙 بازگشت' or $text == '/back') {
+    if ($text == '/start' or $text == '🔙 بازگشت' or $text == '/back') {
         step('none');
         sendMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $start_key);
     } elseif ($data == 'back_to_home') {
