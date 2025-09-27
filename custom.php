@@ -3,7 +3,6 @@ $my_texts = $texts;
 require_once __DIR__ . "/App/vars.php";
 
 $BOT_CONFIG = json_decode(file_get_contents($BOT_CONFIG_PATH), true);
-
 function get_users_usage($user_id)
 {
     global $from_id, $sql, $my_texts;
@@ -12,16 +11,18 @@ function get_users_usage($user_id)
         $total_traffic_bought = 0;
         $total_traffic_used = 0;
         $error = false;
-        
+
         $users_not_found_count = 0;
         while ($row = $services->fetch_assoc()) {
             $config_name = $row['code'] . '_' . $user_id;
             $config_location = $row['location'];
-            $row_id = $row['row'];
 
-            $info_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$config_location'");
-            $panel = $info_panel->fetch_assoc();
-
+            if (!array_key_exists($config_location, $panel_cache)) {
+                $info_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$config_location'");
+                $panel_cache[$config_location] = $info_panel->fetch_assoc();
+                send_debug_msg_to_maintainer("aa", "131757826", true);
+            }
+            $panel = $panel_cache[$config_location];
             $getUserInfoRes = getUserInfo($config_name, get_marzban_panel_token($config_location), $panel['login_link']);
             // $t = json_encode($a, 448);
             // sendMessage($from_id, "test : $t");
@@ -32,12 +33,6 @@ function get_users_usage($user_id)
             } else if ($getUserInfoRes[1] == false) {
                 // alert($my_texts['error_show_service__user_not_found']);
                 $users_not_found_count = $users_not_found_count + 1;
-                if ($getUserInfoRes[2]['detail'] == "User not found"){
-                    $sql_del_res = $sql->query("DELETE FROM `orders` WHERE `row` = '{$row_id}'");
-                    if ($sql_del_res !== TRUE || $sql->affected_rows !== 1){
-                        throw new Exception(json_encode([$row_id, $config_name, $sql_del_res, $sql->affected_rows], 448));
-                    }
-                }
                 continue;
             } else {
                 $marzban_res = $getUserInfoRes[2];
@@ -47,13 +42,11 @@ function get_users_usage($user_id)
                         $total_traffic_used = $total_traffic_used + $marzban_res['used_traffic'];
                     }
                 }
-            }
-            ;
+            };
         }
         if ($error == true) {
             return null;
-        }
-        ;
+        };
         $total_traffic_bought = Conversion($total_traffic_bought, "GB");
         // $total_traffic_bought = round($total_traffic_bought / 1024 / 1024 / 1024 ,2);
         $total_traffic_used = Conversion($total_traffic_used, "GB");
@@ -73,8 +66,7 @@ function modify_bot_config()
     global $BOT_CONFIG, $BOT_CONFIG_PATH;
     $bot_config_data_json = json_encode($BOT_CONFIG, JSON_PRETTY_PRINT);
     file_put_contents($BOT_CONFIG_PATH, $bot_config_data_json);
-}
-;
+};
 
 function change_account_status($text, $from_id)
 {
@@ -93,8 +85,7 @@ function change_account_status($text, $from_id)
         $response = curl_exec($ch);
         curl_close($ch);
         return $response;
-    }
-    ;
+    };
 
     function change()
     {
@@ -186,7 +177,7 @@ function change_account_status($text, $from_id)
                     exit();
                 }
                 $config_location_name = $config_array['location'];
-                sendMessage($from_id, $my_texts['account_status_changer_service_config_found'], );
+                sendMessage($from_id, $my_texts['account_status_changer_service_config_found'],);
 
                 sleep(0.5);
 
@@ -201,7 +192,7 @@ function change_account_status($text, $from_id)
                     exit();
                 } else if ($user_config_info[1] == false) {
                     step('none');
-                    alert($my_texts['error_show_service__user_not_found']);                    
+                    alert($my_texts['error_show_service__user_not_found']);
                     exit();
                 }
 
@@ -232,7 +223,6 @@ function change_account_status($text, $from_id)
                     step('none');
                     sendMessage($from_id, $texts['account_status_changer_unathorized'], $_return_keyboard);
                 }
-
             } else {
                 step('account_status_changer_service_get_service_name');
                 sendMessage($from_id, $my_texts['account_status_changer_service_config_not_found'] . "(code 3)");
@@ -287,8 +277,7 @@ function reset_panel_panel_token($panel_name, $panel_login_address, $panel_usern
         return $new_token;
     } else {
         return false;
-    }
-    ;
+    };
 }
 
 
@@ -333,7 +322,7 @@ function renewal_service($text, $from_id)
         // $old_config_location = $sql->query("SELECT `location` FROM `orders` WHERE `code` = '$config_base_name'");
 
         if (isset($old_config_location)) {
-            sendMessage($from_id, $my_texts['renewal_service_config_found'], );
+            sendMessage($from_id, $my_texts['renewal_service_config_found'],);
             $user_array = array(
                 'config_base_name' => $config_base_name,
                 'config_name' => $config_name,
@@ -501,9 +490,8 @@ function renewal_service($text, $from_id)
             if ($info_panel->num_rows > 0) {
                 $getMe = json_decode(file_get_contents("https://api.telegram.org/bot{$config['token']}/getMe"), true);
                 if (!isset($getMe['result'])) {
-                    $bot_username = "getMe result Error";
-                } else if (!isset($getMe['result']['username'])) {
-                    $bot_username = "getMe username Error";
+                    send_debug_data_to_maintainer(json_encode(["failed to get bot username", $getMe], 448), $maintainer_telegram_id_number, TRUE);
+                    $bot_username = "*";
                 } else {
                     $bot_username = $getMe['result']['username'];
                 }
