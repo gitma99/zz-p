@@ -490,7 +490,7 @@ function renewal_service($text, $from_id)
             if ($info_panel->num_rows > 0) {
                 $getMe = json_decode(file_get_contents("https://api.telegram.org/bot{$config['token']}/getMe"), true);
                 if (!isset($getMe['result'])) {
-                    send_debug_data_to_maintainer(json_encode(["failed to get bot username", $getMe], 448), $maintainer_telegram_id_number, TRUE);
+                    // send_debug_data_to_maintainer(json_encode(["failed to get bot username", $getMe], 448), $maintainer_telegram_id_number, TRUE);
                     $bot_username = "*";
                 } else {
                     $bot_username = $getMe['result']['username'];
