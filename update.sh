@@ -32,6 +32,10 @@ ok()     { printf "\e[1;32m[OK]\e[0m %s\n" "$*"; }
 warn()   { printf "\e[1;33m[WARN]\e[0m %s\n" "$*"; }
 fatal()  { printf "\e[1;31m[ERROR]\e[0m %s\n" "$*"; exit 1; }
 
+if [ ! -d "${APP_DIR}" ]; then
+    fatal "The BotPanel folder was not found for the update process, install the bot first!"
+fi
+
 log "\n[+] - Please wait for a few seconde !"
 
 echo " "
@@ -49,10 +53,6 @@ do
             read -r -p "Are you sure you want to update? [y/n] : " answer
             if [ "$answer" = "${answer#[Yy]}" ]; then
                 fatal "Update Canceled !"
-            fi
-
-            if [ ! -d "${APP_DIR}" ]; then
-                fatal "The BotPanel folder was not found for the update process, install the bot first!"
             fi
 
             if [ ! -f "$BOT_CONFIG_JSON_PATH" ]; then
