@@ -631,14 +631,14 @@ function get_account_status_changer_button_status()
 
 function get_admin_ids()
 {
-    global $sql;
-    $res = $sql->query("SELECT * FROM `admins`");
-    while ($row = $res->fetch_array()) {
-        $key[] = $row['chat_id'];
+    global $sql, $config;
+    $key = [];
+    $res = $sql->query("SELECT `chat_id` FROM `admins`");
+    if ($res && $res->num_rows > 0) {
+        while ($row = $res->fetch_assoc()) {
+            $key[] = $row['chat_id'];
+        }
     }
-    if (isset($key)) {
-        return $key;
-    } else {
-        return [];
-    }
+    $key[] = $config['dev'];
+    return $key;
 }
