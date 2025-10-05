@@ -49,16 +49,13 @@ try {
             alert($texts['not_join']);
         }
         exit(0);
-    } elseif (isJoin($from_id) == false) {
-        joinSend($from_id);
-        exit(0);
     }
 
     try {
-        isJoin($from_id);
+        $is_user_joined_to_channel = isJoin($from_id);
     } catch (\Throwable $e) {
-        $error_msg = json_decode($e->getMessage())["response"]["description"] ?? '';
-        if (strpos($error_msg, 'member list is inaccessible') !== false) {
+        // $error_msg = json_decode($e->getMessage())["response"]["description"] ?? '';
+        if (strpos($e->getMessage(), 'member list is inaccessible') !== false) {
             foreach ($admin_id_array as $admin_id) {
                 sendMessage($admin_id, "❌ ربات دسترسی به لیست اعضای کانال مربوطه ندارد!");
             }
@@ -69,6 +66,12 @@ try {
         }
     }
 
+    if ($is_user_joined_to_channel == false) {
+        joinSend($from_id);
+        exit(0);
+    }
+
+    # ------------ main ------------ #
     switch ($data) {
         case 'no_service_list_available':
             alert($texts["show_service_list__error__no_service_list_available"]);
