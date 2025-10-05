@@ -39,6 +39,7 @@ try {
 
     if ($user['status'] == 'inactive' and $from_id != $config['dev']) {
         sendMessage($from_id, $texts['block']);
+        exit(0);
     }
 
     if ($data == 'join') {
