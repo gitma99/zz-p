@@ -1,7 +1,8 @@
 #!/bin/bash
 
 GITHUB_REPO_ADDRESS='https://github.com/gitma99/zz-p.git'
-BOT_CONFIG_JSON_PATH='/var/www/html/ZanborPanelBot/bot_config.json'
+APP_DIR="/var/www/html/ZZPanelBot"
+BOT_CONFIG_JSON_PATH="${APP_DIR}/bot_config.json"
 
 if [ "$(id -u)" -ne 0 ]; then
     echo -e "\033[33mPlease run as root\033[0m"
@@ -48,10 +49,10 @@ do
             echo -e "\n"
             read -p "Are you sure you want to update? [y/n] : " answer
             if [ "$answer" != "${answer#[Yy]}" ]; then
-                if [ -d "/var/www/html/ZanborPanelBot" ]; then
-                    # if [ -f "/var/www/html/ZanborPanelBot/install/zanbor.install" ]; then
+                if [ -d "${APP_DIR}" ]; then
+                    # if [ -f "${APP_DIR}/install/zanbor.install" ]; then
                     if [ -f "$BOT_CONFIG_JSON_PATH" ]; then
-                        # if [ -s "/var/www/html/ZanborPanelBot/install/zanbor.install" ]; then
+                        # if [ -s "${APP_DIR}/install/zanbor.install" ]; then
                         if [ -s "$BOT_CONFIG_JSON_PATH" ]; then
                             apt install -y jq
                             content=$(cat $BOT_CONFIG_JSON_PATH)
@@ -61,9 +62,9 @@ do
                             sleep 1
 
                             # ============================= reset apache server and telegram webhook ============================= #
-                            echo "" > /var/www/html/ZanborPanelBot/Logs/error.log
+                            echo "" > "${APP_DIR}/Logs/error.log"
                             sudo systemctl restart apache2
-                            curl -s -X POST "https://api.telegram.org/bot${token}/setWebhook"  -d url="https://${domain}/ZanborPanelBot/index.php" -d drop_pending_updates="true"
+                            curl -s -X POST "https://api.telegram.org/bot${token}/setWebhook"  -d url="https://${domain}/ZZPanelBot/index.php" -d drop_pending_updates="true"
                             
                             sleep 2
                             clear

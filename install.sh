@@ -8,7 +8,7 @@ IFS=$'\n\t'
 # Defaults
 # -----------------------
 GITHUB_REPO_ADDRESS='https://github.com/gitma99/zz-p.git'
-APP_DIR="/var/www/html/ZanborPanelBot"
+APP_DIR="/var/www/html/ZZPanelBot"
 BOT_CONFIG_JSON_PATH="${APP_DIR}/bot_config.json"
 CERTBOT_WEBROOT_PATH="/var/www/html"
 PHP_MYADMIN_PASS="zanborhipass"
@@ -254,7 +254,7 @@ config_address="${APP_DIR}/install/zanbor.install"
 cat > "$config_address" <<EOF
 {"development":"@ZanborPanel","install_location":"server","main_domin":"${DOMAIN}","token":"${BOT_TOKEN}","dev":"${CHAT_ID}","db_name":"${DB_NAME}","db_username":"${DB_USER}","db_password":"${DB_PASS}"}
 EOF
-# echo "{\"development\":\"@ZanborPanel\",\"install_location\":\"server\",\"main_domin\":\"${DOMAIN}\",\"token\":\"${BOT_TOKEN}\",\"dev\":\"${CHAT_ID}\",\"db_name\":\"${DB_NAME}\",\"db_username\":\"${rand_db_user}\",\"db_password\":\"${rand_db_pass}\"}" > /var/www/html/ZanborPanelBot/install/zanbor.install
+# echo "{\"development\":\"@ZanborPanel\",\"install_location\":\"server\",\"main_domin\":\"${DOMAIN}\",\"token\":\"${BOT_TOKEN}\",\"dev\":\"${CHAT_ID}\",\"db_name\":\"${DB_NAME}\",\"db_username\":\"${rand_db_user}\",\"db_password\":\"${rand_db_pass}\"}" > "${APP_DIR}/install/zanbor.install"
 
 config_template_path="${APP_DIR}/Templates/bot_config_template.json"
 sed -e "s/\[\*DOMAIN\*\]/${DOMAIN}/g" \
@@ -273,10 +273,10 @@ chown -R www-data:www-data "$APP_DIR"
 # -----------------------
 # curl process
 colorized_echo blue "Database Status:"
-curl -s "https://${DOMAIN}/ZanborPanelBot/sql/sql.php?db_password=${DB_PASS}&db_name=${DB_NAME}&db_username=${DB_USER}"
+curl -s "https://${DOMAIN}/ZZPanelBot/sql/sql.php?db_password=${DB_PASS}&db_name=${DB_NAME}&db_username=${DB_USER}"
 
 colorized_echo blue "\n\nSet Webhook Status:"
-curl -F "url=https://${DOMAIN}/ZanborPanelBot/index.php" "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook"
+curl -F "url=https://${DOMAIN}/ZZPanelBot/index.php" "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook"
 
 TEXT_MESSAGE="✅ Bot has been successfully installed!"
 curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \

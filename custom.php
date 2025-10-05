@@ -245,7 +245,7 @@ function change_account_status($text, $from_id)
 //     global $text;
 //     function send()
 //     {
-//         $url = "http://127.0.0.1/ZanborPanelBot/send.php";
+//         $url = "http://127.0.0.1/ZZPanelBot/send.php";
 //         $ch = curl_init();
 //         curl_setopt($ch, CURLOPT_URL, $url);
 //         // curl_setopt($ch, CURLOPT_PUT, true);

@@ -2872,7 +2872,7 @@ try {
                 sendmessage($from_id, "صف خالی است ❌");
                 exit(0);
             };
-            $url = "http://127.0.0.1/ZanborPanelBot/send.php";
+            $url = "http://127.0.0.1/ZZPanelBot/send.php";
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);

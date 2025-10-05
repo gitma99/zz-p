@@ -1,7 +1,8 @@
 #!/bin/bash
 
 GITHUB_REPO_ADDRESS='https://github.com/gitma99/zz-p.git'
-BOT_CONFIG_JSON_PATH='/var/www/html/ZanborPanelBot/bot_config.json'
+APP_DIR="/var/www/html/ZZPanelBot"
+BOT_CONFIG_JSON_PATH="${APP_DIR}/bot_config.json"
 
 . /etc/os-release
 
@@ -50,7 +51,7 @@ do
                 fatal "Update Canceled !"
             fi
 
-            if [ ! -d "/var/www/html/ZanborPanelBot" ]; then
+            if [ ! -d "${APP_DIR}" ]; then
                 fatal "The BotPanel folder was not found for the update process, install the bot first!"
             fi
 
@@ -64,21 +65,21 @@ do
 
             log "Please wait, Updating . . ."
             mv $BOT_CONFIG_JSON_PATH /var/www/html/bot_config.json
-            # mv /var/www/html/ZanborPanelBot/install/zanbor.install /var/www/html/zanbor.install
+            # mv "${APP_DIR}/install/zanbor.install" /var/www/html/zanbor.install
             sleep 1
-            rm -r /var/www/html/ZanborPanelBot/
+            rm -r "${APP_DIR}"
             log "\nAll file and folder deleted for update bot . . .\n"
 
-            git clone $GITHUB_REPO_ADDRESS /var/www/html/ZanborPanelBot/
-            mkdir /var/www/html/ZanborPanelBot/Logs
-            mkdir /var/www/html/ZanborPanelBot/Temp
-            sudo chmod -R 777 /var/www/html/ZanborPanelBot/
+            git clone $GITHUB_REPO_ADDRESS "${APP_DIR}"
+            mkdir "${APP_DIR}/Logs"
+            mkdir "${APP_DIR}/Temp"
+            sudo chmod -R 777 "${APP_DIR}"
             mv /var/www/html/bot_config.json $BOT_CONFIG_JSON_PATH
             sudo chmod 777 $BOT_CONFIG_JSON_PATH
-            # mv /var/www/html/zanbor.install /var/www/html/ZanborPanelBot/install/zanbor.install
+            # mv /var/www/html/zanbor.install "${APP_DIR}/install/zanbor.install"
             sleep 2
             
-            # content=$(cat /var/www/html/ZanborPanelBot/install/zanbor.install)
+            # content=$(cat "${APP_DIR}/install/zanbor.install")
             content=$(cat $BOT_CONFIG_JSON_PATH)
             token=$(echo "$content" | jq -r '.token')
             dev=$(echo "$content" | jq -r '.dev')
@@ -98,16 +99,16 @@ do
             sleep 1
             sleep 1
 
-            curl --location "https://${domain}/ZanborPanelBot/sql/sql.php?db_password=${db_password}&db_name=${db_name}&db_username=${db_username}"
+            curl --location "https://${domain}/ZZPanelBot/sql/sql.php?db_password=${db_password}&db_name=${db_name}&db_username=${db_username}"
             echo -e "\n"
             # ============================= reset apache server and telegram webhook ============================= #
-            echo "" > /var/www/html/ZanborPanelBot/error.log
+            echo "" > "${APP_DIR}/error.log"
             
             log "\n\nMigrating:"
-            curl --insecure https://127.0.0.1/ZanborPanelBot/migrate.php
+            curl --insecure https://127.0.0.1/ZZPanelBot/migrate.php
 
             sudo systemctl restart apache2
-            curl -s -X POST "https://api.telegram.org/bot${token}/setWebhook"  -d url="https://${domain}/ZanborPanelBot/index.php" -d drop_pending_updates="true"
+            curl -s -X POST "https://api.telegram.org/bot${token}/setWebhook"  -d url="https://${domain}/ZZPanelBot/index.php" -d drop_pending_updates="true"
             
             TEXT_MESSAGE="✅ ربات شما با موفقیت به آخرین نسخه آپدیت شد."$'\n\n'"#️⃣ اطلاعات ربات :"$'\n\n'"▫️token: <code>${token}</code>"$'\n'"▫️admin: <code>${dev}</code> "$'\n'"▫️domain: <code>${domain}</code>"$'\n'"▫️db_name: <code>${db_name}</code>"$'\n'"▫️db_username: <code>${db_username}</code>"$'\n'"▫️db_password: <code>${db_password}</code>"
             curl -s -X POST "https://api.telegram.org/bot${token}/sendMessage" -d chat_id="${dev}" -d text="${TEXT_MESSAGE}" -d parse_mode="html"
@@ -134,7 +135,7 @@ do
                 fatal "Delete Canceled !"
             fi
 
-            if [ ! -d "/var/www/html/ZanborPanelBot" ]; then
+            if [ ! -d "${APP_DIR}" ]; then
                 fatal "The BotPanel folder was not found for the update process, install the bot first!"
             fi
 
@@ -143,7 +144,7 @@ do
             CHAT_ID=$(echo "$content" | jq -r '.dev')
 
             log "Please wait, Deleting ...\n"
-            rm -r /var/www/html/ZanborPanelBot/
+            rm -r "${APP_DIR}"
 
             sleep 2
 

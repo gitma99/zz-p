@@ -1,6 +1,6 @@
 #!/bin/bash
-
-BOT_CONFIG_JSON_PATH='/var/www/html/ZanborPanelBot/bot_config.json'
+APP_DIR="/var/www/html/ZZPanelBot"
+BOT_CONFIG_JSON_PATH="${APP_DIR}/bot_config.json"
 
 colorized_echo() {
     local color=$1
@@ -40,7 +40,7 @@ do
             echo -e "\n"
             read -p "Are you sure you want to Backup? [y/n] : " answer
             if [ "$answer" != "${answer#[Yy]}" ]; then
-                if [ -d "/var/www/html/ZanborPanelBot" ]; then
+                if [ -d "${APP_DIR}" ]; then
                     if [ -f "$BOT_CONFIG_JSON_PATH" ]; then
                         if [ -s "$BOT_CONFIG_JSON_PATH" ]; then
 
@@ -99,7 +99,7 @@ do
             echo -e "\n"
             read -p "Are you sure you want to Restore? [y/n] : " answer
             if [ "$answer" != "${answer#[Yy]}" ]; then
-                if [ -d "/var/www/html/ZanborPanelBot" ]; then
+                if [ -d "${APP_DIR}" ]; then
                     if [ -f "$BOT_CONFIG_JSON_PATH" ]; then
                         if [ -s "$BOT_CONFIG_JSON_PATH" ]; then
 
@@ -158,7 +158,7 @@ do
                     fi
                 else
                     echo -e "\n"
-                    colorized_echo red "The ZanborPanelBot folder was not found for the backup process, install the bot first!"
+                    colorized_echo red "The ZZPanelBot folder was not found for the backup process, install the bot first!"
                     echo -e "\n"
                     exit 1
                 fi

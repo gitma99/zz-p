@@ -2,7 +2,8 @@
 # === define variables
 target_time_zone='Asia/Tehran'
 CONFIG_JSON_PATH='/root/backup_service_config.json'
-ZZ_BOT_CONFIG_JSON_PATH='/var/www/html/ZanborPanelBot/bot_config.json'
+APP_DIR="/var/www/html/ZZPanelBot"
+ZZ_BOT_CONFIG_JSON_PATH="${APP_DIR}/bot_config.json"
 
 TELEGRAM_BOT_TOKEN=$(echo "$(cat $CONFIG_JSON_PATH)" | jq -r '.token')
 TELEGRAM_USER_ID=$(echo "$(cat $CONFIG_JSON_PATH)" | jq -r '.chat_id')
@@ -40,7 +41,7 @@ handle_error() {
 
 while true; do
     # ==== check for existence of required directories and files
-    if [ ! -d "/var/www/html/ZanborPanelBot" ]; then
+    if [ ! -d "${APP_DIR}" ]; then
         echo -e "\n"
         handle_error "The BotPanel folder was not found for the backup process, install the bot first!" $LINENO
         echo -e "\n"

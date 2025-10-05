@@ -1,12 +1,13 @@
 #!/bin/bash
 # === define global variables.
-SCRIPT_PATH="/var/www/html/ZanborPanelBot/Scripts/telegram_schedual_backup.sh"
-LOG_PATH="/var/www/html/ZanborPanelBot/Logs/backup.log"
+APP_DIR="/var/www/html/ZZPanelBot"
+SCRIPT_PATH="${APP_DIR}/Scripts/telegram_schedual_backup.sh"
+LOG_PATH="${APP_DIR}/Logs/backup.log"
 
-SERVICE_FILE_TEMPLATE_PATH="/var/www/html/ZanborPanelBot/Templates/zz-backup.service"
+SERVICE_FILE_TEMPLATE_PATH="${APP_DIR}/Templates/zz-backup.service"
 SERVICE_FILE_NAME="zz-backup.service"
 
-telegram_config_json_TEMPLATE_PATH="/var/www/html/ZanborPanelBot/Templates/backup_service_config.json"
+telegram_config_json_TEMPLATE_PATH="${APP_DIR}/Templates/backup_service_config.json"
 telegram_config_json_PATH="/root/backup_service_config.json"
 
 # ==== define base functions
@@ -51,8 +52,8 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 # ==== check files exists.
-if [ ! -f "$SCRIPT_PATH" ]; then
-    handle_error "File $SCRIPT_PATH does not exist" $LINENO
+if [ ! -f "${SCRIPT_PATH}" ]; then
+    handle_error "File ${SCRIPT_PATH} does not exist" $LINENO
     exit 1
 fi
 

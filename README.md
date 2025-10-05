@@ -46,7 +46,7 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backu
 ```
 آفلاین:
 ```bash
-bash /var/www/html/ZanborPanelBot/Scripts/backup_service.sh
+bash /var/www/html/ZZPanelBot/Scripts/backup_service.sh
 ```
 
 - گزینه 1 برای نصب سرویس بکاپ خودکار و راه اندازی آن
@@ -65,7 +65,7 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backu
 ```
 آفلاین:
 ```bash
-bash /var/www/html/ZanborPanelBot/Scripts/backup.sh
+bash /var/www/html/ZZPanelBot/Scripts/backup.sh
 ```
 
 - گزینه 1 را وارد کنید
@@ -83,7 +83,7 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backu
 ```
 آفلاین:
 ```bash
-bash /var/www/html/ZanborPanelBot/Scripts/backup.sh
+bash /var/www/html/ZZPanelBot/Scripts/backup.sh
 ```
 
 - گزینه 2 را وارد کنید
@@ -102,7 +102,7 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/phpmy
 ```
 آفلاین:
 ```bash
-bash /var/www/html/ZanborPanelBot/Scripts/phpmyadmin.sh
+bash /var/www/html/ZZPanelBot/Scripts/phpmyadmin.sh
 ```
 
 - بعد از اجرای این دستور باید یوزر برای آن انتخاب کنید (در صورت خالی گذاشتن به صورت پیشفرض `phpadmin` در نظر گرفته می شود).
@@ -116,7 +116,7 @@ bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/fix.s
 ```
 آفلاین:
 ```bash
-bash /var/www/html/ZanborPanelBot/Scripts/fix.sh
+bash /var/www/html/ZZPanelBot/Scripts/fix.sh
 ```
 
 - fix telegram webhook : درصورتی که ربات ارتباط خود را با تلگرام از دست داد اجرا شود
