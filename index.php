@@ -57,7 +57,8 @@ try {
     try {
         isJoin($from_id);
     } catch (\Throwable $e) {
-        if (strpos($e->getMessage(), 'member list is inaccessible') !== false) {
+        $error_msg = json_decode($e->getMessage())["response"]["description"] ?? '';
+        if (strpos($error_msg, 'member list is inaccessible') !== false) {
             foreach ($admin_id_array as $admin_id) {
                 sendMessage($admin_id, "❌ ربات دسترسی به لیست اعضای کانال مربوطه ندارد!");
             }
