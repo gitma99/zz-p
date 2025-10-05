@@ -54,6 +54,20 @@ try {
         exit(0);
     }
 
+    try {
+        isJoin($from_id);
+    } catch (\Throwable $e) {
+        if (strpos($e->getMessage(), 'member list is inaccessible') !== false) {
+            foreach ($admin_id_array as $admin_id) {
+                sendMessage($admin_id, "❌ ربات دسترسی به لیست اعضای کانال مربوطه ندارد!");
+            }
+            sendMessage($from_id, "❌ خطایی رخ داد. لطفا با مدیر تماس بگیرید.", $back_panel);
+            exit(0);
+        } else {
+            throw $e;
+        }
+    }
+
     switch ($data) {
         case 'no_service_list_available':
             alert($texts["show_service_list__error__no_service_list_available"]);
@@ -1754,9 +1768,7 @@ try {
         sendMessage($from_id, $texts['edu_' . $platform], $education);
     }
     # ------------ panel ------------ #
-
-    $admins = $sql->query("SELECT * FROM `admins`")->fetch_assoc() ?? [];
-    if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
+    if ($from_id == $config['dev'] or in_array($from_id, $admin_id_array)) {
         if (in_array($text, ['/panel', 'panel', '🔧 مدیریت', 'پنل', $texts['back_to_bot_management_button']])) {
             step('panel');
             sendMessage($from_id, "👮‍♂️ - سلام ادمین [ <b>$first_name</b> ] عزیز !\n\n⚡️به پنل مدیریت ربات خوش آمدید.\n🗃 ورژن فعلی ربات : <code>{$config['version']}</code>\n\n⚙️ جهت مدیریت ربات ، یکی از گزینه های زیر را انتخاب کنید.", $bot_management_keyboard);

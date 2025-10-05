@@ -355,8 +355,9 @@ function checkInbound($inbounds, $inbound)
 # ----------------- [ <- keyboard -> ] ----------------- #
 include_once 'custom.php';
 
+$admin_id_array = get_admin_ids();
 
-if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
+if ($from_id == $config['dev'] or in_array($from_id, $admin_id_array)) {
     if ($test_account_setting['status'] == 'active' and $user['test_account'] == 'no') {
         $start_key = json_encode([
             'keyboard' => [
