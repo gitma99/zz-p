@@ -28,7 +28,12 @@ function bot($method, $datas = [], $api_key = API_KEY, $only_handler = false)
         } else {
             $telegram_res = json_decode($res, true);
             if ($telegram_res["ok"] == false and !in_array($method, $handeled_exception_outside)) {
-                throw new Exception(json_encode($telegram_res, 448));
+                $error_details = [
+                    'method' => $method,
+                    'datas' => $datas,
+                    'response' => $telegram_res
+                ];
+                throw new Exception(json_encode($error_details, 448));
             } else {
                 return $telegram_res;
             }
