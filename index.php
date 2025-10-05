@@ -56,10 +56,14 @@ try {
     } catch (\Throwable $e) {
         // $error_msg = json_decode($e->getMessage())["response"]["description"] ?? '';
         if (strpos($e->getMessage(), 'member list is inaccessible') !== false) {
-            foreach ($admin_id_array as $admin_id) {
-                sendMessage($admin_id, "❌ ربات دسترسی به لیست اعضای کانال مربوطه ندارد!");
+            if (in_array($from_id, $admin_id_array)){
+                sendMessage($from_id, "❌ ربات دسترسی به لیست اعضای کانال مربوطه ندارد!");
+            } else {
+                foreach ($admin_id_array as $admin_id) {
+                    sendMessage($admin_id, "❌ ربات دسترسی به لیست اعضای کانال مربوطه ندارد!");
+                }
+                sendMessage($from_id, "❌ خطایی رخ داد. لطفا با مدیر تماس بگیرید.", $back_panel);
             }
-            sendMessage($from_id, "❌ خطایی رخ داد. لطفا با مدیر تماس بگیرید.", $back_panel);
             exit(0);
         } else {
             throw $e;
