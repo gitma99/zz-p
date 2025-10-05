@@ -66,7 +66,7 @@ try {
         }
     }
 
-    if ($is_user_joined_to_channel == false) {
+    if ($is_user_joined_to_channel == false && !in_array($from_id, $admin_id_array)) {
         joinSend($from_id);
         exit(0);
     }
