@@ -5,14 +5,14 @@ require_once __DIR__ . "/App/vars.php";
 $BOT_CONFIG = json_decode(file_get_contents($BOT_CONFIG_PATH), true);
 function get_users_usage($user_id)
 {
-    global $from_id, $sql, $my_texts;
+    global $sql, $my_texts;
     $services = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$user_id'");
     if ($services->num_rows > 0) {
         $total_traffic_bought = 0;
         $total_traffic_used = 0;
-        $error = false;
-
         $users_not_found_count = 0;
+        
+        $panel_cache = [];
         while ($row = $services->fetch_assoc()) {
             $config_name = $row['code'] . '_' . $user_id;
             $config_location = $row['location'];
@@ -20,15 +20,12 @@ function get_users_usage($user_id)
             if (!array_key_exists($config_location, $panel_cache)) {
                 $info_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$config_location'");
                 $panel_cache[$config_location] = $info_panel->fetch_assoc();
-                send_debug_msg_to_maintainer("aa", "131757826", true);
             }
             $panel = $panel_cache[$config_location];
             $getUserInfoRes = getUserInfo($config_name, get_marzban_panel_token($config_location), $panel['login_link']);
-            // $t = json_encode($a, 448);
-            // sendMessage($from_id, "test : $t");
             if ($getUserInfoRes[0] == false) {
                 alert($my_texts['error_show_service__token_is_incorrect']);
-                $error = true;
+                return null;
                 break;
             } else if ($getUserInfoRes[1] == false) {
                 // alert($my_texts['error_show_service__user_not_found']);
@@ -44,13 +41,10 @@ function get_users_usage($user_id)
                 }
             };
         }
-        if ($error == true) {
-            return null;
-        };
+
         $total_traffic_bought = Conversion($total_traffic_bought, "GB");
-        // $total_traffic_bought = round($total_traffic_bought / 1024 / 1024 / 1024 ,2);
         $total_traffic_used = Conversion($total_traffic_used, "GB");
-        // $total_traffic_used = round($total_traffic_used / 1024 / 1024 / 1024 ,2);
+
         return [
             "total_traffic_bought" => $total_traffic_bought,
             "total_traffic_used" => $total_traffic_used,
