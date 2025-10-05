@@ -3192,7 +3192,16 @@ try {
         } elseif ($user['step'] == 'add_channel' and $data != 'back_look' and $text != $texts['back_to_bot_management_button']) {
             if (strpos($text, "@") !== false) {
                 if ($sql->query("SELECT * FROM `lock` WHERE `chat_id` = '$text'")->num_rows == 0) {
-                    $info_channel = bot('getChatMember', ['chat_id' => $text, 'user_id' => bot('getMe')['result']['id']]);
+                    try {
+                        $info_channel = bot('getChatMember', ['chat_id' => $text, 'user_id' => bot('getMe')['result']['id']]);
+                    } catch (\Throwable $e) {
+                        if (strpos($e->getMessage(), 'member list is inaccessible') !== false) {
+                            sendMessage($from_id, "❌  ربات دسترسی به لیست اعضای کانال مربوطه ندارد!", $back_panel);
+                            exit(0);
+                        } else {
+                            throw $e;
+                        }
+                    }
                     if ($info_channel['result']['status'] == 'administrator') {
                         step('none');
                         $channel_name = bot('getChat', ['chat_id' => $text])['result']['title'] ?? 'بدون نام';
