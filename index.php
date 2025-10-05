@@ -64,18 +64,15 @@ try {
                 }
                 sendMessage($from_id, "❌ خطایی رخ داد. لطفا با مدیر تماس بگیرید.", $back_panel);
             }
-            exit(0);
         } else {
             throw $e;
         }
     }
 
     if ($is_user_joined_to_channel == false && !in_array($from_id, $admin_id_array)) {
-        sendMessage($from_id, "چک 1", $back_panel);
         joinSend($from_id);
         exit(0);
     }
-    sendMessage($from_id, "چک 2", $back_panel);
 
     # ------------ main ------------ #
     switch ($data) {
