@@ -39,34 +39,38 @@ handle_error() {
     exit 1
 }
 
+# ==== check for required commands
+for cmd in jq mysqldump zip curl; do
+    if ! command -v "$cmd" &> /dev/null; then
+        echo "Required command '$cmd' not found. Please install it."
+        exit 1
+    fi
+done
+
 while true; do
     # ==== check for existence of required directories and files
     if [ ! -d "${APP_DIR}" ]; then
-        echo -e "\n"
         handle_error "The BotPanel folder was not found for the backup process, install the bot first!" $LINENO
-        echo -e "\n"
     fi
 
     if [ ! -f "$ZZ_BOT_CONFIG_JSON_PATH" ]; then
-        echo -e "\n"
         handle_error "The bot_config.json file was not found and the backup process was canceled!" $LINENO
-        echo -e "\n"
     fi
 
     if [ ! -s "$ZZ_BOT_CONFIG_JSON_PATH" ]; then
-        echo -e "\n"
         handle_error "The bot_config.json file is empty!" $LINENO
-        echo -e "\n"
-        exit 1
     fi
 
+    # ==== clean up old backup files
+    rm -f "/root/zz-p-sql.sql" "/root/zz-p-backup.zip"
+
     # ==== backup mysql data
-    colorized_echo green "Please wait, Backuping data database data ..."
+    colorized_echo green "Please wait, Backing up database data ..."
     mysqldump \
         -u "$(jq -r '.database.db_username' < "$ZZ_BOT_CONFIG_JSON_PATH")" \
         -p"$(jq -r '.database.db_password' < "$ZZ_BOT_CONFIG_JSON_PATH")" \
         "$(jq -r '.database.db_name' < "$ZZ_BOT_CONFIG_JSON_PATH")" \
-        > /root/zz-p-sql.sql
+        > "/root/zz-p-sql.sql"
 
     if [ $? -ne 0 ]; then
         handle_error "mysqldump failed" $LINENO
@@ -74,33 +78,31 @@ while true; do
     
     if [ ! -f "/root/zz-p-sql.sql" ]; then
         handle_error "'mysql' did not backup to /root/zz-p-sql.sql!" $LINENO
-        exit 1
     fi
 
     # ==== zip necessary files for backup
-    zip /root/zz-p-backup.zip $ZZ_BOT_CONFIG_JSON_PATH /root/zz-p-sql.sql
+    zip "/root/zz-p-backup.zip" "$ZZ_BOT_CONFIG_JSON_PATH" "/root/zz-p-sql.sql"
 
     if [ ! -f "/root/zz-p-backup.zip" ]; then
         handle_error "'zip' could not create /root/zz-p-backup.zip!" $LINENO
-        exit 1
     fi
-    colorized_echo green "Backup Fished. located in (/root/zz-p-backup.zip)."
+    colorized_echo green "Backup Finished. located in (/root/zz-p-backup.zip)."
 
     # send zip file to Telegram:
     curl -X POST \
         -F "document=@/root/zz-p-backup.zip" \
         -F "chat_id=$TELEGRAM_USER_ID" \
-        https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendDocument
+        "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendDocument"
+    if [ $? -ne 0 ]; then
+        handle_error "Failed to send backup to Telegram" $LINENO
+    fi
 
     # ==== schedule for next backup time
     current_time=$(TZ="$target_time_zone" date +%H:%M)
     current_seconds=$(TZ="$target_time_zone" date -d "$current_time" +%s)
-
     tomorrow_midnight_seconds=$(TZ="$target_time_zone" date -d '00:00 tomorrow' +%s)
-    
     time_remaining=$(($tomorrow_midnight_seconds - $current_seconds))
 
-    echo "\n"
     colorized_echo blue "Chron Info : $time_remaining seconds until next backup!"
     sleep $time_remaining
 done
