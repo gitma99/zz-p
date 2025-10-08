@@ -1,6 +1,10 @@
 <?php
-function bot($method, $datas = [], $api_key = API_KEY, $only_handler = false)
+function bot($method, $datas = [], $api_key = API_KEY, $only_handler = false, retry_on_failure_count = 2)
 {
+    $curl_response = null;
+    $curl_error = null;
+    $telegram_res = null;
+
     $handeled_exception_outside = [
         'sendDocument',
         'sendMessage',
@@ -9,31 +13,49 @@ function bot($method, $datas = [], $api_key = API_KEY, $only_handler = false)
         'deleteMessage',
         'answerCallbackQuery',
     ];
+    if (!in_array($method, $handeled_exception_outside)){
+        throw new Exception("telegram-api.utils.bot is not configured to run '${method}'", 1);
+    }
+
     $url = "https://api.telegram.org/bot" . $api_key . "/" . $method;
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_SSL_VERIFYHOST => false,
-        CURLOPT_POSTFIELDS => $datas
-    ]);
-    if ($only_handler == true) {
-        return $ch;
-    } else {
-        $res = curl_exec($ch);
-        curl_close($ch);
-        $curl_error = curl_error($ch);
-        if ($res === false) {
-            return $curl_error;
+    for ($i=0; $i <= retry_on_failure_count ; $i++) { 
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_POSTFIELDS => $datas
+        ]);
+        if ($only_handler == true) {
+            return $ch;
         } else {
-            $telegram_res = json_decode($res, true);
-            if ($telegram_res["ok"] == false and !in_array($method, $handeled_exception_outside)) {
-                throw new Exception(json_encode($telegram_res, 448));
-            } else {
-                return $telegram_res;
+            $curl_response = curl_exec($ch);
+            curl_close($ch);
+            $curl_error = curl_error($ch);
+            if ($curl_response !== false) {
+                $telegram_res = json_decode($curl_response, true);
+                if ($telegram_res["ok"] === true) {
+                    return $telegram_res;
+                }
             }
         }
     }
+
+    throw new Exception(
+        json_encode(
+            [
+                "params" => [
+                    "method" => $method,
+                    "data" => $data
+                ],
+                "curl_response" => $curl_response,
+                "curl_error" => $curl_error,
+                "telegram_response" => $telegram_res
+            ], 
+            448
+        ),
+        1
+    );
 }
 
 function sendFile($chat_id, $file_path, $file_name, $mime_type, $api_key = API_KEY)
