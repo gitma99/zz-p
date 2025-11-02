@@ -13,7 +13,12 @@ function sendMessage($chat_id, $text, $keyboard = null, $mrk = 'html')
     ];
     $bot_reply = bot('sendMessage', $params);
     // $bot_reply =  bot('sendMessage', $params, $api_key);
-    if ($bot_reply["ok"] == false) {
+    if ($bot_reply["ok"] === false) {
+        if (isset($bot_reply["description"]) && !empty($bot_reply["description"])){
+            if (strpos($bot_reply["description"], "bot was blocked by the user") !== false) {
+                return False;
+            }
+        }
         throw new Exception(json_encode($bot_reply, 448));
     } else {
         return $bot_reply;
