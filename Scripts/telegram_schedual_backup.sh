@@ -67,6 +67,7 @@ while true; do
     # ==== backup mysql data
     colorized_echo green "Please wait, Backing up database data ..."
     mysqldump \
+        --no-tablespaces \
         -u "$(jq -r '.database.db_username' < "$ZZ_BOT_CONFIG_JSON_PATH")" \
         -p"$(jq -r '.database.db_password' < "$ZZ_BOT_CONFIG_JSON_PATH")" \
         "$(jq -r '.database.db_name' < "$ZZ_BOT_CONFIG_JSON_PATH")" \
