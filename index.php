@@ -1659,92 +1659,94 @@ try {
             $serviceLocationMap[$row['name']] = $row['login_link'];
         }
 
-        if ($service_count > 0) {
-            $location_sorted_objs = [];
-            $users_api_url = $serviceLocationMap[$service_location] . '/api/user/' . $service_name;
-            for ($i = 0, $len = count($services); $i < $len; $i++) {
-
-                $row = $services[$i];
-                $service_base_name = $row['code'];
-                $service_name = $service_base_name . "_" . $target_user_id;
-                $service_location = $row['location'];
-                if (!isset($location_sorted_objs[$service_location])) {
-                    $location_sorted_objs[$service_location] = [
-                        "url" => $serviceLocationMap[$service_location] . '/api/users',
-                        "unknown_services" => [],
-                        "active_services" => [],
-                        "inactive_Services" => []
-                    ];
-                }
-                $location_sorted_objs[$service_location]["unknown_services"][$service_name] = $service_base_name;
-                $new_user_param = $i === 0 ? "?username=$service_name" : "&username=$service_name";
-                $location_sorted_objs[$service_location]["url"] = $location_sorted_objs[$service_location]["url"] . $new_user_param;
-            }
-            // send_debug_data_to_maintainer(json_encode([$location_sorted_objs], 448), "131757826", true, true);
-
-            foreach ($location_sorted_objs as $service_location_name => $location_detail) {
-                $users_api_url = $location_detail['url'];
-
-                $ch = curl_init();
-                $req_headers = array(
-                    'Accept: application/json',
-                    'Authorization: Bearer ' . get_marzban_panel_token($service_location_name)
-                );
-
-                curl_setopt($ch, CURLOPT_URL, $users_api_url);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-                curl_setopt($ch, CURLOPT_HTTPGET, true);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_HTTPHEADER, $req_headers);
-                $raw_response = curl_exec($ch);
-                curl_close($ch);
-
-                $services_resp = json_decode($raw_response, true);
-                foreach ($services_resp['users'] as $service) {
-                    $service_username = $service['username'];
-                    $service_code = $location_sorted_objs[$service_location_name]["unknown_services"][$service_username];
-
-                    switch ($service['status']) {
-                        case "active":
-                            $location_sorted_objs[$service_location_name]['active_services'][$service_username] = $service_code;
-                            break;
-                        case "disabled":
-                            $location_sorted_objs[$service_location_name]['inactive_services'][$service_username] = $service_code;
-                            break;
-                        case "limited":
-                            $location_sorted_objs[$service_location_name]['inactive_services'][$service_username] = $service_code;
-                            break;
-                        case "expired":
-                            $location_sorted_objs[$service_location_name]['inactive_services'][$service_username] = $service_code;
-                            break;
-                        case "on_hold":
-                            break;
-                        default:
-                            break;
-                    }
-                    unset($location_sorted_objs[$service_location_name]["unknown_services"][$service_username]);
-
-                    $total_traffic_bought += $service['data_limit'];
-                    $total_traffic_used += $service['used_traffic'];
-                }
-                $count_all_active += count($location_sorted_objs[$service_location_name]['active_services']);
-                $count_all_inactive += count($location_sorted_objs[$service_location_name]['inactive_services']);
-                $overall_unknown_services_count += count($location_sorted_objs[$service_location_name]['unknown_services']);
-                // send_debug_data_to_maintainer(json_encode([$req_headers, $test_response, curl_getinfo($ch)], 448), "131757826", true, true);
-            }
-            # ==== Delete unknown services ==== #
-            foreach ($location_sorted_objs as $service_location_name => $location_detail) {
-                foreach ($location_detail['unknown_services'] as $service_username => $service_code) {
-                    $query = "DELETE FROM `orders` WHERE `from_id` = '$target_user_id' AND `code` = '$service_code';";
-                    $sql_del_res = $sql->query($query);
-                    if ($sql_del_res !== TRUE || $sql->affected_rows !== 1) {
-                        throw new Exception(json_encode([$target_user_id, $service_code, $query, $sql_del_res, $sql->affected_rows], 448));
-                    }
-                }
-            }
+        if ($service_count == 0) {
+            alert($texts['services_overview__alert__msg_no_service']);
+            return;
         }
+        $users_api_url = $serviceLocationMap[$service_location] . '/api/user/' . $service_name;
+        for ($i = 0, $len = count($services); $i < $len; $i++) {
+            $row = $services[$i];
+            $service_base_name = $row['code'];
+            $service_name = $service_base_name . "_" . $target_user_id;
+            $service_location = $row['location'];
+            if (!isset($location_sorted_objs[$service_location])) {
+                $location_sorted_objs[$service_location] = [
+                    "url" => $serviceLocationMap[$service_location] . '/api/users',
+                    "unknown_services" => [],
+                    "active_services" => [],
+                    "inactive_Services" => []
+                ];
+            }
+            $location_sorted_objs[$service_location]["unknown_services"][$service_name] = $service_base_name;
+            $new_user_param = $i === 0 ? "?username=$service_name" : "&username=$service_name";
+            $location_sorted_objs[$service_location]["url"] = $location_sorted_objs[$service_location]["url"] . $new_user_param;
+        }
+        // send_debug_data_to_maintainer(json_encode([$location_sorted_objs], 448), "131757826", true, true);
+
+        foreach ($location_sorted_objs as $service_location_name => $location_detail) {
+            $users_api_url = $location_detail['url'];
+
+            $ch = curl_init();
+            $req_headers = array(
+                'Accept: application/json',
+                'Authorization: Bearer ' . get_marzban_panel_token($service_location_name)
+            );
+
+            curl_setopt($ch, CURLOPT_URL, $users_api_url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+            curl_setopt($ch, CURLOPT_HTTPGET, true);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $req_headers);
+            $raw_response = curl_exec($ch);
+            curl_close($ch);
+
+            $services_resp = json_decode($raw_response, true);
+            foreach ($services_resp['users'] as $service) {
+                $service_username = $service['username'];
+                $service_code = $location_sorted_objs[$service_location_name]["unknown_services"][$service_username];
+
+                switch ($service['status']) {
+                    case "active":
+                        $location_sorted_objs[$service_location_name]['active_services'][$service_username] = $service_code;
+                        break;
+                    case "disabled":
+                        $location_sorted_objs[$service_location_name]['inactive_services'][$service_username] = $service_code;
+                        break;
+                    case "limited":
+                        $location_sorted_objs[$service_location_name]['inactive_services'][$service_username] = $service_code;
+                        break;
+                    case "expired":
+                        $location_sorted_objs[$service_location_name]['inactive_services'][$service_username] = $service_code;
+                        break;
+                    case "on_hold":
+                        break;
+                    default:
+                        break;
+                }
+                unset($location_sorted_objs[$service_location_name]["unknown_services"][$service_username]);
+
+                $total_traffic_bought += $service['data_limit'];
+                $total_traffic_used += $service['used_traffic'];
+            }
+            $count_all_active += count($location_sorted_objs[$service_location_name]['active_services']);
+            $count_all_inactive += count($location_sorted_objs[$service_location_name]['inactive_services']);
+            $overall_unknown_services_count += count($location_sorted_objs[$service_location_name]['unknown_services']);
+            // send_debug_data_to_maintainer(json_encode([$req_headers, $test_response, curl_getinfo($ch)], 448), "131757826", true, true);
+        }
+        # ==== Delete unknown services ==== #
+        #! skip this behavior for now as it may cause data loss and unsafe operation
+        // foreach ($location_sorted_objs as $service_location_name => $location_detail) {
+        //     foreach ($location_detail['unknown_services'] as $service_username => $service_code) {
+        //         $query = "DELETE FROM `orders` WHERE `from_id` = '$target_user_id' AND `code` = '$service_code';";
+        //         $sql_del_res = $sql->query($query);
+        //         if ($sql_del_res !== TRUE || $sql->affected_rows !== 1) {
+        //             throw new Exception(json_encode([$target_user_id, $service_code, $query, $sql_del_res, $sql->affected_rows], 448));
+        //         }
+        //     }
+        // }
+
         // $user_usage = get_users_usage($target_user_id);
 
         alert(
