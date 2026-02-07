@@ -271,35 +271,42 @@ function getUserInfo($sevice_name, $token, $url)
     ];
 }
 
-function getUsersInfo($token, $url, $list_offset, $max_list_count, $status, $sevice_names)
+function getUsersInfo($token, $url, $list_offset = null, $max_list_count = null, $status = null, $sevice_names = null)
 {
-    if (!isset($token) || !is_string($token)){
-        throw new Exception("api.marzban.getUsersInfo: token is invalid ($token)", 1);
+    if (!isset($token) || !is_string($token)) {
+        throw new Exception("api.marzban.getUsersInfo: token is invalid", 1);
     }
-    if (!isset($url) || !isset($url)){
-        throw new Exception("api.marzban.getUsersInfo: url is invalid ($url)", 1);
+    if (!isset($url) || !is_string($url)) {
+        throw new Exception("api.marzban.getUsersInfo: url is invalid", 1);
     }
 
-    $list_offset = isset($list_offset) ? intval($list_offset) : 0;
-    $max_list_count = isset($max_list_count) ? intval($max_list_count) : 9999;
-    $api_url = $url . "/api/users?limit={$max_list_count}&offset={$list_offset}";
-    $api_url .= (isset($status) && !is_null($status)) ? "&status={$status}" : "";
-    if (isset($sevice_names)){
-        $service_names_query_string = "";
-        foreach($sevice_names as $service_name){
-            // $service_name = urlencode($service_name);
-            if ($service_names_query_string === ""){
-                $service_names_query_string .= "username={$service_name}";
-            } else {
-                $service_names_query_string .= "&username={$service_name}";
-            }
-        }
-        $api_url .= "&{$service_names_query_string}";
+    // Build query params only when explicitly provided
+    $params = [];
+    if (isset($max_list_count) && $max_list_count !== null) {
+        $params['limit'] = intval($max_list_count);
     }
-    // $api_url = $url . "/api/users?limit={$max_list_count}&offset={$list_offset}&{$service_names_query_string}";
-    // if (!is_null($status)){
-    //     $api_url .= "&status={$status}";
-    // }
+    if (isset($list_offset) && $list_offset !== null) {
+        $params['offset'] = intval($list_offset);
+    }
+    if (isset($status) && $status !== null) {
+        $params['status'] = $status;
+    }
+
+    $query = http_build_query($params);
+
+    // Append multiple username params if provided
+    if (isset($sevice_names) && is_array($sevice_names) && count($sevice_names) > 0) {
+        $user_params = array_map(function($n){ return 'username=' . urlencode($n); }, $sevice_names);
+        $user_query = implode('&', $user_params);
+        $query = $query === '' ? $user_query : $query . '&' . $user_query;
+    }
+
+    $api_url = $url . '/api/users' . ($query === '' ? '' : "?{$query}");
+    // example results:
+    // /api/users
+    // /api/users?limit=100&offset=200
+    // /api/users?username=u1&username=u2&status=active
+
     $req_headers = array(
         'Accept: application/json',
         'Authorization: Bearer ' . $token,
