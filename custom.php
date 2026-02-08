@@ -98,7 +98,7 @@ function change_account_status($text, $from_id)
             if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
                 $_return_keyboard = $bot_management_keyboard;
                 $config_base_name = $text;
-                $config_location_obj = $sql->query("SELECT `location`, `from_id` FROM `orders` WHERE `code` = '$config_base_name'");
+                $config_location_obj = $sql->query("SELECT `location`, `from_id` FROM `orders` WHERE `code` = '$config_base_name' AND `from_id` = '$from_id'");
 
                 // $t = json_encode($config_location_obj, 448);
                 // sendMessage($from_id, "config_location_obj : $t");
@@ -153,7 +153,7 @@ function change_account_status($text, $from_id)
             // $t = json_encode($config_name, 448);
             // sendMessage($from_id, "config_name : $t");
 
-            $mysql_config_array = $sql->query("SELECT `location`,`from_id` FROM `orders` WHERE `code` = '$config_base_name'");
+            $mysql_config_array = $sql->query("SELECT `location`,`from_id` FROM `orders` WHERE `code` = '$config_base_name' AND `from_id` = '$from_id'");
             $config_array = null;
             while ($row = $mysql_config_array->fetch_assoc()) {
                 if ($row['from_id'] == $config_user_id) {
@@ -312,7 +312,7 @@ function renewal_service($text, $from_id)
         $config_base_name = $text;
         $config_name = $config_base_name . '_' . $from_id;
         // deleteMessage($from_id, $message_id);
-        $old_config_location = $sql->query("SELECT `location` FROM `orders` WHERE `code` = '$config_base_name'")->fetch_assoc();
+        $old_config_location = $sql->query("SELECT `location` FROM `orders` WHERE `code` = '$config_base_name' AND `from_id` = '$from_id'")->fetch_assoc();
         // $old_config_location = $sql->query("SELECT `location` FROM `orders` WHERE `code` = '$config_base_name'");
 
         if (isset($old_config_location)) {

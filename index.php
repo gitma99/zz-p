@@ -210,7 +210,7 @@ try {
         }
 
         if (isset($getUser[2])) {
-            $repeated_db_order_code_count = $sql->query("SELECT `code` FROM `orders` WHERE `code` = '{$code_base}'")->num_rows;
+            $repeated_db_order_code_count = $sql->query("SELECT `code` FROM `orders` WHERE `code` = '{$code_base}' AND `from_id` = '$from_id'")->num_rows;
             if ($getUser[1] == true || $repeated_db_order_code_count != 0) {
                 // if ((!isset($getUser['links']) and $getUser == false)) {
                 $plan = [];
@@ -1138,7 +1138,7 @@ try {
         unlink("srv-list--{$from_id}.txt");
         $code = "{$code_base}_{$from_id}";
 
-        $getService = $sql->query("SELECT * FROM `orders` WHERE `code` = '$code_base'")->fetch_assoc();
+        $getService = $sql->query("SELECT * FROM `orders` WHERE `code` = '$code_base' AND `from_id` = '$from_id'")->fetch_assoc();
 
         if ($getService['type'] == 'marzban') {
 
@@ -1153,7 +1153,7 @@ try {
             } else if ($getUserInfoRes[1] == false) {
                 step('none');
                 alert($my_texts['error_show_service__config_not_found']);
-                $sql->query("DELETE FROM `orders` WHERE `code` = '$code_base'");
+                $sql->query("DELETE FROM `orders` WHERE `code` = '$code_base' AND `from_id` = '$from_id'");
                 exit();
             };
 
@@ -1269,7 +1269,7 @@ try {
                 editMessage($from_id, sprintf($texts['your_service'], $status, $online_status_message, $getService['location'], $code_base, Conversion($getUser['used_traffic'], 'GB'), Conversion($getUser['data_limit'], 'GB'), $diffLastOnlineDateTillNowString, ''), $message_id, $manage_service_btns);
             } else {
                 alert($my_texts['error_show_service__server_not_found_internally']);
-                $sql->query("DELETE FROM `orders` WHERE `code` = '$code_base'");
+                $sql->query("DELETE FROM `orders` WHERE `code` = '$code_base' AND `from_id` = '$from_id'");
                 // alert($texts['not_found_service']);
             };
         } elseif ($panel['type'] == 'sanayi') {
@@ -1280,8 +1280,8 @@ try {
             $getUser = $xui->getUserInfo(base64_encode($code) . '_' . $from_id, $san_setting['inbound_id']);
             $getUser = json_decode($getUser, true);
             if ($getUser['status']) {
-                $note = $sql->query("SELECT * FROM `notes` WHERE `code` = '$code'");
-                $order = $sql->query("SELECT * FROM `orders` WHERE `code` = '$code'")->fetch_assoc();
+                $note = $sql->query("SELECT * FROM `notes` WHERE `code` = '$code' AND `from_id` = '$from_id'");
+                $order = $sql->query("SELECT * FROM `orders` WHERE `code` = '$code' AND `from_id` = '$from_id'")->fetch_assoc();
                 $link = $order['link'];
 
                 $manage_service_btns = json_encode([
@@ -1298,7 +1298,7 @@ try {
                     editMessage($from_id, sprintf($texts['your_service_with_note'], ($getUser['result']['enable'] == true) ? '🟢 فعال' : '🔴 غیرفعال', $note['note'], $getService['location'], base64_encode($code), Conversion($getUser['result']['up'] + $getUser['result']['down'], 'GB'), ($getUser['result']['total'] == 0) ? 'نامحدود' : Conversion($getUser['result']['total'], 'GB') . ' MB', date('Y-d-m H:i:s', $getUser['result']['expiryTime']), $link), $message_id, $manage_service_btns);
                 }
             } else {
-                $sql->query("DELETE FROM `orders` WHERE `code` = '$code'");
+                $sql->query("DELETE FROM `orders` WHERE `code` = '$code' AND `from_id` = '$from_id'");
                 alert($texts['not_found_service']);
             }
         }
@@ -1310,7 +1310,7 @@ try {
         $type = explode('-', $data)[2];
 
         // $getService = $sql->query("SELECT * FROM `orders` WHERE `code` = '$code'")->fetch_assoc();
-        $getService = $sql->query("SELECT * FROM `orders` WHERE `code` = '$code_base'")->fetch_assoc();
+        $getService = $sql->query("SELECT * FROM `orders` WHERE `code` = '$code_base' AND `from_id` = '$from_id'")->fetch_assoc();
         $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '{$getService['location']}'")->fetch_assoc();
 
 
@@ -1327,7 +1327,7 @@ try {
                 alert('❌ Error', true);
             }
         } elseif ($type == 'sanayi') {
-            $order = $sql->query("SELECT * FROM `orders` WHERE `code` = '$code'")->fetch_assoc();
+            $order = $sql->query("SELECT * FROM `orders` WHERE `code` = '$code' AND `from_id` = '$from_id'")->fetch_assoc();
             $link = $order['link'];
             $encode_url = urlencode($link);
             bot('sendPhoto', ['chat_id' => $from_id, 'photo' => "https://api.qrserver.com/v1/create-qr-code/?data=$encode_url&size=800x800", 'caption' => "", 'parse_mode' => 'html']);
@@ -1388,7 +1388,7 @@ try {
     } elseif (strpos($data, 'select_extra_time') !== false) {
         $service_code = explode('-', $data)[2];
         $plan_code = explode('-', $data)[1];
-        $service = $sql->query("SELECT * FROM `orders` WHERE `code` = '$service_code'")->fetch_assoc();
+        $service = $sql->query("SELECT * FROM `orders` WHERE `code` = '$service_code' AND `from_id` = '$from_id'")->fetch_assoc();
         $plan = $sql->query("SELECT * FROM `category_date` WHERE `code` = '$plan_code'")->fetch_assoc();
 
         $access_key = json_encode([
@@ -1402,9 +1402,9 @@ try {
         alert($texts['wait']);
         $service_code = explode('-', $data)[1];
         $plan_code = explode('-', $data)[2];
-        $service = $sql->query("SELECT * FROM `orders` WHERE `code` = '$service_code'")->fetch_assoc();
+        $service = $sql->query("SELECT * FROM `orders` WHERE `code` = '$service_code' AND `from_id` = '$from_id'")->fetch_assoc();
         $plan = $sql->query("SELECT * FROM `category_date` WHERE `code` = '$plan_code'")->fetch_assoc();
-        $getService = $sql->query("SELECT * FROM `orders` WHERE `code` = '$service_code'")->fetch_assoc();
+        $getService = $sql->query("SELECT * FROM `orders` WHERE `code` = '$service_code' AND `from_id` = '$from_id'")->fetch_assoc();
         $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '{$getService['location']}'")->fetch_assoc();
 
         if ($user['coin'] >= $plan['price']) {
@@ -1436,7 +1436,7 @@ try {
     } elseif (strpos($data, 'select_extra_volume') !== false) {
         $service_code = explode('-', $data)[2];
         $plan_code = explode('-', $data)[1];
-        $service = $sql->query("SELECT * FROM `orders` WHERE `code` = '$service_code'")->fetch_assoc();
+        $service = $sql->query("SELECT * FROM `orders` WHERE `code` = '$service_code' AND `from_id` = '$from_id'")->fetch_assoc();
         $plan = $sql->query("SELECT * FROM `category_limit` WHERE `code` = '$plan_code'")->fetch_assoc();
 
         $access_key = json_encode([
@@ -1450,9 +1450,9 @@ try {
         alert($texts['wait']);
         $service_code = explode('-', $data)[1];
         $plan_code = explode('-', $data)[2];
-        $service = $sql->query("SELECT * FROM `orders` WHERE `code` = '$service_code'")->fetch_assoc();
+        $service = $sql->query("SELECT * FROM `orders` WHERE `code` = '$service_code' AND `from_id` = '$from_id'")->fetch_assoc();
         $plan = $sql->query("SELECT * FROM `category_limit` WHERE `code` = '$plan_code'")->fetch_assoc();
-        $getService = $sql->query("SELECT * FROM `orders` WHERE `code` = '$service_code'")->fetch_assoc();
+        $getService = $sql->query("SELECT * FROM `orders` WHERE `code` = '$service_code' AND `from_id` = '$from_id'")->fetch_assoc();
         $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '{$getService['location']}'")->fetch_assoc();
 
         if ($user['coin'] >= $plan['price']) {
