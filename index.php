@@ -1703,25 +1703,15 @@ try {
 
         foreach ($location_sorted_objs as $service_location_name => $location_detail) {
             $users_api_url = $location_detail['url'];
-
-            $ch = curl_init();
-            $req_headers = array(
-                'Accept: application/json',
-                'Authorization: Bearer ' . get_marzban_panel_token($service_location_name)
-            );
-
-            curl_setopt($ch, CURLOPT_URL, $users_api_url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-            curl_setopt($ch, CURLOPT_HTTPGET, true);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, $req_headers);
-            $raw_response = curl_exec($ch);
-            curl_close($ch);
-
-            $services_resp = json_decode($raw_response, true);
-            foreach ($services_resp['users'] as $service) {
+            $token = get_marzban_panel_token($service_location_name);
+            $panel_res = getUsersInfo($token, $users_api_url);
+            if ($panel_res['success'] == false) {
+                throw new Exception($panel_res['error'], 1);
+            }
+            
+            $services_resp = $panel_res['data'];
+            $users_data = $services_resp['users'] ?: [];
+            foreach ($users_data as $service) {
                 $service_username = $service['username'];
                 $service_code = $location_sorted_objs[$service_location_name]["unknown_services"][$service_username];
 
