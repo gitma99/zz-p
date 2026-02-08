@@ -1703,12 +1703,14 @@ try {
 
         foreach ($location_sorted_objs as $service_location_name => $location_detail) {
             $users_api_url = $location_detail['url'];
+            send_debug_msg_to_maintainer('time: ' . date('Y-m-d H:i:s'), $from_id, true);
             $token = get_marzban_panel_token($service_location_name);
+            send_debug_msg_to_maintainer('time: ' . date('Y-m-d H:i:s'), $from_id, true);
             $panel_res = getUsersInfo($token, $users_api_url);
             if ($panel_res['success'] == false) {
                 throw new Exception($panel_res['error'], 1);
             }
-            
+
             $services_resp = $panel_res['data'];
             $users_data = $services_resp['users'] ?: [];
             foreach ($users_data as $service) {
