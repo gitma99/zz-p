@@ -148,7 +148,9 @@ foreach ($panels as $panel) {
     while (true) {
         // call getUsersInfo
         try {
-            list($resp, $err) = getUsersInfo($token, $panel_url, $local_offset, $local_limit, $status_filter, null);
+            $api_response = getUsersInfo($token, $panel_url, $local_offset, $local_limit, $status_filter, null);
+            $resp = $api_response['data'] ?? null;
+            $err = $api_response['error'] ?? false;
         } catch (Throwable $e) {
             logline("getUsersInfo exception for panel $panel_name: " . $e->getMessage());
             $stats['errors']++;

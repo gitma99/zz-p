@@ -339,10 +339,18 @@ function getUsersInfo($token, $url, $list_offset = null, $max_list_count = null,
     curl_setopt($ch, CURLOPT_HTTPHEADER, $req_headers);
     $response = curl_exec($ch);
     if (is_bool($response)){
-        return [false, "curl_exec returned boolean (response = {$response})"];
+        return [
+            'success' => false,
+            'data' => null,
+            'error' => "curl_exec returned boolean (response = '{$response}'). This usually indicates a cURL error. Error details: " . curl_error($ch)
+        ];
     }
     $response = json_decode( $response, true);
     curl_close($ch);
 
-    return isset($response['detail']) ? [false, $response['detail']] : [$response, false];
+    return [
+        'success' => !isset($response['detail']),
+        'data' => isset($response['detail']) ? null : $response,
+        'error' => isset($response['detail']) ? $response['detail'] : null
+    ];
 }
