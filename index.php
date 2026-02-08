@@ -693,7 +693,10 @@ try {
         $panel_row = intval($callback_parts[2]);
         $panel_name = $sql->query("SELECT `name` FROM `panels` WHERE `row` = {$panel_row}")->fetch_all(MYSQLI_ASSOC)[0]['name'];
         $current_list_index = intval($callback_parts[3]);
-
+        $max_list_length = 20; // todo: configurable
+        $list_offset = $current_list_index * $max_list_length;
+        $list_end = $list_offset + $max_list_length;
+        
         switch ($list_status_type) {
             case "all":
                 $list_status_type__text = $texts["status__all"];
@@ -723,7 +726,7 @@ try {
                 $list_status_type__text = 'UNKNOWN';
                 $api_status_parameter = null;
         }
-        $max_list_length = 20; // todo: configurable
+
         //? go_service_list__<TOTAL_SERVICE_COUNT>__<SERVICE_LIST_INDEX>
         //? back_service_list__<TOTAL_SERVICE_COUNT>__<SERVICE_LIST_INDEX>
         // $callback_parts = explode('__', $data);
@@ -739,151 +742,150 @@ try {
             exit(0);
         }
 
-
-        // $current_list_services = $sql->query(
-        //     "SELECT `code`, `location`, `row`  
-        //     FROM `orders` 
-        //     WHERE `from_id` = '$from_id'
-        //     ORDER BY `row` DESC LIMIT $max_list_length OFFSET $starting_service_row"
-        // );
-
-        // $current_list_services_count = $current_list_services->num_rows;
-        // if ($current_list_index != 0 and $current_list_services_count == 0) {
-        //     alert("nos service");
-
-        // } elseif ($current_list_services_count > 0 or $current_list_index != 0) {
-
-        // if ($current_list_index != 0 and $current_list_services_count == 0) {
-        //     alert("nos service");
-        //     exit(0);
-        // }
         $bot_db__user_services = $sql->query(
             "SELECT `code`, `location`, `row` FROM `orders` 
-            WHERE `from_id` = '$from_id' AND `location` = '$panel_name'"
-            // ORDER BY `row` DESC LIMIT $max_list_length OFFSET $starting_service_row"
+            WHERE `from_id` = '$from_id' AND `location` = '$panel_name'
+            ORDER BY `row` DESC"
+            // LIMIT $max_list_length OFFSET $starting_service_row"
         );
-        $bot_db__user_services__count = $bot_db__user_services->num_rows; //! =============
 
-        if ($bot_db__user_services__count != 0) {
-            $user__service_names = [];
-            foreach ($bot_db__user_services->fetch_all(MYSQLI_ASSOC) as $row) {
-                $service_base_name = $row['code'];
-                $service_name = $service_base_name . "_" . $from_id;
-                $user__service_names[] = $service_name;
-            }
-
-            $panel_login_link = $sql->query("SELECT `login_link` FROM `panels` WHERE `row` = '$panel_row'")->fetch_all(MYSQLI_ASSOC)[0]['login_link'];
-
-            $list_offset = $current_list_index * $max_list_length;
-            $panel_res = getUsersInfo(get_marzban_panel_token($panel_name), $panel_login_link, $list_offset, $max_list_length, $api_status_parameter, $user__service_names);
-            if ($panel_res[1] !== false) {
-                throw new Exception($panel_res[1], 1);
-            }
-
-            $panel__total_services_found_count = $panel_res[0]['total']; // todo: check if the number of sent data is same as the recived ones.
-            $panel__current_list_services_found_count = count($panel_res[0]['users']);
-            $panel__total_lists_count = ceil($panel__total_services_found_count / $max_list_length);
-
-            if ($panel__current_list_services_found_count === 0) {
-                alert($texts["show_service_list__error__no_service_list_available"]);
-                exit(0);
-            }
-
-            $list_keys = null;
-            $base_names_index_mapper = [];
-            foreach ($panel_res[0]['users'] as $service_info) {
-                $status = null;
-                switch ($service_info['status']) {
-                    case "active":
-                        $status = $texts['sign__active'];
-                        break;
-                    case "disabled":
-                        $status = $texts['sign__disabled'];
-                        break;
-                    case "limited":
-                        $status = $texts['sign__limited'];
-                        break;
-                    case "expired":
-                        $status = $texts['sign__expired'];
-                        break;
-                    case "on_hold":
-                        $status = $texts['sign__on_hold'];
-                        break;
-                    default:
-                        $status = '(UNK) ';
-                        break;
-                }
-                $service_base_name = substr($service_info['username'], 0, -strlen("_{$from_id}"));
-                $tel_but_callback = "";
-
-                $base_names_index_mapper[] = $service_base_name;
-                $base_name_index = array_search($service_base_name, $base_names_index_mapper);
-                $list_keys[] = [
-                    'text' => "{$status}{$service_base_name} - {$panel_name}",
-                    // 'callback_data' => "serv_stat-{$service_base_name}-srv_lst {$list_status_type_index} {$panel_row} {$current_list_index}"
-                    'callback_data' => "^serv_stat@srv_lst@{$previous_menu} {$base_name_index} {$list_status_type_index} {$panel_row} {$current_list_index}"
-                ];
-                // $service_base_name = explode('__', $data);
-                // if ($token_acccepted == false){
-                //     $status = '❗️';
-                // } elseif ($user_existed == false){
-                //     $status = '❌';
-            }
-            write_temp_file(json_encode($base_names_index_mapper, 448), "srv-list--{$from_id}.txt", FALSE);
-            $current_list_buttons = array_chunk($list_keys, 1);
-            $service_list_number = $current_list_index + 1;
-
-            $current_list_buttons[] = [
-                [
-                    'text' => 'لیست' . ' ' . $service_list_number,
-                    'callback_data' => 'null'
-                ]
-            ];
-
-            $current_list_buttons[] = [
-                [
-                    'text' => $texts["show_service_list__button__previous_list"],
-                    'callback_data' => "^srv_lst@{$previous_menu} {$list_status_type_index} {$panel_row} " . intval($current_list_index - 1)
-                ],
-                [
-                    'text' => $texts["show_service_list__button__next_list"],
-                    'callback_data' => "^srv_lst@{$previous_menu} {$list_status_type_index} {$panel_row} " . intval($current_list_index + 1)
-                ]
-            ];
-
-            $current_list_buttons[] = [
-                [
-                    'text' => $texts["show_service_list__button__5_previous_list"],
-                    'callback_data' => "^srv_lst@{$previous_menu} {$list_status_type_index} {$panel_row} " . intval($current_list_index - 5)
-                ],
-                [
-                    'text' => $texts["show_service_list__button__5_next_list"],
-                    'callback_data' => "^srv_lst@{$previous_menu} {$list_status_type_index} {$panel_row} " . intval($current_list_index + 5)
-                ]
-            ];
-
-            $current_list_buttons[] = [
-                [
-                    'text' => '🔙 بازگشت',
-                    'callback_data' => "^{$previous_menu} {$list_status_type_index}"
-                ]
-            ];
-
-            if ($list_status_type != "all") {
-                $valid_services_count = $texts['not_available'];
-            } else {
-                $valid_services_count = $panel__total_services_found_count;
-            }
-
-            $reply_msg = sprintf($texts['service_list'], $panel_name, $list_status_type__text, $bot_db__user_services__count, $panel__total_lists_count, count($list_keys));
-            editMessage($from_id, $reply_msg, $message_id, json_encode(['inline_keyboard' => $current_list_buttons]));
-        } else {
+        $bot_db__user_services__count = $bot_db__user_services->num_rows;
+        if ($bot_db__user_services__count == 0) {
             if (isset($text)) {
                 sendMessage($from_id, $texts['my_services_not_found'], $start_key);
             } else {
                 editMessage($from_id, $texts['my_services_not_found'], $message_id, $start_key);
             }
         }
+
+        $user__service_names = [];
+        foreach ($bot_db__user_services->fetch_all(MYSQLI_ASSOC) as $row) {
+            $service_base_name = $row['code'];
+            $service_name = $service_base_name . "_" . $from_id;
+            $user__service_names[] = $service_name;
+        }
+
+        $panel_login_link = $sql->query("SELECT `login_link` FROM `panels` WHERE `row` = '$panel_row'")->fetch_all(MYSQLI_ASSOC)[0]['login_link'];
+        $panel_token = get_marzban_panel_token($panel_name);
+
+        $services_name_batches=[];
+        $batch_size = 50; // todo: configurable
+        for ($i=0; $i < count($user__service_names); $i += $batch_size) { 
+            $services_name_batches[] = array_slice($user__service_names, $i, $batch_size);
+        }
+
+        $panel__total_services_found_count = 0;
+        $panel__current_list_services_found_count = 0;
+        $current_list_services= [];
+        foreach ($services_name_batches as $services_name_batch) {
+            $panel_res = getUsersInfo($panel_token, $panel_login_link, null, null, $api_status_parameter, $services_name_batch);
+            if ($panel_res['success'] == false) {
+                throw new Exception($panel_res['error'], 1);
+            }
+            $panel_data = $panel_res['data'];
+            for ($i = 0; $i < count($panel_data['users']); $i++) {
+                $panel__total_services_found_count++;
+                if ($panel__total_services_found_count > $list_offset && $panel__total_services_found_count <= ($list_offset + $max_list_length)) {
+                    $panel__current_list_services_found_count++;
+                    $service_info = $panel_data['users'][$i];
+                    $current_list_services[] = $service_info;
+                }
+            }
+        }
+        $panel__total_lists_count = ceil($panel__total_services_found_count / $max_list_length);
+
+        if ($panel__current_list_services_found_count === 0) {
+            alert($texts["show_service_list__error__no_service_list_available"]);
+            exit(0);
+        }
+
+        $list_keys = [];
+        $base_names_index_mapper = [];
+        foreach ($current_list_services as $service_info) {
+            $status = '(UNK) ';
+            switch ($service_info['status']) {
+                case "active":
+                    $status = $texts['sign__active'];
+                    break;
+                case "disabled":
+                    $status = $texts['sign__disabled'];
+                    break;
+                case "limited":
+                    $status = $texts['sign__limited'];
+                    break;
+                case "expired":
+                    $status = $texts['sign__expired'];
+                    break;
+                case "on_hold":
+                    $status = $texts['sign__on_hold'];
+                    break;
+                default:
+                    break;
+            }
+            $service_base_name = substr($service_info['username'], 0, -strlen("_{$from_id}"));
+
+            $base_names_index_mapper[] = $service_base_name;
+            $base_name_index = array_search($service_base_name, $base_names_index_mapper);
+            $list_keys[] = [
+                'text' => "{$status}{$service_base_name} - {$panel_name}",
+                'callback_data' => "^serv_stat@srv_lst@{$previous_menu} {$base_name_index} {$list_status_type_index} {$panel_row} {$current_list_index}"
+            ];
+            // $service_base_name = explode('__', $data);
+            // if ($token_acccepted == false){
+            //     $status = '❗️';
+            // } elseif ($user_existed == false){
+            //     $status = '❌';
+            $prossessed_services_count++;
+        }
+
+        write_temp_file(json_encode($base_names_index_mapper, 448), "srv-list--{$from_id}.txt", FALSE);
+        $current_list_buttons = array_chunk($list_keys, 1);
+        $service_list_number = $current_list_index + 1;
+
+        $current_list_buttons[] = [
+            [
+                'text' => 'لیست' . ' ' . $service_list_number,
+                'callback_data' => 'null'
+            ]
+        ];
+
+        $current_list_buttons[] = [
+            [
+                'text' => $texts["show_service_list__button__previous_list"],
+                'callback_data' => "^srv_lst@{$previous_menu} {$list_status_type_index} {$panel_row} " . intval($current_list_index - 1)
+            ],
+            [
+                'text' => $texts["show_service_list__button__next_list"],
+                'callback_data' => "^srv_lst@{$previous_menu} {$list_status_type_index} {$panel_row} " . intval($current_list_index + 1)
+            ]
+        ];
+
+        $current_list_buttons[] = [
+            [
+                'text' => $texts["show_service_list__button__5_previous_list"],
+                'callback_data' => "^srv_lst@{$previous_menu} {$list_status_type_index} {$panel_row} " . intval($current_list_index - 5)
+            ],
+            [
+                'text' => $texts["show_service_list__button__5_next_list"],
+                'callback_data' => "^srv_lst@{$previous_menu} {$list_status_type_index} {$panel_row} " . intval($current_list_index + 5)
+            ]
+        ];
+
+        $current_list_buttons[] = [
+            [
+                'text' => '🔙 بازگشت',
+                'callback_data' => "^{$previous_menu} {$list_status_type_index}"
+            ]
+        ];
+
+        if ($list_status_type != "all") {
+            $valid_services_count = $texts['not_available'];
+        } else {
+            $valid_services_count = $panel__total_services_found_count;
+        }
+
+        $reply_msg = sprintf($texts['service_list'], $panel_name, $list_status_type__text, $bot_db__user_services__count, $panel__total_lists_count, count($list_keys));
+        editMessage($from_id, $reply_msg, $message_id, json_encode(['inline_keyboard' => $current_list_buttons]));
         //     } elseif (
         //         $data == 'all_services'
         //         or strpos($data, 'back_all_services') !== false
