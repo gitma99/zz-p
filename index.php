@@ -26,6 +26,22 @@ try {
 
 
     require_once 'config.php';
+
+    // Allow longer web requests for operations that may take >30s.
+    // Uses optional config value `web_request_timeout` (seconds). Defaults to 120s.
+    if (php_sapi_name() !== 'cli') {
+        $web_timeout = 120;
+        if (isset($config) && isset($config['web_request_timeout']) && is_numeric($config['web_request_timeout'])) {
+            $web_timeout = intval($config['web_request_timeout']);
+        }
+        if (function_exists('set_time_limit')) {
+            @set_time_limit($web_timeout);
+        }
+        if (function_exists('ignore_user_abort')) {
+            @ignore_user_abort(true);
+        }
+    }
+
     if (!isset($from_id)) {
         readfile("Templates/under_maintenance.html");
         exit(0);
@@ -2900,8 +2916,9 @@ try {
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 1);
+            // Give the local send worker more time to process (connect=5s, timeout=120s)
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 120);
             $response = curl_exec($ch);
             curl_close($ch);
             $sql->query("DELETE from `sends`");
