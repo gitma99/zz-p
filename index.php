@@ -2911,7 +2911,7 @@ try {
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
             // Give the local send worker more time to process (connect=5s, timeout=120s)
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
             curl_setopt($ch, CURLOPT_TIMEOUT, 120);
             $response = curl_exec($ch);
             curl_close($ch);
