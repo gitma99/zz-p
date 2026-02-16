@@ -101,7 +101,7 @@ function loginPanel($address, $username, $password)
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_CONNECTTIMEOUT => 30,
             CURLOPT_TIMEOUT => 30,
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => http_build_query($fields),
