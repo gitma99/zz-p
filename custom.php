@@ -436,6 +436,12 @@ function renewal_service($text, $from_id)
         $info_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$location'");
         $panel = $info_panel->fetch_assoc();
 
+        # --------------- check if panel exists -------------- #
+        if ($info_panel->num_rows !== 0) {
+            sendmessage($from_id, sprintf($texts['create_error'], 2), $start_key);
+            exit();
+        }
+
         # ---------------- delete extra files ---------------- #
         foreach (['renewal-service-' . $from_id . '.json'] as $file)
             if (file_exists($file))
@@ -452,85 +458,74 @@ function renewal_service($text, $from_id)
             exit();
         }
         # ---------------- create service proccess ---------------- #
-        if ($panel['type'] == 'marzban') {
-            # ---------------- create service ---------------- #
-            // $token = loginPanel($panel['login_link'], $panel['username'], $panel['password'])['access_token'];
-            $token = get_marzban_panel_token($panel['name']);
-            // for ($i = 0; $i < 2; $i++) {
-            //     $renewal_service = marzban_renewal_api($name, convertToBytes($limit . 'GB'), strtotime("+ $date day"), $token, $panel['login_link']);
-            //     sleep(2);
-            // };
-            if ($token == false) {
-                step('none');
-                sendmessage($from_id, $my_texts['error_show_service__token_is_incorrect'], $start_key);
-                exit();
-            }
-            $renewal_service = marzban_renewal_api($name, convertToBytes($limit . 'GB'), strtotime("+ $date day"), $token, $panel['login_link']);
-
-            $renewal_status = json_decode($renewal_service, true);
-
-            # ---------------- check errors ---------------- #
-            if (!isset($renewal_status['username'])) {
-                step('none');
-                sendMessage($from_id, sprintf($texts['renew_error'], 1), $start_key);
-                // sendMessage($from_id, sprintf($renewal_status['username'], 1), $start_key);
-                exit();
-            }
-            # ---------------- get links and subscription_url for send the user ---------------- #
-            $links = "";
-            foreach ($renewal_status['links'] as $link)
-                $links .= $link . "\n\n";
-
-            if ($info_panel->num_rows > 0) {
-                $getMe = json_decode(file_get_contents("https://api.telegram.org/bot{$config['token']}/getMe"), true);
-                if (!isset($getMe['result'])) {
-                    // send_debug_data_to_maintainer(json_encode(["failed to get bot username", $getMe], 448), $maintainer_telegram_id_number, TRUE);
-                    $bot_username = "*";
-                } else {
-                    $bot_username = $getMe['result']['username'];
-                }
-                $subscribe = (strpos($renewal_status['subscription_url'], 'http') !== false) ? $renewal_status['subscription_url'] : $panel['login_link'] . $renewal_status['subscription_url'];
-                if ($panel['qr_code'] == 'active') {
-                    $encode_url = urlencode($subscribe);
-                    $bot_data = [
-                        'chat_id' => $from_id,
-                        'photo' => "https://api.qrserver.com/v1/create-qr-code/?data=$encode_url&size=800x800",
-                        'caption' => sprintf(
-                            $texts['success_create_service'],
-                            $name,
-                            $location,
-                            $date,
-                            $limit,
-                            number_format($price),
-                            '',
-                            '@' . $bot_username
-                        ),
-                        'parse_mode' => 'html',
-                        'reply_markup' => $start_key
-                    ];
-                    bot('sendPhoto', $bot_data);
-                } else {
-                    $bot_text = sprintf(
-                        $texts['success_create_service'],
-                        $name_base,
-                        $location,
-                        $date,
-                        $limit,
-                        number_format($price),
-                        $subscribe,
-                        '@' . $bot_username
-                    );
-                    sendmessage($from_id, $bot_text, $start_key);
-                }
-                $sql->query("UPDATE `orders` SET `location` = '$location', `date` = '$date', `volume` = '$limit', `link` = '$links', `price` = '$price' WHERE `code` = '$code_base'");
-                exit();
-                // $sql->query("INSERT INTO `orders` (`from_id`, `location`, `protocol`, `date`, `volume`, `link`, `price`, `code`, `status`, `type`) VALUES ('$from_id', '$location', 'null', '$date', '$limit', '$links', '$price', '$code', 'active', 'marzban')");
-                // sendmessage($config['dev'], sprintf($texts['success_create_notif']), $first_name, $username, $from_id, $user['count_service'], $user['coin'], $location, $plan, $limit, $date, $code, number_format($price));
-            } else {
-                sendmessage($from_id, sprintf($texts['create_error'], 2), $start_key);
-                exit();
-            }
+        if ($panel['type'] !== 'marzban') {
+            sendmessage($from_id, "Not implanted Error", $start_key);
+            exit();
         }
+        # ---------------- create service ---------------- #
+        $token = get_marzban_panel_token($panel['name']);
+
+        if ($token == false) {
+            step('none');
+            sendmessage($from_id, $my_texts['error_show_service__token_is_incorrect'], $start_key);
+            exit();
+        }
+        $renewal_service = marzban_renewal_api($name, convertToBytes($limit . 'GB'), strtotime("+ $date day"), $token, $panel['login_link']);
+
+        $renewal_status = json_decode($renewal_service, true);
+
+        # ---------------- check errors ---------------- #
+        if (!isset($renewal_status['username'])) {
+            step('none');
+            sendMessage($from_id, sprintf($texts['renew_error'], 1), $start_key);
+            // sendMessage($from_id, sprintf($renewal_status['username'], 1), $start_key);
+            exit();
+        }
+        # ---------------- get links and subscription_url for send the user ---------------- #
+        $links = "";
+        foreach ($renewal_status['links'] as $link){
+            $links .= $link . "\n\n";
+        }
+        
+        $getMe = json_decode(file_get_contents("https://api.telegram.org/bot{$config['token']}/getMe"), true);
+        $bot_username = isset($getMe['result']) ? $getMe['result']['username'] : '*';
+
+        $subscribe = (strpos($renewal_status['subscription_url'], 'http') !== false) ? $renewal_status['subscription_url'] : $panel['login_link'] . $renewal_status['subscription_url'];
+        if ($panel['qr_code'] == 'active') {
+            $encode_url = urlencode($subscribe);
+            $bot_data = [
+                'chat_id' => $from_id,
+                'photo' => "https://api.qrserver.com/v1/create-qr-code/?data=$encode_url&size=800x800",
+                'caption' => sprintf(
+                    $texts['success_create_service'],
+                    $name,
+                    $location,
+                    $date,
+                    $limit,
+                    number_format($price),
+                    '',
+                    '@' . $bot_username
+                ),
+                'parse_mode' => 'html',
+                'reply_markup' => $start_key
+            ];
+            bot('sendPhoto', $bot_data);
+        } else {
+            $bot_text = sprintf(
+                $texts['success_create_service'],
+                $name_base,
+                $location,
+                $date,
+                $limit,
+                number_format($price),
+                $subscribe,
+                '@' . $bot_username
+            );
+            sendmessage($from_id, $bot_text, $start_key);
+        }
+        $sql->query("UPDATE `orders` SET `location` = '$location', `date` = '$date', `volume` = '$limit', `link` = '$links', `price` = '$price' WHERE `code` = '$code_base'");
+
+        # ---------------- Deduct Coins  ---------------- #
         $sql->query("UPDATE `users` SET `coin` = coin - $price WHERE `from_id` = '$from_id' LIMIT 1");
     } elseif ($text == '❌  انصراف' and $user['step'] == 'renewal_service_confirm_service') {
         step('none');
