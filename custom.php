@@ -437,7 +437,7 @@ function renewal_service($text, $from_id)
         $panel = $info_panel->fetch_assoc();
 
         # --------------- check if panel exists -------------- #
-        if ($info_panel->num_rows !== 0) {
+        if ($info_panel->num_rows == 0) {
             sendmessage($from_id, sprintf($texts['create_error'], 2), $start_key);
             exit();
         }
