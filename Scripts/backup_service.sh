@@ -85,21 +85,21 @@ select opt in "${actions[@]}"; do
             sed -i 's#{{LOG-PATH}}#'"$LOG_PATH"'#g' "$TMP_SERVICE"
             cp -f "$TMP_SERVICE" "/etc/systemd/system/$SERVICE_FILE_NAME"
             rm -f "$TMP_SERVICE"
-            chmod 755 "/etc/systemd/system/$SERVICE_FILE_NAME"
+            chmod 644 "/etc/systemd/system/$SERVICE_FILE_NAME"
+            chmod 755 "$SCRIPT_PATH"
             colorized_echo green "INFO: Successfully created $SERVICE_FILE_NAME."
 
-            # start service
+            # enable and start service on boot
             systemctl daemon-reload
-            systemctl enable "$SERVICE_FILE_NAME"
+            systemctl enable --now "$SERVICE_FILE_NAME"
             systemctl restart "$SERVICE_FILE_NAME"
-            colorized_echo green "INFO: Successfully installed service and started."
+            colorized_echo green "INFO: Successfully installed service, enabled it for boot, and started it."
             journalctl -u "$SERVICE_FILE_NAME" -f
             break
             ;;
         "Uninstall schedule backup job")
-            systemctl stop "$SERVICE_FILE_NAME"
-            systemctl disable "$SERVICE_FILE_NAME"
-            rm "/etc/systemd/system/$SERVICE_FILE_NAME"
+            systemctl disable --now "$SERVICE_FILE_NAME" || true
+            rm -f "/etc/systemd/system/$SERVICE_FILE_NAME"
             systemctl daemon-reload
             colorized_echo green "INFO: Successfully uninstalled service."
             break

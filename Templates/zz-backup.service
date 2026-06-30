@@ -1,10 +1,12 @@
 [Unit]
-Description=ZZ BAckup Service
-After=network.target
+Description=ZZ Backup Service
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 ExecStart={{BACKUP-SCRIPT-PATH}}
 Restart=always
+RestartSec=30
 StandardOutput=append:{{LOG-PATH}}
 StandardError=append:{{LOG-PATH}}
 
