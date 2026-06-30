@@ -1,110 +1,226 @@
 #!/bin/bash
+set -euo pipefail
+IFS=$'\n\t'
+
 # === define variables
 target_time_zone='Asia/Tehran'
 CONFIG_JSON_PATH='/root/backup_service_config.json'
 APP_DIR="/var/www/html/ZZPanelBot"
 ZZ_BOT_CONFIG_JSON_PATH="${APP_DIR}/bot_config.json"
+LOG_FILE='/root/zz-p-backup.log'
 
-TELEGRAM_BOT_TOKEN=$(echo "$(cat $CONFIG_JSON_PATH)" | jq -r '.token')
-TELEGRAM_USER_ID=$(echo "$(cat $CONFIG_JSON_PATH)" | jq -r '.chat_id')
+TELEGRAM_BOT_TOKEN=''
+TELEGRAM_USER_ID=''
 
-# ==== define base functions
+timestamp() {
+    date '+%Y-%m-%d %H:%M:%S %Z'
+}
+
 colorized_echo() {
     local color=$1
     local text=$2
-    
     case $color in
         "red")
-        printf "\e[91m${text}\e[0m\n";;
+            printf "\e[91m%s\e[0m\n" "$text";;
         "green")
-        printf "\e[92m${text}\e[0m\n";;
+            printf "\e[92m%s\e[0m\n" "$text";;
         "yellow")
-        printf "\e[93m${text}\e[0m\n";;
+            printf "\e[93m%s\e[0m\n" "$text";;
         "blue")
-        printf "\e[94m${text}\e[0m\n";;
+            printf "\e[94m%s\e[0m\n" "$text";;
         "magenta")
-        printf "\e[95m${text}\e[0m\n";;
+            printf "\e[95m%s\e[0m\n" "$text";;
         "cyan")
-        printf "\e[96m${text}\e[0m\n";;
+            printf "\e[96m%s\e[0m\n" "$text";;
         *)
-            echo "${text}"
-        ;;
+            echo "$text";;
     esac
 }
 
+log() {
+    local level=$1
+    local message=$2
+    local ts
+    ts=$(timestamp)
+    echo "[${ts}] ${level}: ${message}" | tee -a "$LOG_FILE"
+}
+
+send_telegram_message() {
+    local title=$1
+    local text=$2
+
+    if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_USER_ID:-}" ]; then
+        log "WARN" "Telegram is not configured, cannot send alert"
+        return
+    fi
+
+    local payload
+    payload="<b>${title}</b>\nTime: $(timestamp)\n${text}"
+
+    curl -s --fail -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+        -d chat_id="${TELEGRAM_USER_ID}" \
+        -d parse_mode=HTML \
+        -d disable_web_page_preview=true \
+        -d text="${payload}" > /dev/null 2>&1 || {
+            log "WARN" "Failed to send Telegram notification"
+        }
+}
+
+send_telegram_document() {
+    local file_path=$1
+    local max_attempts=3
+    local attempt=1
+
+    if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_USER_ID:-}" ]; then
+        log "WARN" "Telegram is not configured, cannot send document"
+        return 1
+    fi
+
+    local caption
+    caption="<b>✅ Backup completed</b>\nHost: $(hostname)\nTime: $(timestamp)\nFile: $(basename "$file_path")"
+
+    while [ "$attempt" -le "$max_attempts" ]; do
+        log "INFO" "Sending Telegram document (attempt ${attempt}/${max_attempts})"
+
+        if curl -s --fail -X POST \
+            -F "chat_id=${TELEGRAM_USER_ID}" \
+            -F "document=@${file_path}" \
+            -F "caption=${caption}" \
+            -F "parse_mode=HTML" \
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" > /dev/null 2>&1; then
+            log "INFO" "Telegram document sent successfully"
+            return 0
+        fi
+
+        if [ "$attempt" -lt "$max_attempts" ]; then
+            log "WARN" "Telegram document send failed, retrying in 10 seconds"
+            sleep 10
+        fi
+
+        attempt=$((attempt + 1))
+    done
+
+    send_telegram_message "❌ Backup upload failed" "Failed to send backup document after ${max_attempts} attempts."
+    return 1
+}
+
 handle_error() {
-    local ERROR_MSG=$1
-    local LINE_NO=$2
-    colorized_echo red "[$(date +"%Y-%m-%d %H:%M:%S")] ERROR: Error on line $LINE_NO: $ERROR_MSG"
+    local err_msg=${1:-"Unknown error"}
+    local line_no=${2:-"?"}
+    local ts
+    ts=$(timestamp)
+    local full_msg="Error on line ${line_no}: ${err_msg}"
+    log "ERROR" "$full_msg"
+    send_telegram_message "⚠️ Backup error" "$full_msg"
     exit 1
 }
 
-# ==== check for required commands
-for cmd in jq mysqldump zip curl; do
-    if ! command -v "$cmd" &> /dev/null; then
-        echo "Required command '$cmd' not found. Please install it."
-        exit 1
+trap 'handle_error "${BASH_COMMAND}" "$LINENO"' ERR
+trap 'handle_error "Script interrupted" "${LINENO:-?}"' INT TERM
+
+check_required_commands() {
+    local cmds=(jq mysqldump zip curl date)
+    for cmd in "${cmds[@]}"; do
+        if ! command -v "$cmd" > /dev/null 2>&1; then
+            handle_error "Required command '$cmd' not found"
+        fi
+    done
+}
+
+load_telegram_config() {
+    if [ ! -f "$CONFIG_JSON_PATH" ]; then
+        handle_error "Telegram config file missing: ${CONFIG_JSON_PATH}"
     fi
-done
+
+    TELEGRAM_BOT_TOKEN=$(jq -r '.token // empty' < "$CONFIG_JSON_PATH")
+    TELEGRAM_USER_ID=$(jq -r '.chat_id // empty' < "$CONFIG_JSON_PATH")
+
+    if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_USER_ID" ]; then
+        handle_error "Telegram token or chat_id missing in ${CONFIG_JSON_PATH}"
+    fi
+}
+
+validate_bot_config() {
+    if [ ! -f "$ZZ_BOT_CONFIG_JSON_PATH" ]; then
+        handle_error "Bot config file missing: ${ZZ_BOT_CONFIG_JSON_PATH}"
+    fi
+    if [ ! -s "$ZZ_BOT_CONFIG_JSON_PATH" ]; then
+        handle_error "Bot config file is empty: ${ZZ_BOT_CONFIG_JSON_PATH}"
+    fi
+}
+
+parse_db_credentials() {
+    DB_NAME=$(jq -r '.database.db_name // empty' < "$ZZ_BOT_CONFIG_JSON_PATH")
+    DB_USER=$(jq -r '.database.db_username // empty' < "$ZZ_BOT_CONFIG_JSON_PATH")
+    DB_PASSWORD=$(jq -r '.database.db_password // empty' < "$ZZ_BOT_CONFIG_JSON_PATH")
+
+    if [ -z "$DB_NAME" ] || [ -z "$DB_USER" ] || [ -z "$DB_PASSWORD" ]; then
+        handle_error "Database credentials missing in ${ZZ_BOT_CONFIG_JSON_PATH}"
+    fi
+}
+
+prepare_environment() {
+    mkdir -p "$(dirname "$LOG_FILE")"
+    touch "$LOG_FILE"
+    chmod 640 "$LOG_FILE"
+}
+
+backup_database() {
+    local dump_file='/root/zz-p-sql.sql'
+    local archive_file='/root/zz-p-backup.zip'
+
+    rm -f "$dump_file" "$archive_file"
+
+    log "INFO" "Starting database backup"
+    mysqldump --no-tablespaces \
+        -h 127.0.0.1 -P 3306 \
+        -u "$DB_USER" -p"$DB_PASSWORD" \
+        "$DB_NAME" > "$dump_file"
+
+    if [ ! -f "$dump_file" ]; then
+        handle_error "Database dump file was not created"
+    fi
+
+    zip -j "$archive_file" "$ZZ_BOT_CONFIG_JSON_PATH" "$dump_file"
+
+    if [ ! -f "$archive_file" ]; then
+        handle_error "Backup archive was not created"
+    fi
+
+    log "INFO" "Backup created: ${archive_file}"
+}
+
+send_backup() {
+    local archive_file='/root/zz-p-backup.zip'
+    log "INFO" "Sending backup to Telegram"
+    if ! send_telegram_document "$archive_file"; then
+        handle_error "Failed to send backup document after retries"
+    fi
+}
+
+calculate_sleep_seconds() {
+    local current_seconds tomorrow_midnight_seconds
+    current_seconds=$(TZ="$target_time_zone" date +%s)
+    tomorrow_midnight_seconds=$(TZ="$target_time_zone" date -d '00:00 tomorrow' +%s)
+    echo $((tomorrow_midnight_seconds - current_seconds))
+}
+
+check_required_commands
+load_telegram_config
+validate_bot_config
+parse_db_credentials
+prepare_environment
 
 while true; do
-    # ==== check for existence of required directories and files
-    if [ ! -d "${APP_DIR}" ]; then
-        handle_error "The BotPanel folder was not found for the backup process, install the bot first!" $LINENO
+    if [ ! -d "$APP_DIR" ]; then
+        handle_error "The BotPanel folder was not found for the backup process, install the bot first!"
     fi
 
-    if [ ! -f "$ZZ_BOT_CONFIG_JSON_PATH" ]; then
-        handle_error "The bot_config.json file was not found and the backup process was canceled!" $LINENO
-    fi
+    backup_database
+    send_backup
 
-    if [ ! -s "$ZZ_BOT_CONFIG_JSON_PATH" ]; then
-        handle_error "The bot_config.json file is empty!" $LINENO
-    fi
-
-    # ==== clean up old backup files
-    rm -f "/root/zz-p-sql.sql" "/root/zz-p-backup.zip"
-
-    # ==== backup mysql data
-    colorized_echo green "Please wait, Backing up database data ..."
-    mysqldump \
-        --no-tablespaces \
-        -h 127.0.0.1 -P 3306 \
-        -u "$(jq -r '.database.db_username' < "$ZZ_BOT_CONFIG_JSON_PATH")" \
-        -p"$(jq -r '.database.db_password' < "$ZZ_BOT_CONFIG_JSON_PATH")" \
-        "$(jq -r '.database.db_name' < "$ZZ_BOT_CONFIG_JSON_PATH")" \
-        > "/root/zz-p-sql.sql"
-
-    if [ $? -ne 0 ]; then
-        handle_error "mysqldump failed" $LINENO
-    fi
-    
-    if [ ! -f "/root/zz-p-sql.sql" ]; then
-        handle_error "'mysql' did not backup to /root/zz-p-sql.sql!" $LINENO
-    fi
-
-    # ==== zip necessary files for backup
-    zip "/root/zz-p-backup.zip" "$ZZ_BOT_CONFIG_JSON_PATH" "/root/zz-p-sql.sql"
-
-    if [ ! -f "/root/zz-p-backup.zip" ]; then
-        handle_error "'zip' could not create /root/zz-p-backup.zip!" $LINENO
-    fi
-    colorized_echo green "Backup Finished. located in (/root/zz-p-backup.zip)."
-
-    # send zip file to Telegram:
-    curl -X POST \
-        -F "document=@/root/zz-p-backup.zip" \
-        -F "chat_id=$TELEGRAM_USER_ID" \
-        "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendDocument"
-    if [ $? -ne 0 ]; then
-        handle_error "Failed to send backup to Telegram" $LINENO
-    fi
-
-    # ==== schedule for next backup time
-    current_time=$(TZ="$target_time_zone" date +%H:%M)
-    current_seconds=$(TZ="$target_time_zone" date -d "$current_time" +%s)
-    tomorrow_midnight_seconds=$(TZ="$target_time_zone" date -d '00:00 tomorrow' +%s)
-    time_remaining=$(($tomorrow_midnight_seconds - $current_seconds))
-
-    colorized_echo blue "Chron Info : $time_remaining seconds until next backup!"
-    sleep $time_remaining
+    local time_remaining
+    time_remaining=$(calculate_sleep_seconds)
+    log "INFO" "Next backup in ${time_remaining} seconds"
+    sleep "$time_remaining"
 done
