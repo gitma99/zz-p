@@ -11,8 +11,10 @@ function get_marzban_panel_token($panel_name)
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $panel_url . "/api/system");
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
         curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $panel_token, 'Content-Type: application/json'));
         $test_response = curl_exec($ch);
         curl_close($ch);
@@ -44,8 +46,8 @@ function marzban_renewal_api($username, $new_traffic_limit, $new_expire_time, $t
     // curl_setopt($ch, CURLOPT_PUT, true);
     curl_setopt($ch1, CURLOPT_CUSTOMREQUEST, 'PUT');
     curl_setopt($ch1, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch1, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch1, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch1, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch1, CURLOPT_SSL_VERIFYHOST, 2);
     curl_setopt($ch1, CURLOPT_CONNECTTIMEOUT, 30); // connect timeout (seconds)
     curl_setopt($ch1, CURLOPT_TIMEOUT, 30); // overall timeout (seconds)
     curl_setopt($ch1, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token, 'Content-Type: application/json'));
@@ -73,8 +75,10 @@ function marzban_renewal_api($username, $new_traffic_limit, $new_expire_time, $t
         curl_setopt($ch2, CURLOPT_URL, $url . "/api/user/$username/reset");
         curl_setopt($ch2, CURLOPT_POST, true);
         curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch2, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch2, CURLOPT_SSL_VERIFYHOST, 2);
+        curl_setopt($ch2, CURLOPT_CONNECTTIMEOUT, 30);
+        curl_setopt($ch2, CURLOPT_TIMEOUT, 30);
         curl_setopt($ch2, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token, 'Content-Type: application/json'));
         $reset_data_usage_response = curl_exec($ch2);
         curl_close($ch2);
@@ -99,8 +103,8 @@ function loginPanel($address, $username, $password)
         $curl,
         array(
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
             CURLOPT_CONNECTTIMEOUT => 30,
             CURLOPT_TIMEOUT => 30,
             CURLOPT_POST => true,
@@ -137,8 +141,8 @@ function createService($username, $limit, $expire_data, $proxies, $inbounds, $to
 
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url . '/api/user');
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
@@ -167,8 +171,8 @@ function resetUserDataUsage($username, $token, $url)
 {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url . '/api/user/' . $username . '/reset');
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
@@ -183,8 +187,8 @@ function getSystemStatus($token, $url)
 {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url . '/api/system');
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
     curl_setopt($ch, CURLOPT_HTTPGET, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
@@ -199,8 +203,8 @@ function removeuser($username, $token, $url)
 {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url . '/api/user/' . $username);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
     curl_setopt($ch, CURLOPT_HTTPGET, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -216,8 +220,8 @@ function Modifyuser($username, $data, $token, $url)
 {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url . '/api/user/' . $username);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
     curl_setopt($ch, CURLOPT_TIMEOUT, 30);
@@ -233,8 +237,8 @@ function inbounds($token, $url)
 {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url . '/api/inbounds');
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
     curl_setopt($ch, CURLOPT_TIMEOUT, 30);
@@ -255,8 +259,8 @@ function getUserInfo($sevice_name, $token, $url)
     );
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $api_url);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
     curl_setopt($ch, CURLOPT_HTTPGET, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
@@ -330,8 +334,8 @@ function getUsersInfo($token, $url, $list_offset = null, $max_list_count = null,
 
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $api_url);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
     curl_setopt($ch, CURLOPT_HTTPGET, true);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);

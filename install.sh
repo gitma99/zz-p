@@ -37,8 +37,8 @@ fatal()  { printf "\e[1;31m[ERROR]\e[0m %s\n" "$*"; exit 1; }
 sql_escape() { printf '%s' "$1" | sed "s/'/''/g"; }
 
 colorized_echo() {
-    local color=$1 text=$2
-    case $color in
+	local color=$1 text=$2
+	case $color in
 		red)      printf "\e[91m%s\e[0m\n" "${text}";;
 		green)    printf "\e[92m%s\e[0m\n" "${text}";;
 		yellow)   printf "\e[93m%s\e[0m\n" "${text}";;
@@ -46,11 +46,11 @@ colorized_echo() {
 		magenta)  printf "\e[95m%s\e[0m\n" "${text}";;
 		cyan)     printf "\e[96m%s\e[0m\n" "${text}";;
 		*)        printf "%s\n" "${text}";;
-    esac
+	esac
 }
 
 usage() {
-    cat <<EOF
+	cat <<EOF
 Usage: sudo $0 [options]
 
 Options:
@@ -65,26 +65,26 @@ Options:
   --non-interactive                         Run without prompts (fails if required options are missing)
   -h, --help                                Show this help
 EOF
-    exit 1
+	exit 1
 }
 
 read_input() {
-    local prompt=$1 default=$2 varname=$3
-    local value
+	local prompt=$1 default=$2 varname=$3
+	local value
 
-    while true; do
-        if [[ -n "$default" ]]; then
-            read -p "$prompt [default: $default]: " value
-            value="${value:-$default}"   # if user presses Enter → default
-        else
-            read -p "$prompt: " value
-            [[ -z "$value" ]] && { echo "❌ This field is required."; continue; }
-        fi
-        break
-    done
+	while true; do
+		if [[ -n "$default" ]]; then
+			read -p "$prompt [default: $default]: " value
+			value="${value:-$default}"   # if user presses Enter → default
+		else
+			read -p "$prompt: " value
+			[[ -z "$value" ]] && { echo "❌ This field is required."; continue; }
+		fi
+		break
+	done
 
-    declare -n ref=$varname
-    ref="$value"
+	declare -n ref=$varname
+	ref="$value"
 }
 
 # -----------------------
@@ -100,19 +100,19 @@ trap cleanup EXIT ERR
 # Parse arguments
 # -----------------------
 while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --domain) DOMAIN="$2"; shift 2 ;;
-        --email) CERTBOT_EMAIL="$2"; shift 2 ;;
-        --bot-token|--token) BOT_TOKEN="$2"; shift 2 ;;
-        --chat-id) CHAT_ID="$2"; shift 2 ;;
-        --mysql-root-pass|--db-root-password) MYSQL_ROOT_PASS="$2"; shift 2 ;;
-        --db-username) DB_USER="$2"; shift 2 ;;
-        --db-password) DB_PASS="$2"; shift 2 ;;
-        --random-db-username-password) RANDOM_DB_CREDS=true; shift ;;
+	case "$1" in
+		--domain) DOMAIN="$2"; shift 2 ;;
+		--email) CERTBOT_EMAIL="$2"; shift 2 ;;
+		--bot-token|--token) BOT_TOKEN="$2"; shift 2 ;;
+		--chat-id) CHAT_ID="$2"; shift 2 ;;
+		--mysql-root-pass|--db-root-password) MYSQL_ROOT_PASS="$2"; shift 2 ;;
+		--db-username) DB_USER="$2"; shift 2 ;;
+		--db-password) DB_PASS="$2"; shift 2 ;;
+		--random-db-username-password) RANDOM_DB_CREDS=true; shift ;;
 		--non-interactive) NON_INTERACTIVE=true; shift ;;
-        -h|--help) usage ;;
-        *) echo "Unknown option: $1"; usage ;;
-    esac
+		-h|--help) usage ;;
+		*) echo "Unknown option: $1"; usage ;;
+	esac
 done
 
 # -----------------------
@@ -153,10 +153,10 @@ if [[ "$NON_INTERACTIVE" == "true" || ! -t 0 ]]; then
 	[[ -z "$BOT_TOKEN" ]] && fatal "BOT_TOKEN is required but not set in non-interactive mode."
 	[[ -z "$CHAT_ID" ]] && fatal "CHAT_ID is required but not set in non-interactive mode."
 else
-[[ -z "$DOMAIN" ]]         && read_input "Enter domain (without http/https)" "" DOMAIN
-[[ -z "$CERTBOT_EMAIL" ]]  && read_input "Enter contact email for Let's Encrypt" "admin@example.com" CERTBOT_EMAIL
-[[ -z "$BOT_TOKEN" ]]      && read_input "Enter Telegram bot token" "" BOT_TOKEN
-[[ -z "$CHAT_ID" ]]        && read_input "Enter Telegram chat ID" "" CHAT_ID
+	[[ -z "$DOMAIN" ]]         && read_input "Enter domain (without http/https)" "" DOMAIN
+	[[ -z "$CERTBOT_EMAIL" ]]  && read_input "Enter contact email for Let's Encrypt" "admin@example.com" CERTBOT_EMAIL
+	[[ -z "$BOT_TOKEN" ]]      && read_input "Enter Telegram bot token" "" BOT_TOKEN
+	[[ -z "$CHAT_ID" ]]        && read_input "Enter Telegram chat ID" "" CHAT_ID
 fi
 
 # -----------------------
@@ -173,7 +173,7 @@ else
 		if [[ "$NON_INTERACTIVE" == "true" || ! -t 0 ]]; then
 			DB_USER=$(pwgen -A 8 1)
 		else
-rand_db_user=$(pwgen -A 8 1)
+			rand_db_user=$(pwgen -A 8 1)
 			read_input "Enter DB username" "$rand_db_user" DB_USER
 		fi
 	fi
@@ -209,7 +209,7 @@ apt update -y
 
 log "Installing required packages..."
 apt install -y dialog curl jq ufw git wget unzip pwgen sshpass \
-	mysql-server apache2 libapache2-mod-php \
+	mysql-server apache2 php-fpm php-apcu \
 	php php-mbstring php-zip php-gd php-json php-curl php-soap php-ssh2 \
 	libssh2-1-dev libssh2-1 phpmyadmin certbot python3-certbot-apache
 
@@ -231,36 +231,21 @@ debconf-set-selections <<< "phpmyadmin phpmyadmin/dbconfig-install boolean true"
 ln -sf /etc/phpmyadmin/apache.conf /etc/apache2/conf-available/phpmyadmin.conf
 a2enconf phpmyadmin.conf
 
+# Configure Apache to use event MPM and PHP-FPM
+log "Configuring Apache Event MPM and PHP-FPM..."
+a2dismod mpm_prefork || true
+for php_mod in $(ls /etc/apache2/mods-enabled/php*.load 2>/dev/null | xargs -n1 basename | sed 's/\.load//'); do
+	a2dismod "$php_mod" || true
+done
+a2enmod mpm_event proxy_fcgi setenvif
+
 # Enable and start services
 systemctl enable --now mysql apache2
 
-PHP_VERSION=$(php -v | head -n1 | awk '{print $2}' | cut -d '.' -f 1,2)
-PHP_MODULE="php${PHP_VERSION}"
-
-# ufw allow 'Apache Full'
-# sudo systemctl restart apache2
-
-# # Disable mpm_event if enabled
-# if apache2ctl -M | grep -q 'mpm_event_module'; then
-#     log "Disabling mpm_event module..."
-#     a2dismod mpm_event
-# else
-#     log "mpm_event is not enabled. Skipping disable step."
-# fi
-
-# # Enable mpm_prefork
-# log "Enabling mpm_prefork module..."
-# a2enmod mpm_prefork
-
-# # Enable PHP module
-# log "Enabling Apache PHP module: ${PHP_MODULE}..."
-# a2enmod "${PHP_MODULE}"
-
-# # Restart Apache to apply changes
-# log "Restarting Apache server..."
-# systemctl restart apache2
-
-# log "Apache has been configured to use mpm_prefork with PHP ${PHP_VERSION}."
+# Detect PHP version and enable FPM configuration
+PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
+a2enconf "php${PHP_VER}-fpm" || warn "Could not enable php${PHP_VER}-fpm configuration automatically."
+systemctl enable --now "php${PHP_VER}-fpm" || warn "Could not enable php${PHP_VER}-fpm service."
 
 # -----------------------
 # Clone Bot Repository
@@ -278,8 +263,8 @@ ufw allow 80/tcp
 ufw allow 443/tcp
 systemctl enable certbot.timer
 certbot --apache --agree-tos --non-interactive \
-    --email "$CERTBOT_EMAIL" -d "$DOMAIN" \
-    || fatal "Certbot failed for ${DOMAIN} (ensure the domain points to this server and port 80 is reachable)."
+	--email "$CERTBOT_EMAIL" -d "$DOMAIN" \
+	|| fatal "Certbot failed for ${DOMAIN} (ensure the domain points to this server and port 80 is reachable)."
 ok "SSL certificate installed for $DOMAIN"
 
 # -----------------------
@@ -356,6 +341,65 @@ else
 	fatal "Database schema initialization script returned no output."
 fi
 ok "Database schema initialized successfully."
+
+# -----------------------
+# Configure Performance Settings
+# -----------------------
+log "Applying PHP performance tuning (OPcache & APCu)..."
+PHP_FPM_CONF_DIR="/etc/php/${PHP_VER}/fpm/conf.d"
+if [ -d "$PHP_FPM_CONF_DIR" ]; then
+	cat > "${PHP_FPM_CONF_DIR}/99-botpanel-perf.ini" <<EOF
+; BotPanel Performance Tuning Configuration
+opcache.enable=1
+opcache.memory_consumption=128
+opcache.interned_strings_buffer=16
+opcache.max_accelerated_files=10000
+opcache.revalidate_freq=2
+opcache.validate_timestamps=1
+
+apc.enabled=1
+apc.enable_cli=1
+apc.shm_size=32M
+
+memory_limit=128M
+max_execution_time=120
+post_max_size=16M
+upload_max_filesize=16M
+EOF
+	ok "PHP performance tuning configuration created."
+	systemctl restart "php${PHP_VER}-fpm" || true
+else
+	warn "PHP FPM config directory not found at $PHP_FPM_CONF_DIR. Skipping FPM config tuning."
+fi
+
+log "Applying Apache performance tuning (Compression, Keep-Alive, Event MPM)..."
+APACHE_PERF_CONF="/etc/apache2/conf-available/botpanel-perf.conf"
+cat > "$APACHE_PERF_CONF" <<EOF
+# BotPanel Apache Performance Config
+
+# Gzip compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE application/json text/html text/plain text/css application/javascript text/xml
+</IfModule>
+
+# Keep-Alive Settings
+KeepAlive On
+KeepAliveTimeout 5
+MaxKeepAliveRequests 100
+
+# MPM Event Configuration tuning for high concurrent webhook request volume
+<IfModule mpm_event_module>
+    StartServers            2
+    MinSpareThreads         25
+    MaxSpareThreads         75
+    ThreadLimit             64
+    ThreadsPerChild         25
+    MaxRequestWorkers       150
+    MaxConnectionsPerChild  1000
+</IfModule>
+EOF
+
+a2enconf botpanel-perf || warn "Failed to enable Apache performance configuration."
 
 # Restart Apache to apply all modules/configurations
 systemctl restart apache2

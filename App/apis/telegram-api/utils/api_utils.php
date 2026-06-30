@@ -1,5 +1,5 @@
 <?php
-function bot($method, $datas = [], $api_key = API_KEY, $only_handler = false)
+function bot($method, $data = [], $api_key = API_KEY, $only_handler = false)
 {
     $handeled_exception_outside = [
         'sendDocument',
@@ -15,7 +15,7 @@ function bot($method, $datas = [], $api_key = API_KEY, $only_handler = false)
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_SSL_VERIFYHOST => false,
-        CURLOPT_POSTFIELDS => $datas
+        CURLOPT_POSTFIELDS => $data
     ]);
     if ($only_handler == true) {
         return $ch;
@@ -30,7 +30,7 @@ function bot($method, $datas = [], $api_key = API_KEY, $only_handler = false)
             if ($telegram_res["ok"] == false and !in_array($method, $handeled_exception_outside)) {
                 $error_details = [
                     'method' => $method,
-                    'datas' => $datas,
+                    'data' => $data,
                     'response' => $telegram_res
                 ];
                 throw new Exception(json_encode($error_details, 448));
