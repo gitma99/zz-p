@@ -3,3 +3,8 @@
 /Temp/
 zanbor.install
 /bot_config.json
+
+__LOCAL__/
+__TEMP__/
+
+.vscode/
