@@ -11,20 +11,19 @@ GITHUB_REPO_ADDRESS='https://github.com/gitma99/zz-p.git'
 APP_DIR="/var/www/html/ZZPanelBot"
 BOT_CONFIG_JSON_PATH="${APP_DIR}/bot_config.json"
 CERTBOT_WEBROOT_PATH="/var/www/html"
-PHP_MYADMIN_PASS="zanborhipass"
 
 INSTALLATION_PROOF_FILE="${APP_DIR}/index.php"
 
-
-# CLI args (defaults)
-DOMAIN=""
-CERTBOT_EMAIL=""
-BOT_TOKEN=""
-CHAT_ID=""
-MYSQL_ROOT_PASS=""    # if empty -> use sudo mysql
-DB_USER=""
-DB_PASS=""
-RANDOM_DB_CREDS=false
+# Env/CLI args (defaults)
+DOMAIN="${DOMAIN:-}"
+CERTBOT_EMAIL="${CERTBOT_EMAIL:-}"
+BOT_TOKEN="${BOT_TOKEN:-}"
+CHAT_ID="${CHAT_ID:-}"
+MYSQL_ROOT_PASS="${MYSQL_ROOT_PASS:-}"    # if empty -> use sudo mysql
+DB_USER="${DB_USER:-}"
+DB_PASS="${DB_PASS:-}"
+RANDOM_DB_CREDS="${RANDOM_DB_CREDS:-false}"
+NON_INTERACTIVE="${NON_INTERACTIVE:-false}"
 
 # -----------------------
 # Helpers
@@ -39,15 +38,14 @@ sql_escape() { printf '%s' "$1" | sed "s/'/''/g"; }
 
 colorized_echo() {
     local color=$1 text=$2
-    
     case $color in
-        red)      printf "\e[91m${text}\e[0m\n";;
-        green)    printf "\e[92m${text}\e[0m\n";;
-        yellow)   printf "\e[93m${text}\e[0m\n";;
-        blue)     printf "\e[94m${text}\e[0m\n";;
-        magenta)  printf "\e[95m${text}\e[0m\n";;
-        cyan)     printf "\e[96m${text}\e[0m\n";;
-        *)          echo "${text}";;
+		red)      printf "\e[91m%s\e[0m\n" "${text}";;
+		green)    printf "\e[92m%s\e[0m\n" "${text}";;
+		yellow)   printf "\e[93m%s\e[0m\n" "${text}";;
+		blue)     printf "\e[94m%s\e[0m\n" "${text}";;
+		magenta)  printf "\e[95m%s\e[0m\n" "${text}";;
+		cyan)     printf "\e[96m%s\e[0m\n" "${text}";;
+		*)        printf "%s\n" "${text}";;
     esac
 }
 
@@ -61,9 +59,10 @@ Options:
   --bot-token <telegram-bot-token>          Telegram bot token
   --chat-id <admin-chat-id>                 Telegram admin chat id
   --mysql-root-pass <root-pass>             If provided, uses mysql -uroot -p<pass>, otherwise uses sudo mysql
-  --db-username <dbuser>                    Database username (interactive fallback)
-  --db-password <dbpass>                    Database password (interactive fallback)
+  --db-username <dbuser>                    Database username
+  --db-password <dbpass>                    Database password
   --random-db-username-password             Force generation of random DB username & password
+  --non-interactive                         Run without prompts (fails if required options are missing)
   -h, --help                                Show this help
 EOF
     exit 1
@@ -89,40 +88,13 @@ read_input() {
 }
 
 # -----------------------
-# Pre-checks
+# Setup Cleanup / Trap
 # -----------------------
-# Require root
-if [[ "$(id -u)" -ne 0 ]]; then
-    fatal "This script must be run as root (sudo)."
-fi
-
-# Require Ubuntu 20
-. /etc/os-release
-if [[ "$ID" != "ubuntu" || "$VERSION_ID" != 20.* ]]; then
-    fatal "This script only supports Ubuntu 20.x."
-fi
-log "Running on Ubuntu $VERSION_ID"
-
-if [ -e "$INSTALLATION_PROOF_FILE" ]; then
-  fatal "Bot already installed. uninstall first"
-  exit 0
-fi
-
-log "Installation started. Please wait..."
-
-
-# -----------------------
-# Install Packages
-# -----------------------
-log "Updating system packages..."
-apt update -y && apt upgrade -y
-
-log "Installing required packages..."
-apt install -y dialog curl jq ufw git wget unzip pwgen sshpass \
-    mysql-server apache2 libapache2-mod-php \
-    php php-mbstring php-zip php-gd php-json php-curl php-soap php-ssh2 \
-    libssh2-1-dev libssh2-1 phpmyadmin certbot python3-certbot-apache
-# lamp-server^
+MYSQL_CNF=$(mktemp)
+cleanup() {
+	rm -f "$MYSQL_CNF"
+}
+trap cleanup EXIT ERR
 
 # -----------------------
 # Parse arguments
@@ -137,25 +109,113 @@ while [[ $# -gt 0 ]]; do
         --db-username) DB_USER="$2"; shift 2 ;;
         --db-password) DB_PASS="$2"; shift 2 ;;
         --random-db-username-password) RANDOM_DB_CREDS=true; shift ;;
+		--non-interactive) NON_INTERACTIVE=true; shift ;;
         -h|--help) usage ;;
         *) echo "Unknown option: $1"; usage ;;
     esac
 done
 
+# -----------------------
+# Pre-checks
+# -----------------------
+# Require root
+if [[ "$(id -u)" -ne 0 ]]; then
+	fatal "This script must be run as root (sudo)."
+fi
+
+# Require Ubuntu
+if [[ ! -f /etc/os-release ]]; then
+	fatal "Cannot determine OS. This script only supports Ubuntu."
+fi
+. /etc/os-release
+if [[ "$ID" != "ubuntu" ]]; then
+	fatal "This script only supports Ubuntu."
+fi
+if [[ "$VERSION_ID" != 20.* ]]; then
+	warn "This script was designed for Ubuntu 20.x. Running on Ubuntu $VERSION_ID might have compatibility issues."
+fi
+log "Running on Ubuntu $VERSION_ID"
+
+if [ -e "$INSTALLATION_PROOF_FILE" ]; then
+	fatal "Bot already installed. Uninstall first."
+fi
+
+if [ -d "$APP_DIR" ] && [ "$(ls -A "$APP_DIR" 2>/dev/null)" ]; then
+	fatal "Target directory $APP_DIR exists and is not empty. Aborting installation to prevent data loss."
+fi
+
+# -----------------------
+# Handle Inputs (Interactive vs Non-Interactive)
+# -----------------------
+if [[ "$NON_INTERACTIVE" == "true" || ! -t 0 ]]; then
+	[[ -z "$DOMAIN" ]] && fatal "DOMAIN is required but not set in non-interactive mode."
+	[[ -z "$CERTBOT_EMAIL" ]] && CERTBOT_EMAIL="admin@example.com"
+	[[ -z "$BOT_TOKEN" ]] && fatal "BOT_TOKEN is required but not set in non-interactive mode."
+	[[ -z "$CHAT_ID" ]] && fatal "CHAT_ID is required but not set in non-interactive mode."
+else
 [[ -z "$DOMAIN" ]]         && read_input "Enter domain (without http/https)" "" DOMAIN
 [[ -z "$CERTBOT_EMAIL" ]]  && read_input "Enter contact email for Let's Encrypt" "admin@example.com" CERTBOT_EMAIL
 [[ -z "$BOT_TOKEN" ]]      && read_input "Enter Telegram bot token" "" BOT_TOKEN
 [[ -z "$CHAT_ID" ]]        && read_input "Enter Telegram chat ID" "" CHAT_ID
+fi
 
-rand_db_user=$(pwgen -A 8 1)
-rand_db_pass=$(openssl rand -base64 8 | tr -dc 'a-zA-Z0-9' | head -c 10)
+# -----------------------
+# Credential Initialization
+# -----------------------
+# Generate random password for phpMyAdmin
+PHP_MYADMIN_PASS=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 16)
 
-if $RANDOM_DB_CREDS; then
-    DB_USER=$rand_db_user
-    DB_PASS=$rand_db_pass
+if [[ "$RANDOM_DB_CREDS" == "true" ]]; then
+	DB_USER=$(pwgen -A 8 1)
+	DB_PASS=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 16)
 else
-    [[ -z "$DB_USER" ]] && read_input "Enter DB username" "$rand_db_user" DB_USER
-    [[ -z "$DB_PASS" ]] && read_input "Enter DB password" "$rand_db_pass" DB_PASS
+	if [[ -z "$DB_USER" ]]; then
+		if [[ "$NON_INTERACTIVE" == "true" || ! -t 0 ]]; then
+			DB_USER=$(pwgen -A 8 1)
+		else
+rand_db_user=$(pwgen -A 8 1)
+			read_input "Enter DB username" "$rand_db_user" DB_USER
+		fi
+	fi
+	if [[ -z "$DB_PASS" ]]; then
+		if [[ "$NON_INTERACTIVE" == "true" || ! -t 0 ]]; then
+			DB_PASS=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 16)
+		else
+			rand_db_pass=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 16)
+			read_input "Enter DB password" "$rand_db_pass" DB_PASS
+		fi
+	fi
+fi
+
+# Configure MySQL CLI Credentials Extra File securely
+if [[ -n "$MYSQL_ROOT_PASS" ]]; then
+	cat > "$MYSQL_CNF" <<EOF
+[client]
+user=root
+password=${MYSQL_ROOT_PASS}
+EOF
+	MYSQL_OPTS="--defaults-extra-file=$MYSQL_CNF"
+else
+	MYSQL_OPTS=""
+fi
+
+log "Installation started. Please wait..."
+
+# -----------------------
+# Install Packages
+# -----------------------
+log "Updating system packages list..."
+apt update -y
+
+log "Installing required packages..."
+apt install -y dialog curl jq ufw git wget unzip pwgen sshpass \
+	mysql-server apache2 libapache2-mod-php \
+	php php-mbstring php-zip php-gd php-json php-curl php-soap php-ssh2 \
+	libssh2-1-dev libssh2-1 phpmyadmin certbot python3-certbot-apache
+
+# Validate jq is available
+if ! command -v jq &> /dev/null; then
+	fatal "jq installation failed or is not in PATH."
 fi
 
 # -----------------------
@@ -170,7 +230,8 @@ debconf-set-selections <<< "phpmyadmin phpmyadmin/dbconfig-install boolean true"
 
 ln -sf /etc/phpmyadmin/apache.conf /etc/apache2/conf-available/phpmyadmin.conf
 a2enconf phpmyadmin.conf
-systemctl restart apache2
+
+# Enable and start services
 systemctl enable --now mysql apache2
 
 PHP_VERSION=$(php -v | head -n1 | awk '{print $2}' | cut -d '.' -f 1,2)
@@ -207,79 +268,124 @@ PHP_MODULE="php${PHP_VERSION}"
 log "Cloning application repository..."
 git clone "$GITHUB_REPO_ADDRESS" "$APP_DIR"
 mkdir -p "${APP_DIR}/Logs" "${APP_DIR}/Temp"
-chmod -R 777 "$APP_DIR"
-# sudo chmod 777 $BOT_CONFIG_JSON_PATH
-chmod 777 "$BOT_CONFIG_JSON_PATH" || true
-ok "Application files installed at $APP_DIR"
+ok "Application files cloned to $APP_DIR"
 
 # -----------------------
 # SSL setup
 # -----------------------
 log "Setting up SSL for domain $DOMAIN..."
-ufw allow 80
-ufw allow 443
+ufw allow 80/tcp
+ufw allow 443/tcp
 systemctl enable certbot.timer
 certbot --apache --agree-tos --non-interactive \
     --email "$CERTBOT_EMAIL" -d "$DOMAIN" \
     || fatal "Certbot failed for ${DOMAIN} (ensure the domain points to this server and port 80 is reachable)."
 ok "SSL certificate installed for $DOMAIN"
 
-# ======================= Database Config ===========================
-# read -p "[+] Enter OS ROOT passord: " ROOT_PASSWORD
-# randdbname=$(openssl rand -base64 8 | tr -dc 'a-zA-Z0-9' | head -c 4)
-# DB_NAME="BotPanel_${randdbname}"
+# -----------------------
+# Database Config
+# -----------------------
 DB_NAME="BotPanel_$(openssl rand -hex 2)"
-
 escaped_dbname="$(sql_escape "${DB_NAME}")"
 escaped_dbuser="$(sql_escape "${DB_USER}")"
 escaped_dbpass="$(sql_escape "${DB_PASS}")"
+
 SQL=$(cat <<SQL
 CREATE DATABASE IF NOT EXISTS \`${escaped_dbname}\`;
-CREATE USER IF NOT EXISTS '${escaped_dbuser}'@'%' IDENTIFIED WITH mysql_native_password BY '${escaped_dbpass}';
-GRANT ALL PRIVILEGES ON \`${escaped_dbname}\`.* TO '${escaped_dbuser}'@'%';
+CREATE USER IF NOT EXISTS '${escaped_dbuser}'@'localhost' IDENTIFIED WITH mysql_native_password BY '${escaped_dbpass}';
+GRANT ALL PRIVILEGES ON \`${escaped_dbname}\`.* TO '${escaped_dbuser}'@'localhost';
 FLUSH PRIVILEGES;
 SQL
 )
-log "Creating database '${DB_NAME}' and user '${DB_USER}'..."
-mysql -uroot ${MYSQL_ROOT_PASS:+-p$MYSQL_ROOT_PASS} -e "$SQL"
-ok "Database and user created."
 
-# sshpass -p $ROOT_PASSWORD mysql -u root -p -e "SET GLOBAL validate_password.policy = LOW;"
-# sshpass -p $ROOT_PASSWORD mysql -u root -p -e "SET GLOBAL validate_password_policy = LOW;"
+log "Creating database '${DB_NAME}' and user '${DB_USER}'..."
+mysql ${MYSQL_OPTS} -e "$SQL"
+ok "Database and user created."
 
 # -----------------------
 # Configuration files
 # -----------------------
-config_address="${APP_DIR}/install/zanbor.install"
-cat > "$config_address" <<EOF
-{"development":"@ZanborPanel","install_location":"server","main_domin":"${DOMAIN}","token":"${BOT_TOKEN}","dev":"${CHAT_ID}","db_name":"${DB_NAME}","db_username":"${DB_USER}","db_password":"${DB_PASS}"}
-EOF
-# echo "{\"development\":\"@ZanborPanel\",\"install_location\":\"server\",\"main_domin\":\"${DOMAIN}\",\"token\":\"${BOT_TOKEN}\",\"dev\":\"${CHAT_ID}\",\"db_name\":\"${DB_NAME}\",\"db_username\":\"${rand_db_user}\",\"db_password\":\"${rand_db_pass}\"}" > "${APP_DIR}/install/zanbor.install"
 
 config_template_path="${APP_DIR}/Templates/bot_config_template.json"
-sed -e "s/\[\*DOMAIN\*\]/${DOMAIN}/g" \
-    -e "s/\[\*TOKEN\*\]/${BOT_TOKEN}/g" \
-    -e "s/\[\*DEV\*\]/${CHAT_ID}/g" \
-    -e "s/\[\*DB-NAME\*\]/${DB_NAME}/g" \
-    -e "s/\[\*DB-USER\*\]/${DB_USER}/g" \
-    -e "s/\[\*DB-PASS\*\]/${DB_PASS}/g" \
-    "$config_template_path" > "$BOT_CONFIG_JSON_PATH"
+if [[ ! -f "$config_template_path" ]]; then
+	fatal "Configuration template not found at $config_template_path"
+fi
 
-chmod 777 "$BOT_CONFIG_JSON_PATH"
+TEMP_CONFIG=$(mktemp)
+jq --arg dom "$DOMAIN" \
+   --arg tok "$BOT_TOKEN" \
+   --arg dev "$CHAT_ID" \
+   --arg dbn "$DB_NAME" \
+   --arg dbu "$DB_USER" \
+   --arg dbp "$DB_PASS" \
+   '.main_domin = $dom | .token = $tok | .dev = $dev | .database.db_name = $dbn | .database.db_username = $dbu | .database.db_password = $dbp' \
+   "$config_template_path" > "$TEMP_CONFIG"
+mv "$TEMP_CONFIG" "$BOT_CONFIG_JSON_PATH"
+
+# -----------------------
+# File Permissions & Ownership
+# -----------------------
+log "Setting secure file permissions..."
+find "$APP_DIR" -type d -exec chmod 750 {} +
+find "$APP_DIR" -type f -exec chmod 640 {} +
+chmod +x "${APP_DIR}"/*.sh 2>/dev/null || true
+chmod -R 770 "${APP_DIR}/Temp" "${APP_DIR}/Logs"
 chown -R www-data:www-data "$APP_DIR"
+ok "Permissions updated."
 
 # -----------------------
-# Final setup checks
+# Schema Initialization
 # -----------------------
-# curl process
-colorized_echo blue "Database Status:"
-curl -s "https://${DOMAIN}/ZZPanelBot/sql/sql.php?db_password=${DB_PASS}&db_name=${DB_NAME}&db_username=${DB_USER}"
+log "Running database schema initialization..."
+SQL_INIT_OUT="${APP_DIR}/Temp/sql_init_output.json"
+php -r '
+$_GET["db_username"] = $argv[1];
+$_GET["db_password"] = $argv[2];
+$_GET["db_name"] = $argv[3];
+include "'"${APP_DIR}"'/sql/sql.php";
+' -- "$DB_USER" "$DB_PASS" "$DB_NAME" > "$SQL_INIT_OUT" || fatal "Database schema initialization execution failed."
 
-colorized_echo blue "\n\nSet Webhook Status:"
-curl -F "url=https://${DOMAIN}/ZZPanelBot/index.php" "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook"
+if [[ -f "$SQL_INIT_OUT" ]]; then
+	status=$(jq -r '.status' "$SQL_INIT_OUT" 2>/dev/null || echo "false")
+	msg=$(jq -r '.msg' "$SQL_INIT_OUT" 2>/dev/null || echo "Unknown error")
+	rm -f "$SQL_INIT_OUT"
+	if [[ "$status" != "true" ]]; then
+		fatal "Database initialization failed: $msg"
+	fi
+else
+	fatal "Database schema initialization script returned no output."
+fi
+ok "Database schema initialized successfully."
 
+# Restart Apache to apply all modules/configurations
+systemctl restart apache2
+
+# -----------------------
+# Webhook and Notifications
+# -----------------------
+colorized_echo blue "\nSetting Telegram Webhook..."
+WEBHOOK_URL="https://${DOMAIN}/ZZPanelBot/index.php"
+WEBHOOK_RES=$(curl -s -F "url=${WEBHOOK_URL}" "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook")
+
+if echo "$WEBHOOK_RES" | grep -q '"ok":true'; then
+	ok "Webhook set successfully to ${WEBHOOK_URL}"
+else
+	warn "Failed to set Telegram webhook: ${WEBHOOK_RES}"
+fi
+
+log "Sending installation status notification..."
 TEXT_MESSAGE="✅ Bot has been successfully installed!"
-curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-    -d chat_id="${CHAT_ID}" -d text="${TEXT_MESSAGE}"
+MSG_RES=$(curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+	-d chat_id="${CHAT_ID}" -d text="${TEXT_MESSAGE}")
 
-colorized_echo green "[+] The BotPanel Bot Has Been Successfully Installed"
+if echo "$MSG_RES" | grep -q '"ok":true'; then
+	ok "Notification sent to chat ID ${CHAT_ID}"
+else
+	warn "Failed to send Telegram notification: ${MSG_RES}"
+fi
+
+colorized_echo green "\n[+] The BotPanel Bot Has Been Successfully Installed"
+log "phpMyAdmin administrative password: ${PHP_MYADMIN_PASS}"
+log "Database Name: ${DB_NAME}"
+log "Database User: ${DB_USER}"
+log "Database Password: ${DB_PASS}"
