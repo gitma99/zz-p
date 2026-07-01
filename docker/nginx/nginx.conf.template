@@ -67,7 +67,7 @@ server {
     }
 
     # Bot app
-    location / {
+    location /ZZPanelBot {
         proxy_pass http://app:80;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
