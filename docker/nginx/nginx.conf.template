@@ -1,0 +1,77 @@
+# Default server block to reject access via IP or undefined domains (returns 444 connection closed)
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    server_tokens off;
+    return 444;
+}
+
+server {
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    server_name _;
+    server_tokens off;
+    
+    # Dummy self-signed cert for example.com to avoid domain discovery
+    ssl_certificate /etc/letsencrypt/dummy/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/dummy/privkey.pem;
+    
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    
+    return 444;
+}
+
+# Main HTTP server block (redirects to HTTPS)
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${DOMAIN};
+    server_tokens off;
+    
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# Main HTTPS server block
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name ${DOMAIN};
+    server_tokens off;
+    
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    # phpMyAdmin routing
+    location = /phpmyadmin {
+        return 301 $scheme://$http_host/phpmyadmin/;
+    }
+
+    location /phpmyadmin/ {
+        proxy_pass http://phpmyadmin/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # App routing
+    location / {
+        proxy_pass http://app:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

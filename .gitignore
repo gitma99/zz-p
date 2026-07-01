@@ -1,6 +1,6 @@
 /Config/
-/Logs/
-/Temp/
+/logs/
+/temp/
 zanbor.install
 /bot_config.json
 
@@ -8,3 +8,11 @@ __LOCAL__/
 __TEMP__/
 
 .vscode/
+
+.env
+docker/certbot/conf/
+docker/certbot/www/
+
+logs
+docker/app/logs/
+docker/apache/logs/

@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: zzpanel_app
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: mysql
+    volumes:
+      - ./docker/app/logs:/var/www/html/ZZPanelBot/logs
+      - ./docker/apache/logs:/var/log/apache2
+      - app_temp:/var/www/html/ZZPanelBot/temp
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.0
+    container_name: zzpanel_mysql
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASS}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: zzpanel_phpmyadmin
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_ABSOLUTE_URI: https://${DOMAIN}/phpmyadmin/
+    depends_on:
+      - mysql
+
+  nginx:
+    image: nginx:alpine
+    container_name: zzpanel_nginx
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./docker/certbot/conf:/etc/letsencrypt:ro
+      - ./docker/certbot/www:/var/www/certbot:ro
+      - ./docker/nginx/logs:/var/log/nginx
+    depends_on:
+      - app
+
+  certbot:
+    image: certbot/certbot
+    container_name: zzpanel_certbot
+    restart: unless-stopped
+    volumes:
+      - ./docker/certbot/conf:/etc/letsencrypt
+      - ./docker/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h; done'"
+
+volumes:
+  mysql_data:
+  app_temp:
