@@ -22,7 +22,8 @@ if [ -f "$TEMPLATE_PATH" ]; then
        --arg dbn "$DB_NAME" \
        --arg dbu "$DB_USER" \
        --arg dbp "$DB_PASS" \
-       '.main_domin = $dom | .token = $tok | .dev = $dev | .database.db_name = $dbn | .database.db_username = $dbu | .database.db_password = $dbp' \
+       --arg dbh "$DB_HOST" \
+       '.main_domin = $dom | .token = $tok | .dev = $dev | .database.db_name = $dbn | .database.db_username = $dbu | .database.db_password = $dbp | .database.db_host = $dbh' \
        "$TEMPLATE_PATH" > "$CONFIG_PATH"
 else
     echo "WARNING: Config template not found at $TEMPLATE_PATH"
@@ -75,11 +76,7 @@ TEXT_MESSAGE="✅ Bot panel container has been started/restarted!"
 curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
     -d chat_id="${CHAT_ID}" -d text="${TEXT_MESSAGE}" || echo "WARNING: Failed to send Telegram startup notification"
 
-# 9. Inject DB_HOST into PHP-FPM pool config at runtime
-# (service/init strips env vars, so we write the actual value directly into the pool config)
-echo "env[DB_HOST] = ${DB_HOST}" >> /etc/php/7.4/fpm/pool.d/www.conf
-
-# 10. Start PHP-FPM
+# 9. Start PHP-FPM
 echo "Starting PHP-FPM..."
 service php7.4-fpm start
 

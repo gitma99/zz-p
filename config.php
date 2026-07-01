@@ -18,7 +18,7 @@ if (!$config) {
 $config['version'] = '2.5';
 $config['domain'] = 'https://' . $_SERVER['HTTP_HOST'] . '/' . explode('/', explode('html/', $_SERVER['SCRIPT_FILENAME'])[1])[0];
 $maintainer_telegram_id_number = $config['maintainer'];
-$db_host = getenv('DB_HOST') ?: 'localhost';
+$db_host = $config['database']['db_host'] ?? (getenv('DB_HOST') ?: 'localhost');
 $sql = new mysqli($db_host, $config['database']['db_username'], $config['database']['db_password'], $config['database']['db_name']);
 $sql->set_charset("utf8mb4");
 
