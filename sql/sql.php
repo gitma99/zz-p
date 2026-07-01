@@ -2,7 +2,8 @@
 
 if (!isset($_GET['db_username'], $_GET['db_password'], $_GET['db_name'])) die(json_encode(['status' => false, 'msg' => 'Database operation failed -> ' . $sql->connect_error, 'error_code' => 401], 448));
 
-$sql = new mysqli('localhost', $_GET['db_username'], $_GET['db_password'], $_GET['db_name']);
+$db_host = getenv('DB_HOST') ?: 'localhost';
+$sql = new mysqli($db_host, $_GET['db_username'], $_GET['db_password'], $_GET['db_name']);
 $sql->set_charset("utf8mb4");
 
 mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `users` (
