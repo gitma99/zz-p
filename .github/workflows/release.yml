@@ -57,8 +57,13 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=ghcr.io/${{ steps.string.outputs.owner }}/zzpanel-app:nightly
 
+      - name: Archive Setup Files
+        run: |
+          zip -r zzpanel-docker-setup.zip docker/ docker-compose.yml .env.example
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          files: zzpanel-docker-setup.zip
           generate_release_notes: true
           token: ${{ secrets.GITHUB_TOKEN }}
