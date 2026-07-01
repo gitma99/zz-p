@@ -227,8 +227,9 @@ function change_account_status($text, $from_id)
     if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
         change();
     } else {
-        $charge_btn_status = $BOT_CONFIG['show_account_status_changer_btn'];
-        if ($charge_btn_status === true) {
+        global $settings;
+        $charge_btn_status = $settings['show_account_status_changer_btn'] ?? 'active';
+        if ($charge_btn_status === 'active') {
             change();
         }
     }
@@ -528,37 +529,25 @@ function renewal_service($text, $from_id)
 
 function change_charge_account_button_visibility($chat_id)
 {
-    global $my_texts, $BOT_CONFIG;
-    $currenButtonStatus = $BOT_CONFIG['show_charge_account_btn'];
-    if (isset($currenButtonStatus)) {
-        if ($currenButtonStatus === true) {
-            $BOT_CONFIG['show_charge_account_btn'] = false;
-            $successMsg = $my_texts['charge_button_disabled'];
-        } else {
-            $BOT_CONFIG['show_charge_account_btn'] = true;
-            $successMsg = $my_texts['charge_button_enabled'];
-        }
-        modify_bot_config();
-        sendMessage($chat_id, $successMsg);
+    global $my_texts, $settings, $sql;
+    $currenButtonStatus = $settings['show_charge_account_btn'] ?? 'active';
+    if ($currenButtonStatus === 'active') {
+        $new_status = 'inactive';
+        $successMsg = $my_texts['charge_button_disabled'];
     } else {
-        $BOT_CONFIG["show_charge_account_btn"] = true;
-        modify_bot_config();
+        $new_status = 'active';
         $successMsg = $my_texts['charge_button_enabled'];
-        sendMessage($chat_id, $successMsg);
     }
+    $sql->query("UPDATE `settings` SET `show_charge_account_btn` = '$new_status' LIMIT 1");
+    $settings['show_charge_account_btn'] = $new_status;
+    sendMessage($chat_id, $successMsg);
 }
 
 function get_charge_account_button_status()
 {
-    global $BOT_CONFIG;
-    $charge_btn_status = $BOT_CONFIG['show_charge_account_btn'];
-    if (!isset($charge_btn_status)) {
-        $BOT_CONFIG["show_charge_account_btn"] = true;
-
-        modify_bot_config();
-        $charge_btn_status = $BOT_CONFIG['show_charge_account_btn'];
-    }
-    if ($charge_btn_status === true) {
+    global $settings;
+    $charge_btn_status = $settings['show_charge_account_btn'] ?? 'active';
+    if ($charge_btn_status === 'active') {
         $button_text = '💸 شارژ حساب';
     } else {
         $button_text = '';
@@ -568,36 +557,25 @@ function get_charge_account_button_status()
 
 function change_account_status_changer_button_visibility($chat_id)
 {
-    global $my_texts, $BOT_CONFIG;
-    $currenButtonStatus = $BOT_CONFIG['show_account_status_changer_btn'];
-    if (isset($currenButtonStatus)) {
-        if ($currenButtonStatus === true) {
-            $BOT_CONFIG['show_account_status_changer_btn'] = false;
-            $successMsg = $my_texts['account_status_changer_button_disabled'];
-        } else {
-            $BOT_CONFIG['show_account_status_changer_btn'] = true;
-            $successMsg = $my_texts['account_status_changer_button_enabled'];
-        }
-        modify_bot_config();
-        sendMessage($chat_id, $successMsg);
+    global $my_texts, $settings, $sql;
+    $currenButtonStatus = $settings['show_account_status_changer_btn'] ?? 'active';
+    if ($currenButtonStatus === 'active') {
+        $new_status = 'inactive';
+        $successMsg = $my_texts['account_status_changer_button_disabled'];
     } else {
-        $BOT_CONFIG["show_account_status_changer_btn"] = true;
-        modify_bot_config();
+        $new_status = 'active';
         $successMsg = $my_texts['account_status_changer_button_enabled'];
-        sendMessage($chat_id, $successMsg);
     }
+    $sql->query("UPDATE `settings` SET `show_account_status_changer_btn` = '$new_status' LIMIT 1");
+    $settings['show_account_status_changer_btn'] = $new_status;
+    sendMessage($chat_id, $successMsg);
 }
+
 function get_account_status_changer_button_status()
 {
-    global $BOT_CONFIG, $texts;
-    $charge_btn_status = $BOT_CONFIG['show_account_status_changer_btn'];
-    if (!isset($charge_btn_status)) {
-        $BOT_CONFIG["show_account_status_changer_btn"] = true;
-
-        modify_bot_config();
-        $charge_btn_status = $BOT_CONFIG['show_account_status_changer_btn'];
-    }
-    if ($charge_btn_status === true) {
+    global $settings, $texts;
+    $charge_btn_status = $settings['show_account_status_changer_btn'] ?? 'active';
+    if ($charge_btn_status === 'active') {
         $button_text = $texts['account_status_changer_button'];
     } else {
         $button_text = '';
