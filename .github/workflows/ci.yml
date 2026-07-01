@@ -25,12 +25,8 @@ jobs:
           find . -name "*.php" -not -path "*/.git/*" -not -path "*/__TEMP__/*" -not -path "*/__LOCAL__/*" -print0 | xargs -0 -n 1 php -l
 
       - name: Run ShellCheck
-        uses: koalaman/shellcheck-action@v2
-        with:
-          path: |
-            install.sh
-            update.sh
-            docker-entrypoint.sh
+        run: |
+          shellcheck install.sh update.sh docker-entrypoint.sh
 
       - name: Run Gitleaks (Secret Scan)
         uses: gitleaks/gitleaks-action@v2
