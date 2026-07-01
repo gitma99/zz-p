@@ -343,19 +343,6 @@ function renewal_service($text, $from_id)
             step('renewal_service_get_service_name');
             sendMessage($from_id, $my_texts['renewal_service_config_not_found']);
         }
-
-        // sendMessage($from_id, "test : $old_config_location",);
-        // exit();
-
-
-
-        // // $location = $sql->query("INSERT INTO `orders` (`from_id`, `location`, `protocol`, `date`, `volume`, `link`, `price`, `code`, `status`, `type`) VALUES ('$from_id', '$location', 'null', '$date', '$limit', '$links', '$price', '$code', 'active', 'marzban')");
-
-        // $old_config_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$old_config_location'")->fetch_assoc();
-        // // temp code : 1 line
-        // $old_config_panel['token'] = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0IiwiYWNjZXNzIjoic3VkbyIsImV4cCI6MTY5NTIyNjM0NH0.gSsJLqtxZVNtVjzdlytdGEj536RRl1nZyQ9LBzvQKaI';
-        // $old_config_getUser = getUserInfo($text, $old_config_panel['token'], $old_config_panel['login_link']);
-
     } elseif ($user['step'] == 'renewal_service_choose_server') {
         $renewal_data = read_renewal_json($from_id);
         $renewal_data['new_server'] = $text;
