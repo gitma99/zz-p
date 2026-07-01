@@ -215,6 +215,20 @@ if ($sql->query("SELECT * FROM `test_account_setting`")->num_rows == 0) $sql->qu
 if ($sql->query("SELECT * FROM `sends` WHERE `send` = 'no'")->num_rows == 0) $sql->query("INSERT INTO `sends` (`send`) VALUES('no');");
 if ($sql->query("SELECT * FROM `payment_setting`")->num_rows == 0) $sql->query("INSERT INTO `payment_setting` (`zarinpal_token`, `idpay_token`, `nowpayment_token`) VALUES ('none', 'none', 'none')");
 
+// Migration: Check and add show_account_status_changer_btn column if missing
+$check_col1 = $sql->query("SHOW COLUMNS FROM `settings` LIKE 'show_account_status_changer_btn'");
+if ($check_col1 && $check_col1->num_rows == 0) {
+    $sql->query("ALTER TABLE `settings` ADD `show_account_status_changer_btn` varchar(15) COLLATE utf8mb4_bin DEFAULT 'active'");
+    $sql->query("UPDATE `settings` SET `show_account_status_changer_btn` = 'active' WHERE `show_account_status_changer_btn` IS NULL OR `show_account_status_changer_btn` = ''");
+}
+
+// Migration: Check and add show_charge_account_btn column if missing
+$check_col2 = $sql->query("SHOW COLUMNS FROM `settings` LIKE 'show_charge_account_btn'");
+if ($check_col2 && $check_col2->num_rows == 0) {
+    $sql->query("ALTER TABLE `settings` ADD `show_charge_account_btn` varchar(15) COLLATE utf8mb4_bin DEFAULT 'active'");
+    $sql->query("UPDATE `settings` SET `show_charge_account_btn` = 'active' WHERE `show_charge_account_btn` IS NULL OR `show_charge_account_btn` = ''");
+}
+
 if ($sql->connect_error) {
 	echo json_encode(['status' => false, 'msg' => '❌ The connection with the database encountered an error : ' . $sql->connect_error, 'status_code' => 401], 448);
 } else {
