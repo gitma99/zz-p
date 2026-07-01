@@ -1,4 +1,4 @@
-# Default server block to reject access via IP or undefined domains (returns 444 connection closed)
+# Default server block — drops connections from unknown hosts/IP access
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
@@ -12,24 +12,24 @@ server {
     listen [::]:443 ssl default_server;
     server_name _;
     server_tokens off;
-    
-    # Dummy self-signed cert for example.com to avoid domain discovery
+
+    # Dummy self-signed cert — prevents domain discovery via IP scanning
     ssl_certificate /etc/letsencrypt/dummy/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/dummy/privkey.pem;
-    
+
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
-    
+
     return 444;
 }
 
-# Main HTTP server block (redirects to HTTPS)
+# Main HTTP block — redirects to HTTPS
 server {
     listen 80;
     listen [::]:80;
     server_name ${DOMAIN};
     server_tokens off;
-    
+
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
     }
@@ -39,21 +39,21 @@ server {
     }
 }
 
-# Main HTTPS server block
+# Main HTTPS block
 server {
     listen 443 ssl;
     listen [::]:443 ssl;
     server_name ${DOMAIN};
     server_tokens off;
-    
+
     ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
-    
+
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers on;
     ssl_ciphers HIGH:!aNULL:!MD5;
 
-    # phpMyAdmin routing
+    # phpMyAdmin — redirect bare path then proxy
     location = /phpmyadmin {
         return 301 $scheme://$http_host/phpmyadmin/;
     }
@@ -66,7 +66,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # App routing
+    # Bot app
     location / {
         proxy_pass http://app:80;
         proxy_set_header Host $host;

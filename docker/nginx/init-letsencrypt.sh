@@ -1,22 +1,31 @@
 #!/bin/bash
-# A script to initialize Let's Encrypt certificates securely
+# A script to initialize Let's Encrypt certificates securely.
+# Strategy:
+#   1. Start Nginx with a minimal HTTP-only config (no SSL, no upstreams) to serve ACME challenge.
+#   2. Generate dummy fallback cert (for default_server 443 block in full config).
+#   3. Obtain the real Let's Encrypt certificate.
+#   4. Stop the bootstrap Nginx and let docker compose start the full stack normally.
 
-# Navigate to the project root directory (grandparent of the script's parent location)
+set -e
+
+# Navigate to the project root (two levels up from docker/nginx/)
 cd "$(dirname "$0")/../.."
 
+# -------------------------------------------------------
+# Checks
+# -------------------------------------------------------
 if ! [ -x "$(command -v docker)" ]; then
   echo 'Error: docker is not installed.' >&2
   exit 1
 fi
 
-if ! [ -x "$(command -v docker-compose)" ] && ! docker compose version &>/dev/null; then
-  echo 'Error: docker compose is not installed.' >&2
+if ! docker compose version &>/dev/null; then
+  echo 'Error: docker compose plugin is not installed.' >&2
   exit 1
 fi
 
-# Load .env file from project root
 if [ ! -f .env ]; then
-  echo "Error: .env file not found at project root. Copy .env.example to .env and fill in configuration."
+  echo "Error: .env file not found. Copy .env.example to .env and fill in configuration."
   exit 1
 fi
 
@@ -27,77 +36,74 @@ if [ -z "$DOMAIN" ] || [ -z "$CERTBOT_EMAIL" ]; then
   exit 1
 fi
 
+# -------------------------------------------------------
+# Paths
+# -------------------------------------------------------
 data_path="./docker/certbot"
 rsa_key_size=4096
-staging=0 # Set to 1 if you're testing to avoid hitting limits
+staging=0 # Set to 1 if you're testing to avoid Let's Encrypt rate limits
 
-if [ -d "$data_path/conf/live/$DOMAIN" ]; then
-  read -p "Existing data found for $DOMAIN. Continue and replace existing certificate? (y/N) " decision
-  if [ "$decision" != "Y" ] && [ "$decision" != "y" ]; then
-    exit 0
-  fi
+mkdir -p "$data_path/conf" "$data_path/www"
+
+# -------------------------------------------------------
+# Step 1: Generate dummy fallback cert (for default_server SSL block in the full config)
+# -------------------------------------------------------
+if [ ! -f "$data_path/conf/dummy/fullchain.pem" ]; then
+  echo "### Generating dummy fallback SSL certificate (for default_server block) ..."
+  mkdir -p "$data_path/conf/dummy"
+  docker compose run --rm --entrypoint "openssl" certbot \
+    req -x509 -nodes -newkey rsa:2048 -days 3650 \
+    -keyout /etc/letsencrypt/dummy/privkey.pem \
+    -out /etc/letsencrypt/dummy/fullchain.pem \
+    -subj "/CN=example.com"
+  echo "### Done."
 fi
 
-if [ ! -e "$data_path/conf/options-ssl-nginx.conf" ] || [ ! -e "$data_path/conf/ssl-dhparams.pem" ]; then
-  echo "### Downloading recommended TLS parameters ..."
-  mkdir -p "$data_path/conf"
-  curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf > "$data_path/conf/options-ssl-nginx.conf"
-  curl -s https://raw.githubusercontent.com/certbot/certbot/master/certbot/certbot/ssl-dhparams.pem > "$data_path/conf/ssl-dhparams.pem"
-  echo
-fi
+# -------------------------------------------------------
+# Step 2: Start Nginx with minimal bootstrap config (HTTP only, no upstreams)
+# -------------------------------------------------------
+echo "### Starting Nginx with minimal bootstrap config ..."
+docker run --rm -d \
+  --name zzpanel_nginx_init \
+  --network "$(basename "$(pwd)")_default" 2>/dev/null || \
+docker run --rm -d \
+  --name zzpanel_nginx_init \
+  -p 80:80 \
+  -v "$(pwd)/docker/nginx/nginx-init.conf:/etc/nginx/conf.d/default.conf:ro" \
+  -v "$(pwd)/docker/certbot/www:/var/www/certbot:ro" \
+  nginx:alpine
 
-echo "### Creating fallback dummy certificate for default_server ..."
-mkdir -p "$data_path/conf/dummy"
-docker compose run --rm --entrypoint "
-  openssl req -x509 -nodes -newkey rsa:2048 -days 3650 \
-    -keyout '/etc/letsencrypt/dummy/privkey.pem' \
-    -out '/etc/letsencrypt/dummy/fullchain.pem' \
-    -subj '/CN=example.com'" certbot
-echo
+# Give Nginx a moment to start
+sleep 2
+echo "### Nginx init container is running."
 
-echo "### Creating dummy certificate for $DOMAIN ..."
-path="/etc/letsencrypt/live/$DOMAIN"
-mkdir -p "$data_path/conf/live/$DOMAIN"
-docker compose run --rm --entrypoint "
-  openssl req -x509 -nodes -newkey rsa:$rsa_key_size -days 1 \
-    -keyout '$path/privkey.pem' \
-    -out '$path/fullchain.pem' \
-    -subj '/CN=localhost'" certbot
-echo
-
-echo "### Starting nginx ..."
-docker compose up --no-deps -d nginx
-echo
-
-echo "### Deleting dummy certificate for $DOMAIN ..."
-docker compose run --rm --entrypoint "
-  rm -Rf /etc/letsencrypt/live/$DOMAIN && \
-  rm -Rf /etc/letsencrypt/archive/$DOMAIN && \
-  rm -Rf /etc/letsencrypt/renewal/$DOMAIN.conf" certbot
-echo
-
+# -------------------------------------------------------
+# Step 3: Obtain real Let's Encrypt certificate
+# -------------------------------------------------------
 echo "### Requesting Let's Encrypt certificate for $DOMAIN ..."
-# Select challenge directory
-mkdir -p "$data_path/www"
 
-# Request certificate
 email_arg="--email $CERTBOT_EMAIL"
-if [ -z "$CERTBOT_EMAIL" ]; then email_arg="--register-unsafely-without-email"; fi
-
-# Enable staging mode if needed
 staging_arg=""
 if [ $staging -ne 0 ]; then staging_arg="--staging"; fi
 
-docker compose run --rm --entrypoint "
-  certbot certonly --webroot -w /var/www/certbot \
-    $staging_arg \
-    $email_arg \
-    -d $DOMAIN \
-    --rsa-key-size $rsa_key_size \
-    --agree-tos \
-    --force-renewal \
-    --non-interactive" certbot
+docker compose run --rm --entrypoint "certbot" certbot \
+  certonly --webroot -w /var/www/certbot \
+  $staging_arg \
+  $email_arg \
+  -d "$DOMAIN" \
+  --rsa-key-size $rsa_key_size \
+  --agree-tos \
+  --force-renewal \
+  --non-interactive
+
+echo "### Certificate obtained successfully."
+
+# -------------------------------------------------------
+# Step 4: Stop bootstrap Nginx
+# -------------------------------------------------------
+echo "### Stopping bootstrap Nginx ..."
+docker stop zzpanel_nginx_init 2>/dev/null || true
 echo
 
-echo "### Reloading nginx ..."
-docker compose exec nginx nginx -s reload
+echo "### SSL initialization complete!"
+echo "### You can now run:  docker compose up -d"
