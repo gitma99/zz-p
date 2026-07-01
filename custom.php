@@ -227,8 +227,8 @@ function change_account_status($text, $from_id)
     if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
         change();
     } else {
-        global $settings;
-        $charge_btn_status = $settings['show_account_status_changer_btn'] ?? 'active';
+        $row = $sql->query("SELECT `show_account_status_changer_btn` FROM `settings` LIMIT 1")->fetch_assoc();
+        $charge_btn_status = $row['show_account_status_changer_btn'] ?? 'active';
         if ($charge_btn_status === 'active') {
             change();
         }
@@ -529,8 +529,9 @@ function renewal_service($text, $from_id)
 
 function change_charge_account_button_visibility($chat_id)
 {
-    global $my_texts, $settings, $sql;
-    $currenButtonStatus = $settings['show_charge_account_btn'] ?? 'active';
+    global $my_texts, $sql;
+    $row = $sql->query("SELECT `show_charge_account_btn` FROM `settings` LIMIT 1")->fetch_assoc();
+    $currenButtonStatus = $row['show_charge_account_btn'] ?? 'active';
     if ($currenButtonStatus === 'active') {
         $new_status = 'inactive';
         $successMsg = $my_texts['charge_button_disabled'];
@@ -539,26 +540,22 @@ function change_charge_account_button_visibility($chat_id)
         $successMsg = $my_texts['charge_button_enabled'];
     }
     $sql->query("UPDATE `settings` SET `show_charge_account_btn` = '$new_status' LIMIT 1");
-    $settings['show_charge_account_btn'] = $new_status;
     sendMessage($chat_id, $successMsg);
 }
 
 function get_charge_account_button_status()
 {
-    global $settings;
-    $charge_btn_status = $settings['show_charge_account_btn'] ?? 'active';
-    if ($charge_btn_status === 'active') {
-        $button_text = '💸 شارژ حساب';
-    } else {
-        $button_text = '';
-    }
-    return $button_text;
+    global $sql;
+    $row = $sql->query("SELECT `show_charge_account_btn` FROM `settings` LIMIT 1")->fetch_assoc();
+    $status = $row['show_charge_account_btn'] ?? 'active';
+    return ($status === 'active') ? '💸 شارژ حساب' : '';
 }
 
 function change_account_status_changer_button_visibility($chat_id)
 {
-    global $my_texts, $settings, $sql;
-    $currenButtonStatus = $settings['show_account_status_changer_btn'] ?? 'active';
+    global $my_texts, $sql;
+    $row = $sql->query("SELECT `show_account_status_changer_btn` FROM `settings` LIMIT 1")->fetch_assoc();
+    $currenButtonStatus = $row['show_account_status_changer_btn'] ?? 'active';
     if ($currenButtonStatus === 'active') {
         $new_status = 'inactive';
         $successMsg = $my_texts['account_status_changer_button_disabled'];
@@ -567,20 +564,15 @@ function change_account_status_changer_button_visibility($chat_id)
         $successMsg = $my_texts['account_status_changer_button_enabled'];
     }
     $sql->query("UPDATE `settings` SET `show_account_status_changer_btn` = '$new_status' LIMIT 1");
-    $settings['show_account_status_changer_btn'] = $new_status;
     sendMessage($chat_id, $successMsg);
 }
 
 function get_account_status_changer_button_status()
 {
-    global $settings, $texts;
-    $charge_btn_status = $settings['show_account_status_changer_btn'] ?? 'active';
-    if ($charge_btn_status === 'active') {
-        $button_text = $texts['account_status_changer_button'];
-    } else {
-        $button_text = '';
-    }
-    return $button_text;
+    global $sql, $texts;
+    $row = $sql->query("SELECT `show_account_status_changer_btn` FROM `settings` LIMIT 1")->fetch_assoc();
+    $status = $row['show_account_status_changer_btn'] ?? 'active';
+    return ($status === 'active') ? $texts['account_status_changer_button'] : '';
 }
 
 function get_admin_ids()
