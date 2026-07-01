@@ -19,8 +19,29 @@ $config['version'] = '2.5';
 $config['domain'] = 'https://' . $_SERVER['HTTP_HOST'] . '/' . explode('/', explode('html/', $_SERVER['SCRIPT_FILENAME'])[1])[0];
 $maintainer_telegram_id_number = $config['maintainer'];
 $db_host = $config['database']['db_host'] ?? (getenv('DB_HOST') ?: 'localhost');
-# we want to log dbhost to logs
-error_log("Using database host: " . $db_host);
+// Write detailed environment and config logs for debugging
+$debug_log_path = __DIR__ . '/Logs/debug_env.log';
+$masked_config = $config;
+if (isset($masked_config['token'])) {
+    $masked_config['token'] = substr($masked_config['token'], 0, 5) . '...';
+}
+if (isset($masked_config['database']['db_password'])) {
+    $masked_config['database']['db_password'] = '***';
+}
+if (isset($masked_config['dev'])) {
+    $masked_config['dev'] = '***';
+}
+
+$debug_info = [
+    'timestamp' => date('Y-m-d H:i:s'),
+    'getenv_db_host' => getenv('DB_HOST'),
+    'server_db_host' => $_SERVER['DB_HOST'] ?? 'not_set',
+    'env_db_host' => $_ENV['DB_HOST'] ?? 'not_set',
+    'bot_config' => $masked_config,
+    'mysqli_connect_resolved_host' => $db_host
+];
+@file_put_contents($debug_log_path, json_encode($debug_info, JSON_PRETTY_PRINT));
+
 $sql = new mysqli($db_host, $config['database']['db_username'], $config['database']['db_password'], $config['database']['db_name']);
 $sql->set_charset("utf8mb4");
 
