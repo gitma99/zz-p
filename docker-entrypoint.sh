@@ -75,7 +75,11 @@ TEXT_MESSAGE="✅ Bot panel container has been started/restarted!"
 curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
     -d chat_id="${CHAT_ID}" -d text="${TEXT_MESSAGE}" || echo "WARNING: Failed to send Telegram startup notification"
 
-# 9. Start PHP-FPM
+# 9. Inject DB_HOST into PHP-FPM pool config at runtime
+# (service/init strips env vars, so we write the actual value directly into the pool config)
+echo "env[DB_HOST] = ${DB_HOST}" >> /etc/php/7.4/fpm/pool.d/www.conf
+
+# 10. Start PHP-FPM
 echo "Starting PHP-FPM..."
 service php7.4-fpm start
 

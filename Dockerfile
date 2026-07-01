@@ -28,8 +28,6 @@ RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
 # Enable PHP-FPM configuration in Apache
 RUN a2enconf php7.4-fpm
-# Pass only DB_HOST to PHP-FPM processes — keeps all other env vars (DB_PASS, BOT_TOKEN, etc.) unexposed to PHP
-RUN echo "env[DB_HOST] = \$DB_HOST" >> /etc/php/7.4/fpm/pool.d/www.conf
 
 # Create the application directory
 RUN mkdir -p /var/www/html/ZZPanelBot
