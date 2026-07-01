@@ -21,8 +21,8 @@ function bot($method, $data = [], $api_key = API_KEY, $only_handler = false)
         return $ch;
     } else {
         $res = curl_exec($ch);
-        curl_close($ch);
         $curl_error = curl_error($ch);
+        curl_close($ch);
         if ($res === false) {
             return $curl_error;
         } else {
