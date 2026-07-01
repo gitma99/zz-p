@@ -60,11 +60,25 @@ For production environments, you only need to copy the configuration assets.
    - **`docker-compose.yml`** (configured for production)
    - **`.env`** (configured with production credentials)
    - **`docker/`** configuration folder (contains Nginx templates and helper scripts)
-2. Run the SSL bootstrap helper script:
-   ```bash
-   chmod +x docker/nginx/init-letsencrypt.sh
-   bash docker/nginx/init-letsencrypt.sh
-   ```
+
+### Step 2 (for Strategy A): Initialize SSL Certificate (Let's Encrypt)
+
+Before launching the full setup, bootstrap the SSL certificates. Run the script from the project root:
+```bash
+chmod +x docker/nginx/init-letsencrypt.sh
+bash docker/nginx/init-letsencrypt.sh
+```
+
+**What this script does:**
+1. Generates a dummy fallback SSL certificate (`example.com`) used by the Nginx `default_server` block to silently drop IP-only connections.
+2. Starts a **minimal, temporary Nginx container** (HTTP only, no upstreams) solely to serve the Let's Encrypt ACME challenge — this avoids the "host not found in upstream" crash that happens when Nginx starts without `app`/`phpmyadmin` running.
+3. Requests the real SSL certificate from Let's Encrypt via Certbot.
+4. Stops the temporary Nginx container.
+5. Prints `docker compose up -d` — the command to start the full production stack.
+
+> [!NOTE]
+> The minimal bootstrap config is in `docker/nginx/nginx-init.conf` and is only used during SSL initialization. The full Nginx config (`docker/nginx/nginx.conf.template`) is used during normal operation when all containers are online.
+
 3. Pull the pre-built image and start the services:
    ```bash
    docker compose pull
