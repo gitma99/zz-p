@@ -2,7 +2,7 @@
 # === define global variables ===
 APP_DIR="/var/www/html/ZZPanelBot"
 SCRIPT_PATH="${APP_DIR}/Scripts/telegram_schedual_backup.sh"
-LOG_PATH="${APP_DIR}/Logs/backup.log"
+LOG_PATH="${APP_DIR}/logs/backup.log"
 SERVICE_FILE_TEMPLATE_PATH="${APP_DIR}/Templates/zz-backup.service"
 SERVICE_FILE_NAME="zz-backup.service"
 TELEGRAM_CONFIG_TEMPLATE="${APP_DIR}/Templates/backup_service_config.json"

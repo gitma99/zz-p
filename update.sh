@@ -71,8 +71,8 @@ do
             log "\nAll file and folder deleted for update bot . . .\n"
 
             git clone $GITHUB_REPO_ADDRESS "${APP_DIR}"
-            mkdir "${APP_DIR}/Logs"
-            mkdir "${APP_DIR}/Temp"
+            mkdir "${APP_DIR}/logs"
+            mkdir "${APP_DIR}/temp"
             sudo chmod -R 777 "${APP_DIR}"
             mv /var/www/html/bot_config.json $BOT_CONFIG_JSON_PATH
             sudo chmod 777 $BOT_CONFIG_JSON_PATH

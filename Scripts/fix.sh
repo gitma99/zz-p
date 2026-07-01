@@ -62,7 +62,7 @@ do
                             sleep 1
 
                             # ============================= reset apache server and telegram webhook ============================= #
-                            echo "" > "${APP_DIR}/Logs/error.log"
+                            echo "" > "${APP_DIR}/logs/error.log"
                             sudo systemctl restart apache2
                             curl -s -X POST "https://api.telegram.org/bot${token}/setWebhook"  -d url="https://${domain}/ZZPanelBot/index.php" -d drop_pending_updates="true"
                             

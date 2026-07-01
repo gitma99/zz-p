@@ -252,7 +252,7 @@ systemctl enable --now "php${PHP_VER}-fpm" || warn "Could not enable php${PHP_VE
 # -----------------------
 log "Cloning application repository..."
 git clone "$GITHUB_REPO_ADDRESS" "$APP_DIR"
-mkdir -p "${APP_DIR}/Logs" "${APP_DIR}/Temp"
+mkdir -p "${APP_DIR}/logs" "${APP_DIR}/temp"
 ok "Application files cloned to $APP_DIR"
 
 # -----------------------
@@ -314,7 +314,7 @@ log "Setting secure file permissions..."
 find "$APP_DIR" -type d -exec chmod 750 {} +
 find "$APP_DIR" -type f -exec chmod 640 {} +
 chmod +x "${APP_DIR}"/*.sh 2>/dev/null || true
-chmod -R 770 "${APP_DIR}/Temp" "${APP_DIR}/Logs"
+chmod -R 770 "${APP_DIR}/temp" "${APP_DIR}/logs"
 chown -R www-data:www-data "$APP_DIR"
 ok "Permissions updated."
 
@@ -322,7 +322,7 @@ ok "Permissions updated."
 # Schema Initialization
 # -----------------------
 log "Running database schema initialization..."
-SQL_INIT_OUT="${APP_DIR}/Temp/sql_init_output.json"
+SQL_INIT_OUT="${APP_DIR}/temp/sql_init_output.json"
 php -r '
 $_GET["db_username"] = $argv[1];
 $_GET["db_password"] = $argv[2];
