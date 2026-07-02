@@ -26,7 +26,6 @@ try {
 
     require_once 'config.php';
     
-    error_log($user['step']);
 
     // Allow longer web requests for operations that may take >30s.
     // Uses optional config value `web_request_timeout` (seconds). Defaults to 120s.
