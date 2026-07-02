@@ -120,36 +120,67 @@ try {
     
     if ($text == '/debug') {
         global $sql, $from_id, $user;
-        $db_step = 'unknown';
-        $db_error = 'none';
         
+        $db_error = 'none';
+        $exist_query = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$from_id'");
+        $num_rows = $exist_query ? $exist_query->num_rows : 'query failed';
+        if (!$exist_query) {
+            $db_error = $sql->error;
+        }
+        
+        $insert_status = 'N/A';
+        $insert_error = 'none';
+        if ($num_rows === 0) {
+            $insert_res = $sql->query("INSERT INTO `users` (`from_id`) VALUES ('$from_id')");
+            $insert_status = $insert_res ? 'Success' : 'Failed';
+            $insert_error = $insert_res ? 'none' : $sql->error;
+            
+            // Re-check
+            $exist_query = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$from_id'");
+            $num_rows = $exist_query ? $exist_query->num_rows : 'query failed';
+        }
+        
+        $db_step = 'unknown';
+        $db_error_2 = 'none';
         $query = $sql->query("SELECT `step` FROM `users` WHERE `from_id` = '$from_id'");
         if ($query) {
             $row = $query->fetch_assoc();
-            $db_step = $row['step'];
+            $db_step = $row ? $row['step'] : 'no_row';
         } else {
-            $db_error = $sql->error;
+            $db_error_2 = $sql->error;
         }
         
         $update_res = $sql->query("UPDATE `users` SET `step` = 'debug_test_step' WHERE `from_id` = '$from_id'");
         $update_error = $update_res ? 'none' : $sql->error;
+        $affected_rows = $sql->affected_rows;
         
         $query2 = $sql->query("SELECT `step` FROM `users` WHERE `from_id` = '$from_id'");
         $db_step2 = 'unknown';
         if ($query2) {
             $row2 = $query2->fetch_assoc();
-            $db_step2 = $row2['step'];
+            $db_step2 = $row2 ? $row2['step'] : 'no_row';
         }
         
-        $sql->query("UPDATE `users` SET `step` = '$db_step' WHERE `from_id` = '$from_id'");
+        // Restore
+        if ($db_step !== 'no_row' && $db_step !== 'unknown') {
+            $sql->query("UPDATE `users` SET `step` = '$db_step' WHERE `from_id` = '$from_id'");
+        } else {
+            $sql->query("DELETE FROM `users` WHERE `from_id` = '$from_id'");
+        }
         
         $msg = "Debug Info:\n";
         $msg .= "- Your from_id: $from_id\n";
-        $msg .= "- Local \$user['step']: " . var_export($user['step'], true) . "\n";
+        $msg .= "- Local \$user: " . ($user ? 'Set' : 'NULL') . "\n";
+        $msg .= "- Local \$user['step']: " . var_export($user['step'] ?? null, true) . "\n";
+        $msg .= "- User rows in DB: $num_rows\n";
+        $msg .= "- DB select error: $db_error\n";
+        $msg .= "- Insert status: $insert_status\n";
+        $msg .= "- Insert error: $insert_error\n";
         $msg .= "- DB step: " . var_export($db_step, true) . "\n";
-        $msg .= "- DB query error: $db_error\n";
+        $msg .= "- DB step select error: $db_error_2\n";
         $msg .= "- DB update status: " . ($update_res ? 'Success' : 'Failed') . "\n";
         $msg .= "- DB update error: $update_error\n";
+        $msg .= "- DB affected rows: $affected_rows\n";
         $msg .= "- DB step after update: " . var_export($db_step2, true) . "\n";
         
         sendMessage($from_id, $msg);
