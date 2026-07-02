@@ -14,7 +14,7 @@ function bot($method, $data = [], $api_key = API_KEY, $only_handler = false, $re
         'answerCallbackQuery',
     ];
     if (!in_array($method, $handeled_exception_outside)){
-        throw new Exception("telegram-api.utils.bot is not configured to run '${method}'", 1);
+        throw new Exception("telegram-api.utils.bot is not configured to run '{$method}'", 1);
     }
 
     $url = "https://api.telegram.org/bot" . $api_key . "/" . $method;
