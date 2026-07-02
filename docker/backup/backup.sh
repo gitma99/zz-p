@@ -65,19 +65,17 @@ send_telegram_document() {
 		return 1
 	fi
 
+	# Copy file to container-internal /tmp to avoid bind-mount read issues
+	local tmp_file
+	tmp_file="/tmp/$(basename "$file_path")"
+	cp "$file_path" "$tmp_file"
+	log "INFO" "Copied backup to ${tmp_file} for upload"
+
 	local caption
 	caption="<b>✅ Backup completed</b>\nHost: $(hostname)\nTime: $(timestamp)\nFile: $(basename "$file_path")"
 
 	while [ "$attempt" -le "$max_attempts" ]; do
-		log "INFO" "Sending Telegram document: '${file_path}' (attempt ${attempt}/${max_attempts})"
-
-		if [ ! -f "$file_path" ]; then
-			log "WARN" "Debug check: File does not exist at '${file_path}'"
-		elif [ ! -r "$file_path" ]; then
-			log "WARN" "Debug check: File exists but is NOT readable!"
-		else
-			log "INFO" "Debug check: File exists, is readable, size is $(stat -c %s "$file_path" || wc -c < "$file_path") bytes"
-		fi
+		log "INFO" "Sending Telegram document: '${tmp_file}' (attempt ${attempt}/${max_attempts})"
 
 		local response
 		local http_code
@@ -86,7 +84,7 @@ send_telegram_document() {
 		curl_err=$(mktemp)
 		response=$(curl -sS -w "\n%{http_code}" -X POST \
 			-F "chat_id=${TELEGRAM_USER_ID}" \
-			-F "document=@${file_path}" \
+			-F "document=@${tmp_file}" \
 			-F "caption=${caption}" \
 			-F "parse_mode=HTML" \
 			"https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" 2> "$curl_err" || true)
@@ -99,6 +97,7 @@ send_telegram_document() {
 
 		if [ "$http_code" -eq 200 ]; then
 			log "INFO" "Telegram document sent successfully"
+			rm -f "$tmp_file"
 			return 0
 		else
 			log "WARN" "Telegram document send failed. HTTP Code: ${http_code}. Error: ${err_msg}. Response: ${body}"
@@ -112,6 +111,7 @@ send_telegram_document() {
 		attempt=$((attempt + 1))
 	done
 
+	rm -f "$tmp_file"
 	send_telegram_message "❌ Backup upload failed" "Failed to send backup document after ${max_attempts} attempts."
 	return 1
 }
