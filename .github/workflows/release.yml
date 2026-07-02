@@ -37,8 +37,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Docker Metadata Action
-        id: meta
+      - name: Docker Metadata Action for App
+        id: meta_app
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ steps.string.outputs.owner }}/zzpanel-app
@@ -47,15 +47,35 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest
 
-      - name: Build and Push Release
+      - name: Docker Metadata Action for Backup
+        id: meta_backup
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ steps.string.outputs.owner }}/zzpanel-backup
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+
+      - name: Build and Push Release App
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta_app.outputs.tags }}
+          labels: ${{ steps.meta_app.outputs.labels }}
           cache-from: type=registry,ref=ghcr.io/${{ steps.string.outputs.owner }}/zzpanel-app:nightly
+
+      - name: Build and Push Release Backup
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/backup/Dockerfile
+          push: true
+          tags: ${{ steps.meta_backup.outputs.tags }}
+          labels: ${{ steps.meta_backup.outputs.labels }}
+          cache-from: type=registry,ref=ghcr.io/${{ steps.string.outputs.owner }}/zzpanel-backup:nightly
 
       - name: Archive Setup Files
         run: |
