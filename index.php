@@ -636,7 +636,7 @@ try {
                     'text' => $status . $row['code'] . ' - ' . $mysql_service_panel['name'],
                     'callback_data' => "^serv_stat@my_services_menu 0 {$status_index} {$panel_row} {$current_list_index}"
                 ];
-                write_temp_file(json_encode([$service_base_name], 448), "srv-list--{$from_id}.txt", FALSE);
+                write_temp_file([$service_base_name], "srv-list--{$from_id}.txt", TRUE);
             }
             $found_services_keys = array_chunk($key, 1);
             $found_services_keyboard = json_encode(['inline_keyboard' => $found_services_keys]);
@@ -829,7 +829,7 @@ try {
             $prossessed_services_count++;
         }
 
-        write_temp_file(json_encode($base_names_index_mapper, 448), "srv-list--{$from_id}.txt", FALSE);
+        write_temp_file($base_names_index_mapper, "srv-list--{$from_id}.txt", TRUE);
         $current_list_buttons = array_chunk($list_keys, 1);
         $service_list_number = $current_list_index + 1;
 
