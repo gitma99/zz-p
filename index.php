@@ -1694,7 +1694,6 @@ try {
         foreach ($location_sorted_objs as $service_location_name => $location_detail) {
             $panel_url = $location_detail['panel_url'];
             $usernames = $location_detail['usernames'];
-            send_debug_msg_to_maintainer('service_location: ' . $service_location_name, $from_id, false);
             $token = get_marzban_panel_token($service_location_name);
             $panel_res = getUsersInfo($token, $panel_url, null, null, null, $usernames);
             if ($panel_res['success'] == false) {
