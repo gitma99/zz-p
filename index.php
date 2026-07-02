@@ -1695,7 +1695,11 @@ try {
             $panel_url = $location_detail['panel_url'];
             $usernames = $location_detail['usernames'];
             send_debug_msg_to_maintainer('time: ' . date('Y-m-d H:i:s'), $from_id, true);
-            $token = get_marzban_panel_token($service_location_name);
+            $stmt = $mysqli->prepare("SELECT * FROM panels WHERE name = ?");
+            $stmt->bind_param("s", $service_location_name);
+            $stmt->execute();
+            $panel_info = $stmt->get_result()->fetch_assoc();
+            $token = loginPanel($panel_info['login_link'], $panel_info['username'], $panel_info['password'])['access_token'];
             send_debug_msg_to_maintainer('time: ' . date('Y-m-d H:i:s'), $from_id, true);
             $panel_res = getUsersInfo($token, $panel_url, null, null, null, $usernames);
             if ($panel_res['success'] == false) {
