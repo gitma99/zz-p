@@ -24,7 +24,7 @@ try {
     require_once __DIR__ . "/App/Utils/temp_tools.php";
 
 
-
+    error_log($user['step']);   
     require_once 'config.php';
 
     // Allow longer web requests for operations that may take >30s.
