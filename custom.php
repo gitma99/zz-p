@@ -223,7 +223,7 @@ function change_account_status($text, $from_id)
             }
         }
     }
-    global $config;
+    global $config, $sql;
     if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
         change();
     } else {
