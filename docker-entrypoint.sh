@@ -72,9 +72,10 @@ curl -s -F "url=${WEBHOOK_URL}" "https://api.telegram.org/bot${BOT_TOKEN}/setWeb
 
 # 8. Send startup notification
 echo "Sending startup notification..."
-TEXT_MESSAGE="✅ Bot panel container has been started/restarted!"
+TEXT_MESSAGE="✅ ربات شما با موفقیت راه اندازی/ریستارت شد."$'\n\n'"#️⃣ اطلاعات ربات :"$'\n\n'"▫️admin: <code>${CHAT_ID}</code>"$'\n'"▫️domain: <code>${DOMAIN}</code>"$'\n'"▫️db_username: <code>${DB_USER}</code>"
 curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-    -d chat_id="${CHAT_ID}" -d text="${TEXT_MESSAGE}" || echo "WARNING: Failed to send Telegram startup notification"
+    -d chat_id="${CHAT_ID}" -d text="${TEXT_MESSAGE}" -d parse_mode="html" || echo "WARNING: Failed to send Telegram startup notification"
+
 
 # 9. Start PHP-FPM
 echo "Starting PHP-FPM..."
