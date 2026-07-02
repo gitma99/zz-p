@@ -57,51 +57,26 @@ send_telegram_message() {
 
 send_telegram_document() {
 	local file_path=$1
-	local max_attempts=3
-	local attempt=1
 
 	if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_USER_ID:-}" ]; then
 		log "WARN" "Telegram is not configured, cannot send document"
 		return 1
 	fi
 
-	# Copy file to container-internal /tmp to avoid bind-mount read issues
-	local tmp_file
-	tmp_file="/tmp/$(basename "$file_path")"
-	cp "$file_path" "$tmp_file"
-	log "INFO" "Copied backup to ${tmp_file} for upload"
+	log "INFO" "Sending Telegram document: '${file_path}'"
 
-	local caption
-	caption="<b>✅ Backup completed</b>
-Host: $(hostname)
-Time: $(timestamp)
-File: $(basename "$file_path")"
-
-	while [ "$attempt" -le "$max_attempts" ]; do
-		log "INFO" "Sending Telegram document: '${tmp_file}' (attempt ${attempt}/${max_attempts})"
-
-		local py_out
-		py_out=$(mktemp)
-		if python3 /send_telegram.py "$tmp_file" > "$py_out" 2>&1; then
-			log "INFO" "Telegram document sent successfully"
-			rm -f "$tmp_file" "$py_out"
-			return 0
-		else
-			log "WARN" "Telegram document send failed. Python output: $(cat "$py_out")"
-			rm -f "$py_out"
-		fi
-
-		if [ "$attempt" -lt "$max_attempts" ]; then
-			log "WARN" "Retrying in 10 seconds..."
-			sleep 10
-		fi
-
-		attempt=$((attempt + 1))
-	done
-
-	rm -f "$tmp_file"
-	send_telegram_message "❌ Backup upload failed" "Failed to send backup document after ${max_attempts} attempts."
-	return 1
+	# Simple cat pipe to curl bypasses curl file opening issues.
+	# -v prints full connection logs so we can see exactly where it stops/fails.
+	if cat "$file_path" | curl -v \
+		-F "chat_id=${TELEGRAM_USER_ID}" \
+		-F "document=@-;filename=$(basename "$file_path")" \
+		"https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument"; then
+		log "INFO" "Telegram document sent successfully"
+		return 0
+	else
+		log "ERROR" "Telegram upload failed."
+		return 1
+	fi
 }
 
 handle_error() {
