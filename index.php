@@ -125,9 +125,8 @@ try {
         editMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $message_id, $start_key);
     } elseif ($text == '❌  انصراف' and $user['step'] == 'confirm_service') {
         step('none');
-        foreach ([$from_id . '-location.txt', $from_id . '-protocol.txt'] as $file)
-            if (file_exists($file))
-                unlink($file);
+        delete_temp_file($from_id . '-location.txt');
+        delete_temp_file($from_id . '-protocol.txt');
         if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0)
             $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
         sendMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $start_key);
@@ -161,7 +160,7 @@ try {
             $plan = array_chunk($plan, 2);
             $plan[] = [['text' => '🔙 بازگشت']];
             $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
-            file_put_contents("{$TEMP_DIR_PATH}/$from_id-location.txt", $text);
+            write_temp_file($text, "$from_id-location.txt");
             sendMessage($from_id, $texts['select_plan'], $plan);
         }
     } elseif ($user['step'] == 'select_plan') {
@@ -179,7 +178,7 @@ try {
             step('choose_name');
             $_keyboard_btns = [[['text' => '🔙 بازگشت']]];
             $_keyboard = json_encode(['keyboard' => $_keyboard_btns, 'resize_keyboard' => true]);
-            file_put_contents("{$TEMP_DIR_PATH}/$from_id-plan.txt", $text);
+            write_temp_file($text, "$from_id-plan.txt");
             sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $_keyboard);
         }
     } elseif ($user['step'] == 'choose_name') {
@@ -188,13 +187,13 @@ try {
 
 
 
-        $plan_name = file_get_contents("{$TEMP_DIR_PATH}/$from_id-plan.txt");
+        $plan_name = read_temp_file("$from_id-plan.txt")[0];
         $response = $sql->query("SELECT `name` FROM `category` WHERE `name` = '$plan_name'")->num_rows;
         if ($response == 0) {
             sendMessage($from_id, $texts['choice_error']);
         }
 
-        $location = file_get_contents("{$TEMP_DIR_PATH}/$from_id-location.txt");
+        $location = read_temp_file("$from_id-location.txt")[0];
         $plan = $plan_name;
         $code_base = $selected_name;
         $code = $code_base . '_' . $from_id;
@@ -301,8 +300,7 @@ try {
         sendMessage($from_id, $texts['create_service_proccess']);
         # ---------------- delete extra files ---------------- #
         foreach (["{$from_id}-location.txt", "{$from_id}-protocol.txt", "{$from_id}-plan.txt", "{$from_id}-service-name.txt"] as $file_name)
-            if (file_exists($TEMP_DIR_PATH . "/{$file_name}"))
-                unlink($TEMP_DIR_PATH . "/{$file_name}");
+            delete_temp_file($file_name);
         # ---------------- get all information for create service ---------------- #
         $select_service = $sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->fetch_assoc();
         $location = $select_service['location'];
@@ -526,13 +524,13 @@ try {
             editMessage($from_id, $texts['my_services'], $message_id, json_encode(['inline_keyboard' => $key]));
             if ($data == '^back_my_services_menu_from_all_services') {
                 $file_name = $from_id . "-" . "all_services_lists_msg_ids";
-                $service_lists_msg_ids_string = file_get_contents($file_name);
+                $service_lists_msg_ids_string = read_temp_file($file_name)[0];
                 $service_lists_msg_ids = explode('-', $service_lists_msg_ids_string);
                 if (($key = array_search($message_id, $service_lists_msg_ids)) !== false) {
                     unset($service_lists_msg_ids[$key]);
                 }
                 deleteMessages($from_id, $service_lists_msg_ids);
-                unlink($file_name);
+                delete_temp_file($file_name);
             }
         }
     } elseif ($data == '^stat_lst') {
@@ -1145,7 +1143,7 @@ try {
         $previous_menu = substr($callback_parts[0], strpos($callback_parts[0], "@") + 1);
         $code_base_index = intval($callback_parts[1]);
         $code_base = read_temp_file("srv-list--{$from_id}.txt", TRUE)[0][$code_base_index];
-        unlink("srv-list--{$from_id}.txt");
+        delete_temp_file("srv-list--{$from_id}.txt");
         $code = "{$code_base}_{$from_id}";
 
         $getService = $sql->query("SELECT * FROM `orders` WHERE `code` = '$code_base' AND `from_id` = '$from_id'")->fetch_assoc();

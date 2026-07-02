@@ -252,20 +252,15 @@ function reset_panel_panel_token($panel_name, $panel_login_address, $panel_usern
 
 function read_renewal_json($user_id)
 {
-    $json_file_name = "renewal-service-$user_id.json";
-    $user_json = file_get_contents($json_file_name);
-    $user_array = json_decode($user_json, true);
-    return $user_array;
-    // file_put_contents("renewal-service-$user_id.json", $user_array_json);
+    $res = read_temp_file("renewal-service-$user_id.json", true);
+    return $res[0];
 }
 
 
 
 function write_renewal_json($user_id, $user_array)
 {
-    $json_file_name = "renewal-service-$user_id.json";
-    $user_json = json_encode($user_array, JSON_PRETTY_PRINT);
-    file_put_contents($json_file_name, $user_json);
+    write_temp_file($user_array, "renewal-service-$user_id.json", true);
 }
 
 
@@ -297,8 +292,7 @@ function renewal_service($text, $from_id)
                 'config_name' => $config_name,
                 'old_server' => $old_config_location['location']
             );
-            $user_array_json = json_encode($user_array, JSON_PRETTY_PRINT);
-            file_put_contents("renewal-service-$from_id.json", $user_array_json);
+            write_renewal_json($from_id, $user_array);
             $servers = $sql->query("SELECT * FROM `panels` WHERE `status` = 'active'");
             if ($servers->num_rows > 0) {
                 if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0)
@@ -405,9 +399,7 @@ function renewal_service($text, $from_id)
         }
 
         # ---------------- delete extra files ---------------- #
-        foreach (['renewal-service-' . $from_id . '.json'] as $file)
-            if (file_exists($file))
-                unlink($file);
+        delete_temp_file('renewal-service-' . $from_id . '.json');
 
         # ---------------- check coin for create service ---------------- #
         if ($user['coin'] < $price) {
@@ -462,9 +454,8 @@ function renewal_service($text, $from_id)
         $sql->query("UPDATE `users` SET `coin` = coin - $price WHERE `from_id` = '$from_id' LIMIT 1");
     } elseif ($text == '❌  انصراف' and $user['step'] == 'renewal_service_confirm_service') {
         step('none');
-        foreach ([$from_id . '-location.txt', $from_id . '-protocol.txt'] as $file)
-            if (file_exists($file))
-                unlink($file);
+        delete_temp_file($from_id . '-location.txt');
+        delete_temp_file($from_id . '-protocol.txt');
         if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0)
             $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
         sendMessage($from_id, sprintf($texts['start'], $first_name), $start_key);
