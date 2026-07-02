@@ -84,10 +84,11 @@ send_telegram_document() {
 		curl_err=$(mktemp)
 		response=$(curl -sS -w "\n%{http_code}" -X POST \
 			-F "chat_id=${TELEGRAM_USER_ID}" \
-			-F "document=@${tmp_file}" \
+			-F "document=@-;filename=$(basename "$tmp_file");type=application/zip" \
 			-F "caption=${caption}" \
 			-F "parse_mode=HTML" \
-			"https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" 2> "$curl_err" || true)
+			"https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
+			< "$tmp_file" 2>"$curl_err" || true)
 
 		body=$(echo "$response" | head -n -1)
 		http_code=$(echo "$response" | tail -n 1)
