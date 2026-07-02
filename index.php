@@ -1699,7 +1699,9 @@ try {
             $stmt->bind_param("s", $service_location_name);
             $stmt->execute();
             $panel_info = $stmt->get_result()->fetch_assoc();
+            send_debug_msg_to_maintainer('Panel Info: ' . json_encode($panel_info), $from_id, true);
             $token = loginPanel($panel_info['login_link'], $panel_info['username'], $panel_info['password'])['access_token'];
+            send_debug_msg_to_maintainer('Token: ' . json_encode($token), $from_id, true);
             send_debug_msg_to_maintainer('time: ' . date('Y-m-d H:i:s'), $from_id, true);
             $panel_res = getUsersInfo($token, $panel_url, null, null, null, $usernames);
             if ($panel_res['success'] == false) {
