@@ -1695,6 +1695,7 @@ try {
             $panel_url = $location_detail['panel_url'];
             $usernames = $location_detail['usernames'];
             send_debug_msg_to_maintainer('time: ' . date('Y-m-d H:i:s'), $from_id, true);
+            send_debug_msg_to_maintainer('start', $from_id, true);
             $stmt = $mysqli->prepare("SELECT * FROM panels WHERE name = ?");
             $stmt->bind_param("s", $service_location_name);
             $stmt->execute();
