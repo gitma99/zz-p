@@ -38,7 +38,7 @@ send_telegram_message() {
 	local body
 	local curl_err
 	curl_err=$(mktemp)
-	response=$(curl -s -w "\n%{http_code}" -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+	response=$(curl -sS -w "\n%{http_code}" -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
 		-d chat_id="${TELEGRAM_USER_ID}" \
 		-d parse_mode=HTML \
 		-d disable_web_page_preview=true \
@@ -76,7 +76,7 @@ send_telegram_document() {
 		local body
 		local curl_err
 		curl_err=$(mktemp)
-		response=$(curl -s -w "\n%{http_code}" -X POST \
+		response=$(curl -sS -w "\n%{http_code}" -X POST \
 			-F "chat_id=${TELEGRAM_USER_ID}" \
 			-F "document=@${file_path}" \
 			-F "caption=${caption}" \
