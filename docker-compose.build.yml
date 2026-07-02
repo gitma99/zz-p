@@ -44,7 +44,8 @@ services:
       PMA_PORT: 3306
       PMA_ABSOLUTE_URI: https://${DOMAIN}/phpmyadmin/
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
 
   nginx:
     image: nginx:alpine
