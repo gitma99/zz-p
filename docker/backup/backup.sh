@@ -69,7 +69,15 @@ send_telegram_document() {
 	caption="<b>✅ Backup completed</b>\nHost: $(hostname)\nTime: $(timestamp)\nFile: $(basename "$file_path")"
 
 	while [ "$attempt" -le "$max_attempts" ]; do
-		log "INFO" "Sending Telegram document (attempt ${attempt}/${max_attempts})"
+		log "INFO" "Sending Telegram document: '${file_path}' (attempt ${attempt}/${max_attempts})"
+
+		if [ ! -f "$file_path" ]; then
+			log "WARN" "Debug check: File does not exist at '${file_path}'"
+		elif [ ! -r "$file_path" ]; then
+			log "WARN" "Debug check: File exists but is NOT readable!"
+		else
+			log "INFO" "Debug check: File exists, is readable, size is $(stat -c %s "$file_path" || wc -c < "$file_path") bytes"
+		fi
 
 		local response
 		local http_code
