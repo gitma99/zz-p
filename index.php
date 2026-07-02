@@ -1694,16 +1694,8 @@ try {
         foreach ($location_sorted_objs as $service_location_name => $location_detail) {
             $panel_url = $location_detail['panel_url'];
             $usernames = $location_detail['usernames'];
-            send_debug_msg_to_maintainer('time: ' . date('Y-m-d H:i:s'), $from_id, true);
-            send_debug_msg_to_maintainer('start', $from_id, true);
-            $stmt = $mysqli->prepare("SELECT * FROM panels WHERE name = ?");
-            $stmt->bind_param("s", $service_location_name);
-            $stmt->execute();
-            $panel_info = $stmt->get_result()->fetch_assoc();
-            send_debug_msg_to_maintainer('Panel Info: ' . json_encode($panel_info), $from_id, true);
-            $token = loginPanel($panel_info['login_link'], $panel_info['username'], $panel_info['password'])['access_token'];
-            send_debug_msg_to_maintainer('Token: ' . json_encode($token), $from_id, true);
-            send_debug_msg_to_maintainer('time: ' . date('Y-m-d H:i:s'), $from_id, true);
+            send_debug_msg_to_maintainer('service_location: ' . $service_location_name, $from_id, false);
+            $token = get_marzban_panel_token($service_location_name);
             $panel_res = getUsersInfo($token, $panel_url, null, null, null, $usernames);
             if ($panel_res['success'] == false) {
                 throw new Exception($panel_res['error'], 1);
@@ -1757,16 +1749,36 @@ try {
 
         // $user_usage = get_users_usage($target_user_id);
 
-        alert(
-            sprintf(
-                $texts['services_overview__alert__msg'],
-                $count_all_active,
-                $count_all_inactive,
-                $overall_unknown_services_count,
-                Conversion($total_traffic_bought, "GB"),
-                Conversion($total_traffic_used, "GB")
-            )
+        // alert(
+        //     sprintf(
+        //         $texts['services_overview__alert__msg'],
+        //         $count_all_active,
+        //         $count_all_inactive,
+        //         $overall_unknown_services_count,
+        //         Conversion($total_traffic_bought, "GB"),
+        //         Conversion($total_traffic_used, "GB")
+        //     )
+        // );
+        alert(null, false);
+        $overview_text = sprintf(
+            $texts['services_overview__alert__msg'],
+            $count_all_active,
+            $count_all_inactive,
+            $overall_unknown_services_count,
+            Conversion($total_traffic_bought, "GB"),
+            Conversion($total_traffic_used, "GB")
         );
+        $close_keyboard = json_encode([
+            'inline_keyboard' => [
+                [
+                    ['text' => 'بستن ❌', 'callback_data' => 'close_msg']
+                ]
+            ]
+        ]);
+        sendMessage($from_id, $overview_text, $close_keyboard);
+    } elseif ($data == 'close_msg') {
+        alert(null, false);
+        deleteMessage($from_id, $message_id);
     } elseif ($text == '📮 پشتیبانی آنلاین') {
         step('support');
         sendMessage($from_id, $texts['support'], $back);
