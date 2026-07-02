@@ -235,32 +235,6 @@ function change_account_status($text, $from_id)
     }
 }
 
-// function send_message_query()
-// {
-//     global $text;
-//     function send()
-//     {
-//         $url = "http://127.0.0.1/ZZPanelBot/send.php";
-//         $ch = curl_init();
-//         curl_setopt($ch, CURLOPT_URL, $url);
-//         // curl_setopt($ch, CURLOPT_PUT, true);
-//         // curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
-//         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-//         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-//         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-//         // curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' .  $token, 'Content-Type: application/json'));
-//         // curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(array('expire' => $new_expire_time, 'data_limit' => $new_traffic_limit)));
-//         $response = curl_exec($ch);
-//         curl_close($ch);
-//         return $response;
-//     }
-//     if ($text == 'ارسال پیام ها 📧') {
-//         return send();
-//     } else {
-//         return false;
-//     }
-// };
-
 
 function reset_panel_panel_token($panel_name, $panel_login_address, $panel_username, $panel_password)
 {

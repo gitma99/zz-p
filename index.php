@@ -14,7 +14,6 @@ date_default_timezone_set("UTC");
 try {
     require_once __DIR__ . '/App/Utils/request_cache.php';
     require_once __DIR__ . "/App/Debug/debug.php";
-    // require_once __DIR__ . "/App/apis/telegram-api/api.php";
     require_once __DIR__ . "/App/apis/telegram-api/api/delete_message.php";
     require_once __DIR__ . "/App/apis/telegram-api/api/edit_message.php";
     require_once __DIR__ . "/App/apis/telegram-api/api/forward_message.php";
@@ -114,7 +113,6 @@ try {
         sendMessage($from_id, "👮‍♂️ - سلام ادمین [ <b>$first_name</b> ] عزیز !\n\n⚡️به پنل مدیریت ربات خوش آمدید.\n🗃 ورژن فعلی ربات : <code>{$config['version']}</code>\n\n⚙️ جهت مدیریت ربات ، یکی از گزینه های زیر را انتخاب کنید.", $bot_management_keyboard);
         exit(0);
     } else {
-        // send_message_query();
         renewal_service($text, $from_id);
         change_account_status($text, $from_id);
     }
