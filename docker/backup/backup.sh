@@ -47,6 +47,7 @@ send_telegram_document() {
 	local max_attempts=3
 	local attempt=1
 
+
 	if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_USER_ID:-}" ]; then
 		log "WARN" "Telegram is not configured, cannot send document"
 		return 1
