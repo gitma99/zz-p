@@ -325,7 +325,7 @@ try {
         # ---------------- check database ----------------#
         if ($get_plan->num_rows == 0) {
             sendmessage($from_id, sprintf($texts['create_error'], 0), $start_key);
-            exit();
+            throw new Exception("Plan check failed: plan '$plan' not found in database.");
         }
         # ---------------- create service proccess ---------------- #
         if ($panel['type'] == 'marzban') {
@@ -382,7 +382,7 @@ try {
                 // sendmessage($config['dev'], sprintf($texts['success_create_notif']), $first_name, $username, $from_id, $user['count_service'], $user['coin'], $location, $plan, $limit, $date, $code, number_format($price));
             } else {
                 sendmessage($from_id, sprintf($texts['create_error'], 2), $start_key);
-                exit();
+                throw new Exception("Panel exists check failed on success check: panel '$location' not found in database.");
             }
         } elseif ($panel['type'] == 'sanayi') {
 
@@ -394,7 +394,7 @@ try {
             # ---------------- check errors ---------------- #
             if ($create_status['status'] == false) {
                 sendMessage($from_id, sprintf($texts['create_error'], 1), $start_key);
-                exit();
+                throw new Exception("Sanayi create client API error: " . json_encode($create_status));
             }
             # ---------------- get links and subscription_url for send the user ---------------- #
             if ($info_panel->num_rows > 0) {
@@ -406,7 +406,7 @@ try {
                 // sendMessage($config['dev'], sprintf($texts['success_create_notif']), $first_name, $username, $from_id, $user['count_service'], $user['coin'], $location, $plan, $limit, $date, $code, number_format($price));
             } else {
                 sendMessage($from_id, sprintf($texts['create_error'], 2), $start_key);
-                exit();
+                throw new Exception("Panel exists check failed on success check: panel '$location' not found in database.");
             }
         }
         $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
@@ -459,6 +459,7 @@ try {
                     } else {
                         deleteMessage($from_id, $message_id + 1);
                         sendMessage($from_id, sprintf($texts['create_error'], 1), $start_key);
+                        throw new Exception("Marzban test account creation failed: " . json_encode($create_status));
                     }
                 }
 
@@ -474,7 +475,7 @@ try {
                     # ---------------- check errors ---------------- #
                     if ($create_status['status'] == false) {
                         sendMessage($from_id, sprintf($texts['create_error'], 1), $start_key);
-                        exit();
+                        throw new Exception("Sanayi test account creation failed: " . json_encode($create_status));
                     }
                     # ---------------------------------------------- #
                     $sql->query("UPDATE `users` SET `count_service` = count_service + 1, `test_account` = 'yes' WHERE `from_id` = '$from_id'");

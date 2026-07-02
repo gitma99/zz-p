@@ -395,7 +395,7 @@ function renewal_service($text, $from_id)
         # --------------- check if panel exists -------------- #
         if ($info_panel->num_rows == 0) {
             sendmessage($from_id, sprintf($texts['create_error'], 2), $start_key);
-            exit();
+            throw new Exception("Panel exists check failed: panel '$location' not found in database.");
         }
 
         # ---------------- delete extra files ---------------- #
@@ -409,7 +409,7 @@ function renewal_service($text, $from_id)
         # ---------------- check database ----------------#
         if ($get_plan->num_rows == 0) {
             sendmessage($from_id, sprintf($texts['create_error'], 0), $start_key);
-            exit();
+            throw new Exception("Plan check failed: plan '$plan' not found in category table.");
         }
         # ---------------- create service proccess ---------------- #
         if ($panel['type'] !== 'marzban') {
@@ -433,7 +433,7 @@ function renewal_service($text, $from_id)
             step('none');
             sendMessage($from_id, sprintf($texts['renew_error'], 1), $start_key);
             // sendMessage($from_id, sprintf($renewal_status['username'], 1), $start_key);
-            exit();
+            throw new Exception("Marzban renewal API error: " . json_encode($renewal_status));
         }
         # ---------------- get links and subscription_url for send the user ---------------- #
         $links = "";
