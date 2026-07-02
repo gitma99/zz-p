@@ -63,12 +63,6 @@ send_telegram_document() {
 		return 1
 	fi
 
-	local caption
-	caption="<b>✅ Backup completed</b>
-Host: $(hostname)
-Time: $(timestamp)
-File: $(basename "$file_path")"
-
 	log "INFO" "Sending Telegram document: '${file_path}'"
 
 	# Simple cat pipe to curl bypasses curl file opening issues.
@@ -76,10 +70,14 @@ File: $(basename "$file_path")"
 	if cat "$file_path" | curl -v \
 		-F "chat_id=${TELEGRAM_USER_ID}" \
 		-F "document=@-;filename=$(basename "$file_path")" \
-		-F "caption=${caption}" \
-		-F "parse_mode=HTML" \
 		"https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument"; then
 		log "INFO" "Telegram document sent successfully"
+		
+		# Send details as a separate message now
+		local caption
+		caption="Host: $(hostname)
+File: $(basename "$file_path")"
+		send_telegram_message "✅ Backup completed" "$caption"
 		return 0
 	else
 		log "ERROR" "Telegram upload failed."
