@@ -27,7 +27,7 @@ services:
       MYSQL_PASSWORD: ${DB_PASS}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
-      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/db:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
@@ -72,6 +72,22 @@ services:
       - ./docker/certbot/www:/var/www/certbot
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h; done'"
 
+  backup:
+    build:
+      context: .
+      dockerfile: ./docker/backup/Dockerfile
+    container_name: zzpanel_backup
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: mysql
+      BACKUP_TELEGRAM_TOKEN: ${BACKUP_TELEGRAM_TOKEN:-}
+      BACKUP_CHAT_ID: ${BACKUP_CHAT_ID:-}
+    volumes:
+      - ./docker/backups:/backups
+    depends_on:
+      mysql:
+        condition: service_healthy
+
 volumes:
-  mysql_data:
   app_temp:

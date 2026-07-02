@@ -73,9 +73,7 @@ services:
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h; done'"
 
   backup:
-    build:
-      context: .
-      dockerfile: ./docker/backup/Dockerfile
+    image: ghcr.io/gitma99/zzpanel-backup:latest
     container_name: zzpanel_backup
     restart: unless-stopped
     env_file: .env
