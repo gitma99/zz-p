@@ -24,8 +24,9 @@ try {
     require_once __DIR__ . "/App/Utils/temp_tools.php";
 
 
-    error_log($user['step']);   
     require_once 'config.php';
+    
+    error_log($user['step']);
 
     // Allow longer web requests for operations that may take >30s.
     // Uses optional config value `web_request_timeout` (seconds). Defaults to 120s.
