@@ -1651,6 +1651,7 @@ try {
         ];
         sendMessage($from_id, sprintf($texts['my_account'], $from_id, number_format($user['coin']), $count_all), json_encode(['inline_keyboard' => $keys]));
     } elseif (strpos($data, 'all_service_count__') !== false) {
+        alert($texts['wait']);
         $target_user_id = explode('__', $data)[1];
         $count_all_active = 0;
         $count_all_inactive = 0;
