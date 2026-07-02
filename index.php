@@ -3585,6 +3585,7 @@ try {
     }
     // ================= Generate debug array
     $report = [
+        "APP_VERSION" => $APP_VERSION,
         "USER-DATA" => [
             "chat_id" => $from_id,
             'user_name' => $username,
