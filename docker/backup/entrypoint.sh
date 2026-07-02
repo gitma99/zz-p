@@ -17,6 +17,7 @@ calculate_sleep_seconds() {
 	echo $((tomorrow_midnight_seconds - current_seconds))
 }
 
+
 # Run a backup immediately on container startup
 /backup.sh
 
