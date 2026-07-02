@@ -80,12 +80,15 @@ File: $(basename "$file_path")"
 	while [ "$attempt" -le "$max_attempts" ]; do
 		log "INFO" "Sending Telegram document: '${tmp_file}' (attempt ${attempt}/${max_attempts})"
 
-		if python3 /send_telegram.py "$tmp_file" "$caption"; then
+		local py_out
+		py_out=$(mktemp)
+		if BACKUP_CAPTION="$caption" python3 /send_telegram.py "$tmp_file" > "$py_out" 2>&1; then
 			log "INFO" "Telegram document sent successfully"
-			rm -f "$tmp_file"
+			rm -f "$tmp_file" "$py_out"
 			return 0
 		else
-			log "WARN" "Telegram document send failed during Python execution."
+			log "WARN" "Telegram document send failed. Python output: $(cat "$py_out")"
+			rm -f "$py_out"
 		fi
 
 		if [ "$attempt" -lt "$max_attempts" ]; then

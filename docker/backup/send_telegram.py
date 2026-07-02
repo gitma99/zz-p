@@ -13,7 +13,7 @@ def main():
         sys.exit(1)
 
     file_path = sys.argv[1]
-    caption = sys.argv[2] if len(sys.argv) > 2 else ""
+    caption = os.environ.get("BACKUP_CAPTION", "")
 
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     user_id = os.environ.get("TELEGRAM_USER_ID")
