@@ -70,8 +70,7 @@ jobs:
       - name: Build and Push Release Backup
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./docker/backup/Dockerfile
+          context: ./docker/backup
           push: true
           tags: ${{ steps.meta_backup.outputs.tags }}
           labels: ${{ steps.meta_backup.outputs.labels }}
