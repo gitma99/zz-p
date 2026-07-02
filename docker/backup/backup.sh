@@ -36,17 +36,22 @@ send_telegram_message() {
 	local response
 	local http_code
 	local body
+	local curl_err
+	curl_err=$(mktemp)
 	response=$(curl -s -w "\n%{http_code}" -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
 		-d chat_id="${TELEGRAM_USER_ID}" \
 		-d parse_mode=HTML \
 		-d disable_web_page_preview=true \
-		-d text="${payload}" || true)
+		-d text="${payload}" 2> "$curl_err" || true)
 
 	body=$(echo "$response" | head -n -1)
 	http_code=$(echo "$response" | tail -n 1)
+	local err_msg
+	err_msg=$(cat "$curl_err")
+	rm -f "$curl_err"
 
 	if [ "$http_code" -ne 200 ]; then
-		log "WARN" "Failed to send Telegram message. HTTP Code: ${http_code}. Response: ${body}"
+		log "WARN" "Failed to send Telegram message. HTTP Code: ${http_code}. Error: ${err_msg}. Response: ${body}"
 	fi
 }
 
@@ -69,21 +74,26 @@ send_telegram_document() {
 		local response
 		local http_code
 		local body
+		local curl_err
+		curl_err=$(mktemp)
 		response=$(curl -s -w "\n%{http_code}" -X POST \
 			-F "chat_id=${TELEGRAM_USER_ID}" \
 			-F "document=@${file_path}" \
 			-F "caption=${caption}" \
 			-F "parse_mode=HTML" \
-			"https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" || true)
+			"https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" 2> "$curl_err" || true)
 
 		body=$(echo "$response" | head -n -1)
 		http_code=$(echo "$response" | tail -n 1)
+		local err_msg
+		err_msg=$(cat "$curl_err")
+		rm -f "$curl_err"
 
 		if [ "$http_code" -eq 200 ]; then
 			log "INFO" "Telegram document sent successfully"
 			return 0
 		else
-			log "WARN" "Telegram document send failed. HTTP Code: ${http_code}. Response: ${body}"
+			log "WARN" "Telegram document send failed. HTTP Code: ${http_code}. Error: ${err_msg}. Response: ${body}"
 		fi
 
 		if [ "$attempt" -lt "$max_attempts" ]; then
