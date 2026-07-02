@@ -24,4 +24,5 @@ function sendMessage($chat_id, $text, $keyboard = null, $mrk = 'html')
         return $bot_reply;
     }
 }
+
 ?>

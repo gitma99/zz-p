@@ -1,8 +1,8 @@
 <?php
 require_once __DIR__ . "/App/vars.php";
 require_once __DIR__ . "/config.php";
-require_once __DIR__ . "/App/apis/telegram-api/functions/send_message.php";
-require_once __DIR__ . "/App/apis/telegram-api/functions/forward_message.php";
+require_once __DIR__ . "/App/apis/telegram-api/api/send_message.php";
+require_once __DIR__ . "/App/apis/telegram-api/api/forward_message.php";
 
 ini_set('display_errors', 0); // Disable error display on the screen
 ini_set('log_errors', 1); // Enable error logging to a file

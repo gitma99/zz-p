@@ -15,12 +15,13 @@ try {
     require_once __DIR__ . '/App/Utils/request_cache.php';
     require_once __DIR__ . "/App/Debug/debug.php";
     // require_once __DIR__ . "/App/apis/telegram-api/api.php";
-    require_once __DIR__ . "/App/apis/telegram-api/functions/delete_message.php";
-    require_once __DIR__ . "/App/apis/telegram-api/functions/edit_message.php";
-    require_once __DIR__ . "/App/apis/telegram-api/functions/forward_message.php";
-    require_once __DIR__ . "/App/apis/telegram-api/functions/send_alert.php";
-    require_once __DIR__ . "/App/apis/telegram-api/functions/send_file.php";
-    require_once __DIR__ . "/App/apis/telegram-api/functions/send_message.php";
+    require_once __DIR__ . "/App/apis/telegram-api/api/delete_message.php";
+    require_once __DIR__ . "/App/apis/telegram-api/api/edit_message.php";
+    require_once __DIR__ . "/App/apis/telegram-api/api/forward_message.php";
+    require_once __DIR__ . "/App/apis/telegram-api/api/send_alert.php";
+    require_once __DIR__ . "/App/apis/telegram-api/api/send_file.php";
+    require_once __DIR__ . "/App/apis/telegram-api/api/send_message.php";
+    require_once __DIR__ . "/App/apis/telegram-api/functions/responses.php";
     require_once __DIR__ . "/App/Utils/temp_tools.php";
 
 
@@ -378,12 +379,9 @@ try {
             if ($info_panel->num_rows > 0) {
                 $getMe = json_decode(file_get_contents("https://api.telegram.org/bot{$config['token']}/getMe"), true);
                 $subscribe = (strpos($create_status['subscription_url'], 'http') !== false) ? $create_status['subscription_url'] : $panel['login_link'] . $create_status['subscription_url'];
-                if ($panel['qr_code'] == 'active') {
-                    $encode_url = urlencode($subscribe);
-                    bot('sendPhoto', ['chat_id' => $from_id, 'photo' => "https://api.qrserver.com/v1/create-qr-code/?data=$encode_url&size=800x800", 'caption' => sprintf($texts['success_create_service'], $code_base, $location, $date, $limit, number_format($price), '', '@' . $getMe['result']['username']), 'parse_mode' => 'html', 'reply_markup' => $start_key]);
-                } else {
-                    sendmessage($from_id, sprintf($texts['success_create_service'], $code_base, $location, $date, $limit, number_format($price), $subscribe, '@' . $getMe['result']['username']), $start_key);
-                }
+                $caption_text = sprintf($texts['success_create_service'], $code_base, $location, $date, $limit, number_format($price), '', '@' . $getMe['result']['username']);
+                $message_text = sprintf($texts['success_create_service'], $code_base, $location, $date, $limit, number_format($price), $subscribe, '@' . $getMe['result']['username']);
+                sendSuccessResponse($from_id, $panel['qr_code'], $subscribe, $caption_text, $message_text, $start_key);
                 $sql->query("INSERT INTO `orders` (`from_id`, `location`, `protocol`, `date`, `volume`, `link`, `price`, `code`, `status`, `type`) VALUES ('$from_id', '$location', 'null', '$date', '$limit', '$links', '$price', '$code_base', 'active', 'marzban')");
                 // sendmessage($config['dev'], sprintf($texts['success_create_notif']), $first_name, $username, $from_id, $user['count_service'], $user['coin'], $location, $plan, $limit, $date, $code, number_format($price));
             } else {
@@ -406,12 +404,8 @@ try {
             if ($info_panel->num_rows > 0) {
                 $getMe = json_decode(file_get_contents("https://api.telegram.org/bot{$config['token']}/getMe"), true);
                 $link = str_replace(['%s1', '%s2', '%s3'], [$create_status['results']['id'], str_replace(parse_url($panel['login_link'])['port'], json_decode($xui->getPortById($san_setting['inbound_id']), true)['port'], str_replace(['https://', 'http://'], ['', ''], $panel['login_link'])), $create_status['results']['remark']], $san_setting['example_link']);
-                if ($panel['qr_code'] == 'active') {
-                    $encode_url = urlencode($link);
-                    bot('sendPhoto', ['chat_id' => $from_id, 'photo' => "https://api.qrserver.com/v1/create-qr-code/?data=$encode_url&size=800x800", 'caption' => sprintf($texts['success_create_service_sanayi'], $name, $location, $date, $limit, number_format($price), $link, $create_status['results']['subscribe'], '@' . $getMe['result']['username']), 'parse_mode' => 'html', 'reply_markup' => $start_key]);
-                } else {
-                    sendMessage($from_id, sprintf($texts['success_create_service_sanayi'], $name, $location, $date, $limit, number_format($price), $link, $create_status['results']['subscribe'], '@' . $getMe['result']['username']), $start_key);
-                }
+                $caption_text = sprintf($texts['success_create_service_sanayi'], $name, $location, $date, $limit, number_format($price), $link, $create_status['results']['subscribe'], '@' . $getMe['result']['username']);
+                sendSuccessResponse($from_id, $panel['qr_code'], $link, $caption_text, $caption_text, $start_key);
                 $sql->query("INSERT INTO `orders` (`from_id`, `location`, `protocol`, `date`, `volume`, `link`, `price`, `code`, `status`, `type`) VALUES ('$from_id', '$location', 'null', '$date', '$limit', '$link', '$price', '$code', 'active', 'sanayi')");
                 // sendMessage($config['dev'], sprintf($texts['success_create_notif']), $first_name, $username, $from_id, $user['count_service'], $user['coin'], $location, $plan, $limit, $date, $code, number_format($price));
             } else {

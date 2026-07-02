@@ -479,38 +479,9 @@ function renewal_service($text, $from_id)
         $bot_username = isset($getMe['result']) ? $getMe['result']['username'] : '*';
 
         $subscribe = (strpos($renewal_status['subscription_url'], 'http') !== false) ? $renewal_status['subscription_url'] : $panel['login_link'] . $renewal_status['subscription_url'];
-        if ($panel['qr_code'] == 'active') {
-            $encode_url = urlencode($subscribe);
-            $bot_data = [
-                'chat_id' => $from_id,
-                'photo' => "https://api.qrserver.com/v1/create-qr-code/?data=$encode_url&size=800x800",
-                'caption' => sprintf(
-                    $texts['success_create_service'],
-                    $name,
-                    $location,
-                    $date,
-                    $limit,
-                    number_format($price),
-                    '',
-                    '@' . $bot_username
-                ),
-                'parse_mode' => 'html',
-                'reply_markup' => $start_key
-            ];
-            bot('sendPhoto', $bot_data);
-        } else {
-            $bot_text = sprintf(
-                $texts['success_create_service'],
-                $name_base,
-                $location,
-                $date,
-                $limit,
-                number_format($price),
-                $subscribe,
-                '@' . $bot_username
-            );
-            sendmessage($from_id, $bot_text, $start_key);
-        }
+        $caption_text = sprintf($texts['success_create_service'], $name, $location, $date, $limit, number_format($price), '', '@' . $bot_username);
+        $message_text = sprintf($texts['success_create_service'], $name_base, $location, $date, $limit, number_format($price), $subscribe, '@' . $bot_username);
+        sendSuccessResponse($from_id, $panel['qr_code'], $subscribe, $caption_text, $message_text, $start_key);
         $sql->query("UPDATE `orders` SET `location` = '$location', `date` = '$date', `volume` = '$limit', `link` = '$links', `price` = '$price' WHERE `code` = '$code_base'");
 
         # ---------------- Deduct Coins  ---------------- #
