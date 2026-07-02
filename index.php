@@ -3604,6 +3604,7 @@ try {
             'error_trace_string' => $e->getTraceAsString(),
         ]
     ];
+    error_log(json_encode($report, 448));
     $init_msg = "☢ FATAL_ERROR ☢\n\n";
     $init_msg .= "⭕ USER_ID: {$from_id}\n";
     $init_msg .= "⭕ USER_NAME: {$username}";
