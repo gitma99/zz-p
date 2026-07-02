@@ -36,7 +36,6 @@ def main():
             }
             data = {
                 "chat_id": user_id,
-                "caption": caption,
                 "parse_mode": "HTML"
             }
             response = requests.post(url, data=data, files=files, timeout=60)

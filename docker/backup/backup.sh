@@ -82,7 +82,7 @@ File: $(basename "$file_path")"
 
 		local py_out
 		py_out=$(mktemp)
-		if BACKUP_CAPTION="$caption" python3 /send_telegram.py "$tmp_file" > "$py_out" 2>&1; then
+		if python3 /send_telegram.py "$tmp_file" > "$py_out" 2>&1; then
 			log "INFO" "Telegram document sent successfully"
 			rm -f "$tmp_file" "$py_out"
 			return 0
