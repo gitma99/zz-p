@@ -72,36 +72,20 @@ send_telegram_document() {
 	log "INFO" "Copied backup to ${tmp_file} for upload"
 
 	local caption
-	caption="<b>✅ Backup completed</b>\nHost: $(hostname)\nTime: $(timestamp)\nFile: $(basename "$file_path")"
+	caption="<b>✅ Backup completed</b>
+Host: $(hostname)
+Time: $(timestamp)
+File: $(basename "$file_path")"
 
 	while [ "$attempt" -le "$max_attempts" ]; do
 		log "INFO" "Sending Telegram document: '${tmp_file}' (attempt ${attempt}/${max_attempts})"
 
-		local response
-		local http_code
-		local body
-		local curl_err
-		curl_err=$(mktemp)
-		response=$(curl -sS -w "\n%{http_code}" -X POST \
-			-F "chat_id=${TELEGRAM_USER_ID}" \
-			-F "document=@-;filename=$(basename "$tmp_file");type=application/zip" \
-			-F "caption=${caption}" \
-			-F "parse_mode=HTML" \
-			"https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
-			< "$tmp_file" 2>"$curl_err" || true)
-
-		body=$(echo "$response" | head -n -1)
-		http_code=$(echo "$response" | tail -n 1)
-		local err_msg
-		err_msg=$(cat "$curl_err")
-		rm -f "$curl_err"
-
-		if [ "$http_code" -eq 200 ]; then
+		if python3 /send_telegram.py "$tmp_file" "$caption"; then
 			log "INFO" "Telegram document sent successfully"
 			rm -f "$tmp_file"
 			return 0
 		else
-			log "WARN" "Telegram document send failed. HTTP Code: ${http_code}. Error: ${err_msg}. Response: ${body}"
+			log "WARN" "Telegram document send failed during Python execution."
 		fi
 
 		if [ "$attempt" -lt "$max_attempts" ]; then
