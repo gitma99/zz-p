@@ -151,9 +151,14 @@ rm -f /root/zz-p-sql.sql
 
 log "INFO" "Backup successfully created: ${timestamped_archive}"
 
-# Upload to Telegram
+# Upload to Telegram and clean up old backups on success
 if [ -n "${TELEGRAM_BOT_TOKEN}" ] && [ -n "${TELEGRAM_USER_ID}" ]; then
-	send_telegram_document "$timestamped_archive"
+	if send_telegram_document "$timestamped_archive"; then
+		log "INFO" "Cleaning up zip backups older than 14 days..."
+		# Find and delete zip backups matching pattern older than 14 days
+		find /backups -name "zz-p-backup-*.zip" -type f -mtime +14 -print -delete || log "WARN" "Clean up of old backups failed or no old files found"
+	fi
 else
 	log "INFO" "Telegram variables not fully set. Skipping upload."
 fi
+
