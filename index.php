@@ -117,6 +117,44 @@ try {
         renewal_service($text, $from_id);
         change_account_status($text, $from_id);
     }
+    
+    if ($text == '/debug') {
+        global $sql, $from_id, $user;
+        $db_step = 'unknown';
+        $db_error = 'none';
+        
+        $query = $sql->query("SELECT `step` FROM `users` WHERE `from_id` = '$from_id'");
+        if ($query) {
+            $row = $query->fetch_assoc();
+            $db_step = $row['step'];
+        } else {
+            $db_error = $sql->error;
+        }
+        
+        $update_res = $sql->query("UPDATE `users` SET `step` = 'debug_test_step' WHERE `from_id` = '$from_id'");
+        $update_error = $update_res ? 'none' : $sql->error;
+        
+        $query2 = $sql->query("SELECT `step` FROM `users` WHERE `from_id` = '$from_id'");
+        $db_step2 = 'unknown';
+        if ($query2) {
+            $row2 = $query2->fetch_assoc();
+            $db_step2 = $row2['step'];
+        }
+        
+        $sql->query("UPDATE `users` SET `step` = '$db_step' WHERE `from_id` = '$from_id'");
+        
+        $msg = "Debug Info:\n";
+        $msg .= "- Your from_id: $from_id\n";
+        $msg .= "- Local \$user['step']: " . var_export($user['step'], true) . "\n";
+        $msg .= "- DB step: " . var_export($db_step, true) . "\n";
+        $msg .= "- DB query error: $db_error\n";
+        $msg .= "- DB update status: " . ($update_res ? 'Success' : 'Failed') . "\n";
+        $msg .= "- DB update error: $update_error\n";
+        $msg .= "- DB step after update: " . var_export($db_step2, true) . "\n";
+        
+        sendMessage($from_id, $msg);
+        exit(0);
+    }
 
     if ($text == '/start' or $text == '🔙 بازگشت' or $text == '/back') {
         step('none');
