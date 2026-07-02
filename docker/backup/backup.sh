@@ -33,20 +33,27 @@ send_telegram_message() {
 	local payload
 	payload="<b>${title}</b>\nTime: $(timestamp)\n${text}"
 
-	curl -s --fail -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+	local response
+	local http_code
+	local body
+	response=$(curl -s -w "\n%{http_code}" -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
 		-d chat_id="${TELEGRAM_USER_ID}" \
 		-d parse_mode=HTML \
 		-d disable_web_page_preview=true \
-		-d text="${payload}" > /dev/null 2>&1 || {
-			log "WARN" "Failed to send Telegram notification"
-		}
+		-d text="${payload}" || true)
+
+	body=$(echo "$response" | head -n -1)
+	http_code=$(echo "$response" | tail -n 1)
+
+	if [ "$http_code" -ne 200 ]; then
+		log "WARN" "Failed to send Telegram message. HTTP Code: ${http_code}. Response: ${body}"
+	fi
 }
 
 send_telegram_document() {
 	local file_path=$1
 	local max_attempts=3
 	local attempt=1
-
 
 	if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_USER_ID:-}" ]; then
 		log "WARN" "Telegram is not configured, cannot send document"
@@ -59,18 +66,28 @@ send_telegram_document() {
 	while [ "$attempt" -le "$max_attempts" ]; do
 		log "INFO" "Sending Telegram document (attempt ${attempt}/${max_attempts})"
 
-		if curl -s --fail -X POST \
+		local response
+		local http_code
+		local body
+		response=$(curl -s -w "\n%{http_code}" -X POST \
 			-F "chat_id=${TELEGRAM_USER_ID}" \
 			-F "document=@${file_path}" \
 			-F "caption=${caption}" \
 			-F "parse_mode=HTML" \
-			"https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" > /dev/null 2>&1; then
+			"https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" || true)
+
+		body=$(echo "$response" | head -n -1)
+		http_code=$(echo "$response" | tail -n 1)
+
+		if [ "$http_code" -eq 200 ]; then
 			log "INFO" "Telegram document sent successfully"
 			return 0
+		else
+			log "WARN" "Telegram document send failed. HTTP Code: ${http_code}. Response: ${body}"
 		fi
 
 		if [ "$attempt" -lt "$max_attempts" ]; then
-			log "WARN" "Telegram document send failed, retrying in 10 seconds"
+			log "WARN" "Retrying in 10 seconds..."
 			sleep 10
 		fi
 
