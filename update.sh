@@ -65,7 +65,6 @@ do
 
             log "Please wait, Updating . . ."
             mv $BOT_CONFIG_JSON_PATH /var/www/html/bot_config.json
-            # mv "${APP_DIR}/install/zanbor.install" /var/www/html/zanbor.install
             sleep 1
             rm -r "${APP_DIR}"
             log "\nAll file and folder deleted for update bot . . .\n"
@@ -76,10 +75,8 @@ do
             sudo chmod -R 777 "${APP_DIR}"
             mv /var/www/html/bot_config.json $BOT_CONFIG_JSON_PATH
             sudo chmod 777 $BOT_CONFIG_JSON_PATH
-            # mv /var/www/html/zanbor.install "${APP_DIR}/install/zanbor.install"
             sleep 2
             
-            # content=$(cat "${APP_DIR}/install/zanbor.install")
             content=$(cat $BOT_CONFIG_JSON_PATH)
             token=$(echo "$content" | jq -r '.token')
             dev=$(echo "$content" | jq -r '.dev')

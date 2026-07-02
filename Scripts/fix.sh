@@ -50,9 +50,7 @@ do
             read -p "Are you sure you want to update? [y/n] : " answer
             if [ "$answer" != "${answer#[Yy]}" ]; then
                 if [ -d "${APP_DIR}" ]; then
-                    # if [ -f "${APP_DIR}/install/zanbor.install" ]; then
                     if [ -f "$BOT_CONFIG_JSON_PATH" ]; then
-                        # if [ -s "${APP_DIR}/install/zanbor.install" ]; then
                         if [ -s "$BOT_CONFIG_JSON_PATH" ]; then
                             apt install -y jq
                             content=$(cat $BOT_CONFIG_JSON_PATH)
