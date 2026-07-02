@@ -1672,7 +1672,6 @@ try {
             alert($texts['services_overview__alert__msg_no_service']);
             return;
         }
-        $users_api_url = $serviceLocationMap[$service_location] . '/api/user/' . $service_name;
         for ($i = 0, $len = count($services); $i < $len; $i++) {
             $row = $services[$i];
             $service_base_name = $row['code'];
@@ -1680,24 +1679,25 @@ try {
             $service_location = $row['location'];
             if (!isset($location_sorted_objs[$service_location])) {
                 $location_sorted_objs[$service_location] = [
-                    "url" => $serviceLocationMap[$service_location] . '/api/users',
+                    "panel_url" => $serviceLocationMap[$service_location],
                     "unknown_services" => [],
                     "active_services" => [],
-                    "inactive_Services" => []
+                    "inactive_services" => [],
+                    "usernames" => []
                 ];
             }
             $location_sorted_objs[$service_location]["unknown_services"][$service_name] = $service_base_name;
-            $new_user_param = $i === 0 ? "?username=$service_name" : "&username=$service_name";
-            $location_sorted_objs[$service_location]["url"] = $location_sorted_objs[$service_location]["url"] . $new_user_param;
+            $location_sorted_objs[$service_location]["usernames"][] = $service_name;
         }
         // send_debug_data_to_maintainer(json_encode([$location_sorted_objs], 448), "131757826", true, true);
 
         foreach ($location_sorted_objs as $service_location_name => $location_detail) {
-            $users_api_url = $location_detail['url'];
+            $panel_url = $location_detail['panel_url'];
+            $usernames = $location_detail['usernames'];
             send_debug_msg_to_maintainer('time: ' . date('Y-m-d H:i:s'), $from_id, true);
             $token = get_marzban_panel_token($service_location_name);
             send_debug_msg_to_maintainer('time: ' . date('Y-m-d H:i:s'), $from_id, true);
-            $panel_res = getUsersInfo($token, $users_api_url);
+            $panel_res = getUsersInfo($token, $panel_url, null, null, null, $usernames);
             if ($panel_res['success'] == false) {
                 throw new Exception($panel_res['error'], 1);
             }
