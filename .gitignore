@@ -11,6 +11,8 @@ __TEMP__/
 .env
 docker/certbot/conf/
 docker/certbot/www/
+docker/backups/
+docker/mysql/db/
 
 logs
 docker/app/logs/
