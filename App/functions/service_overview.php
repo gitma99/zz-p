@@ -143,7 +143,7 @@ function fetch_user_service_overview($target_user_id, $sql) {
                 // perform archive + delete inside transaction
                 $sql->begin_transaction();
                 // insert the full row into archive
-                $archive_stmt = $sql->prepare("INSERT INTO `orders_archive` SELECT * FROM `orders` WHERE `id` = ?");
+                $archive_stmt = $sql->prepare("INSERT INTO `orders_archive` SELECT * FROM `orders` WHERE `row` = ?");
                 if (!$archive_stmt) {
                     $sql->rollback();
                     return [
