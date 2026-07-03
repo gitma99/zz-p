@@ -1650,14 +1650,14 @@ try {
         ];
         sendMessage($from_id, sprintf($texts['my_account'], $from_id, number_format($user['coin']), $count_all), json_encode(['inline_keyboard' => $keys]));
     } elseif (strpos($data, 'calc_overview__') !== false) {
-        alert('⏳ در صف پردازش...', false);
         $target_user_id = explode('__', $data)[1];
 
         if ($target_user_id != $from_id and !in_array($from_id, $admin_id_array) and $from_id != $config['dev']) {
-            alert('❌ شما اجازه دسترسی به این بخش را ندارید.', true);
+            alert($texts['alert__no_access'], true);
             return;
         }
-
+        
+        alert(null, false);
         $payload = json_encode([
             'user_id' => $target_user_id,
             'chat_id' => $chat_id,
@@ -1671,7 +1671,7 @@ try {
         $pending_keyboard = json_encode([
             'inline_keyboard' => [
                 [
-                    ['text' => '⏳ در حال پردازش...', 'callback_data' => 'pending_task']
+                    ['text' => $texts['button__running_calculating_results'], 'callback_data' => 'pending_task']
                 ]
             ]
         ]);
@@ -1681,7 +1681,7 @@ try {
             'reply_markup' => $pending_keyboard
         ]);
     } elseif ($data == 'pending_task') {
-        alert('⏳ پردازش در صف است، لطفاً صبر کنید...', true);
+        alert($texts['alert__pending_calculating_results'], true);
     } elseif (strpos($data, 'show_task_result__') !== false) {
         $task_id = intval(explode('__', $data)[1]);
         $res_query = $sql->query("SELECT `result` FROM `task_results` WHERE `task_id` = $task_id LIMIT 1");
@@ -1689,7 +1689,7 @@ try {
             $result_text = $res_query->fetch_assoc()['result'];
             alert($result_text, true);
         } else {
-            alert('❌ نتیجه هنوز آماده نیست یا یافت نشد.', true);
+            alert($texts['alert__results_not_ready'], true);
         }
     } elseif (strpos($data, 'all_service_count__') !== false) {
         // Admin callback: view another user's service stats

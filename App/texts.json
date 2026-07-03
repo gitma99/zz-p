@@ -139,5 +139,11 @@
   "status__on_hold": "on_hold",
   "status__expired": "منقضی شده 🕔",
   "not_available": "در دسترس نیست",
-  "my_services_locations": "🌍 لوکیشن که میخواهید سرویس های آن را مشاهده کنید را انتخاب کنید :"
+  "my_services_locations": "🌍 لوکیشن که میخواهید سرویس های آن را مشاهده کنید را انتخاب کنید :",
+  "alert__pending_calculating_results": "⏳ پردازش در صف است، لطفاً صبر کنید...",
+  "alert__results_not_ready": "❌ نتیجه هنوز آماده نیست یا یافت نشد.",
+  "alert__no_access": "❌ شما اجازه دسترسی به این بخش را ندارید.",
+  "button__running_calculating_results": "⏳ در حال پردازش...",
+  "button__show_results": "نمایش نتیجه 📊",
+  "button__error_processing": "❌ خطا در پردازش"
 }

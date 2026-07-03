@@ -79,7 +79,7 @@ while (true) {
             $new_keyboard = json_encode([
                 'inline_keyboard' => [
                     [
-                        ['text' => 'نمایش نتیجه 📊', 'callback_data' => 'show_task_result__' . $task_id]
+                        ['text' => $texts['button__show_results'], 'callback_data' => 'show_task_result__' . $task_id]
                     ]
                 ]
             ]);
@@ -104,7 +104,7 @@ while (true) {
         $err_keyboard = json_encode([
             'inline_keyboard' => [
                 [
-                    ['text' => '❌ خطا در پردازش', 'callback_data' => 'pending_task']
+                    ['text' => $texts['button__error_processing'], 'callback_data' => 'pending_task']
                 ]
             ]
         ]);
