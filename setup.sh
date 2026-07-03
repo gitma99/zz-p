@@ -119,14 +119,20 @@ run_compose_with_login() {
     return $exit_code
 }
 
-# 1. Install ZZPanel
-install_zzbot() {
-    check_prerequisites
-    
-    INFO "Installing setup script to /usr/local/bin/zzbot..."
+install_or_update_zzbot_script() {
+    INFO "Install/Updating setup script to the latest version..."
     curl -L -o /tmp/zzbot https://raw.githubusercontent.com/gitma99/zz-p/main/setup.sh
     mv /tmp/zzbot /usr/local/bin/zzbot
     chmod +x /usr/local/bin/zzbot
+    INFO "Setup script updated successfully."
+}
+
+# 1. Install ZZPanel
+install_zzbot() {
+    INFO "Installation Started..."
+
+    check_prerequisites
+    install_or_update_zzbot_script
 
     INFO "Creating base directory at $BASE_DIR..."
     mkdir -p "$BASE_DIR"
@@ -326,33 +332,35 @@ show_menu() {
         echo -e "         ZZPanelbot Management           "
         echo -e "========================================="
         echo " 1) Install / Setup ZZPanel"
-        echo " 2) Edit .env"
-        echo " 3) Initialize SSL (Let's Encrypt)"
-        echo " 4) Start Services"
-        echo " 5) Stop Services"
-        echo " 6) Restart Services"
-        echo " 7) Update Services"
-        echo " 8) Uninstall ZZPanel"
-        echo " 9) Backup Database & Files"
-        echo " 10) Restore Database & Files"
-        echo " 11) View Live Logs"
+        echo " 2) Install / Setup zzbot script"
+        echo " 3) Edit .env"
+        echo " 4) Initialize SSL (Let's Encrypt)"
+        echo " 5) Start Services"
+        echo " 6) Stop Services"
+        echo " 7) Restart Services"
+        echo " 8) Update Services"
+        echo " 9) Uninstall ZZPanel"
+        echo " 10) Backup Database & Files"
+        echo " 11) Restore Database & Files"
+        echo " 12) View Live Logs"
         echo " 0) Close"
         echo "========================================="
-        read -p "Enter choice [0-11]: " -r CHOICE
+        read -p "Enter choice [0-12]: " -r CHOICE
         echo "========================================="
 
         case "$CHOICE" in
             1) install_zzbot ;;
-            2) edit_env ;;
-            3) init_ssl ;;
-            4) start_services ;;
-            5) stop_services ;;
-            6) restart_services ;;
-            7) update_services ;;
-            8) uninstall_zzbot ;;
-            9) backup_services ;;
-            10) restore_services ;;
-            11) show_live_logs ;;
+            2) install_or_update_zzbot_script ;;
+            3) edit_env ;;
+            4) init_ssl ;;
+            5) start_services ;;
+            6) stop_services ;;
+            7) restart_services ;;
+            8) update_services ;;
+            9) uninstall_zzbot ;;
+            10) backup_services ;;
+            11) restore_services ;;
+            12) show_live_logs ;;
             0) INFO "Exiting. Goodbye!"; exit 0 ;;
             *) WARN "Invalid option. Please try again." ;;
         esac
