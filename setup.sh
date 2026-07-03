@@ -131,7 +131,10 @@ install_zzbot() {
     INFO "Creating base directory at $BASE_DIR..."
     mkdir -p "$BASE_DIR"
     cd "$BASE_DIR"
-
+    # check if basedir is empty if not empty cancell the installation
+    if [ "$(ls -A "$BASE_DIR")" ]; then
+        ERROR "$BASE_DIR is not empty. Please ensure the directory is empty before proceeding with installation."
+    fi
     INFO "Downloading latest release..."
     ZIP_NAME="zzpanel-docker-setup.zip"
     DOWNLOAD_URL="https://github.com/gitma99/zz-p/releases/latest/download/${ZIP_NAME}"
