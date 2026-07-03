@@ -229,6 +229,22 @@ if ($check_col2 && $check_col2->num_rows == 0) {
     $sql->query("UPDATE `settings` SET `show_charge_account_btn` = 'active' WHERE `show_charge_account_btn` IS NULL OR `show_charge_account_btn` = ''");
 }
 
+mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `task_queue` (
+    `id` int AUTO_INCREMENT PRIMARY KEY,
+    `type` varchar(50) COLLATE utf8mb4_bin NOT NULL,
+    `payload` TEXT COLLATE utf8mb4_bin NOT NULL,
+    `status` ENUM('pending','running','done','failed') COLLATE utf8mb4_bin DEFAULT 'pending',
+    `created_at` datetime NOT NULL,
+    `started_at` datetime DEFAULT NULL,
+    `locked_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
+
+mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `task_results` (
+    `task_id` int PRIMARY KEY,
+    `result` TEXT COLLATE utf8mb4_bin NOT NULL,
+    `created_at` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
+
 if ($sql->connect_error) {
 	echo json_encode(['status' => false, 'msg' => '❌ The connection with the database encountered an error : ' . $sql->connect_error, 'status_code' => 401], 448);
 } else {

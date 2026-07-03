@@ -1,0 +1,104 @@
+<?php
+
+/**
+ * Fetches and aggregates service status stats for a given user from all Marzban panels.
+ * Returns an array with counts and traffic totals, or an 'error' key with a message string.
+ */
+function fetch_user_service_overview($target_user_id, $sql) {
+    $count_all_active = 0;
+    $count_all_inactive = 0;
+    $overall_unknown = 0;
+    $total_traffic_bought = 0;
+    $total_traffic_used = 0;
+
+    $services_query = $sql->query("SELECT `code`, `location` FROM `orders` WHERE `from_id` = '$target_user_id'");
+    $service_count = $services_query->num_rows;
+    $services = $services_query->fetch_all(MYSQLI_ASSOC) ?: [];
+
+    if ($service_count == 0) {
+        return [
+            'error' => null,
+            'empty' => true,
+            'count_all_active' => 0,
+            'count_all_inactive' => 0,
+            'overall_unknown' => 0,
+            'total_traffic_bought' => 0,
+            'total_traffic_used' => 0
+        ];
+    }
+
+    $serviceLocationMap = [];
+    foreach ($sql->query("SELECT `name`, `login_link` FROM `panels`")->fetch_all(MYSQLI_ASSOC) as $row) {
+        $serviceLocationMap[$row['name']] = $row['login_link'];
+    }
+
+    $location_sorted_objs = [];
+    foreach ($services as $row) {
+        $service_base_name = $row['code'];
+        $service_name = $service_base_name . '_' . $target_user_id;
+        $service_location = $row['location'];
+        if (!isset($location_sorted_objs[$service_location])) {
+            $location_sorted_objs[$service_location] = [
+                'panel_url'        => $serviceLocationMap[$service_location] ?? null,
+                'unknown_services' => [],
+                'active_services'  => [],
+                'inactive_services'=> [],
+                'usernames'        => []
+            ];
+        }
+        $location_sorted_objs[$service_location]['unknown_services'][$service_name] = $service_base_name;
+        $location_sorted_objs[$service_location]['usernames'][] = $service_name;
+    }
+
+    foreach ($location_sorted_objs as $service_location_name => $location_detail) {
+        $panel_url = $location_detail['panel_url'];
+        $usernames = $location_detail['usernames'];
+        $panel_info = $sql->query("SELECT * FROM `panels` WHERE `name` = '" . $sql->real_escape_string($service_location_name) . "' LIMIT 1")->fetch_assoc();
+        if (!$panel_info) {
+            continue;
+        }
+        $token = loginPanel($panel_info['login_link'], $panel_info['username'], $panel_info['password'])['access_token'];
+        $panel_res = getUsersInfo($token, $panel_url, null, null, null, $usernames);
+        if ($panel_res['success'] == false) {
+            return [
+                'error' => '❌ خطا در دریافت اطلاعات از پنل: ' . $panel_res['error'],
+                'count_all_active' => 0,
+                'count_all_inactive' => 0,
+                'overall_unknown' => 0,
+                'total_traffic_bought' => 0,
+                'total_traffic_used' => 0
+            ];
+        }
+
+        $users_data = $panel_res['data']['users'] ?? [];
+        foreach ($users_data as $service) {
+            $service_username = $service['username'];
+            switch ($service['status']) {
+                case 'active':
+                    $location_sorted_objs[$service_location_name]['active_services'][$service_username] = true;
+                    break;
+                case 'disabled':
+                case 'limited':
+                case 'expired':
+                    $location_sorted_objs[$service_location_name]['inactive_services'][$service_username] = true;
+                    break;
+            }
+            unset($location_sorted_objs[$service_location_name]['unknown_services'][$service_username]);
+            $total_traffic_bought += $service['data_limit'];
+            $total_traffic_used   += $service['used_traffic'];
+        }
+        $count_all_active   += count($location_sorted_objs[$service_location_name]['active_services']);
+        $count_all_inactive += count($location_sorted_objs[$service_location_name]['inactive_services']);
+        $overall_unknown    += count($location_sorted_objs[$service_location_name]['unknown_services']);
+    }
+
+    return [
+        'error'               => null,
+        'empty'               => false,
+        'count_all_active'    => $count_all_active,
+        'count_all_inactive'  => $count_all_inactive,
+        'overall_unknown'     => $overall_unknown,
+        'total_traffic_bought'=> $total_traffic_bought,
+        'total_traffic_used'  => $total_traffic_used
+    ];
+}

@@ -458,14 +458,6 @@ $back = json_encode([
     'resize_keyboard' => true
 ]);
 
-$profile_key = json_encode([
-    'keyboard' => [
-        [['text' => 'جزئیات اولیه 📋'], ['text' => 'جزئیات مصرف 📊']],
-        [['text' => '🔙 بازگشت']]
-    ],
-    'resize_keyboard' => true
-]);
-
 $cancel_copen = json_encode([
     'inline_keyboard' => [
         [['text' => '❌ لغو', 'callback_data' => 'cancel_copen']]

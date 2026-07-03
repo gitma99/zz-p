@@ -50,97 +50,7 @@ try {
     require_once __DIR__ . '/App/apis/marzban-api/api.php';
     require_once __DIR__ . '/custom.php';
     require_once __DIR__ . "/App/index_maps.php";
-    // require_once __DIR__ . '/api/sanayi.php';
-    // require_once  __DIR__ . '/api/hiddify.php';
-
-    /**
-     * Fetches and aggregates service status stats for a given user from all Marzban panels.
-     * Returns an array with counts and traffic totals, or an 'error' key with a message string.
-     */
-    function fetch_user_service_overview($target_user_id, $sql) {
-        $count_all_active = 0;
-        $count_all_inactive = 0;
-        $overall_unknown = 0;
-        $total_traffic_bought = 0;
-        $total_traffic_used = 0;
-
-        $services_query = $sql->query("SELECT `code`, `location` FROM `orders` WHERE `from_id` = '$target_user_id'");
-        $service_count = $services_query->num_rows;
-        $services = $services_query->fetch_all(MYSQLI_ASSOC) ?: [];
-
-        if ($service_count == 0) {
-            return ['error' => null, 'empty' => true,
-                'count_all_active' => 0, 'count_all_inactive' => 0,
-                'overall_unknown' => 0, 'total_traffic_bought' => 0, 'total_traffic_used' => 0];
-        }
-
-        $serviceLocationMap = [];
-        foreach ($sql->query("SELECT `name`, `login_link` FROM `panels`")->fetch_all(MYSQLI_ASSOC) as $row) {
-            $serviceLocationMap[$row['name']] = $row['login_link'];
-        }
-
-        $location_sorted_objs = [];
-        foreach ($services as $row) {
-            $service_base_name = $row['code'];
-            $service_name = $service_base_name . '_' . $target_user_id;
-            $service_location = $row['location'];
-            if (!isset($location_sorted_objs[$service_location])) {
-                $location_sorted_objs[$service_location] = [
-                    'panel_url'        => $serviceLocationMap[$service_location] ?? null,
-                    'unknown_services' => [],
-                    'active_services'  => [],
-                    'inactive_services'=> [],
-                    'usernames'        => []
-                ];
-            }
-            $location_sorted_objs[$service_location]['unknown_services'][$service_name] = $service_base_name;
-            $location_sorted_objs[$service_location]['usernames'][] = $service_name;
-        }
-
-        foreach ($location_sorted_objs as $service_location_name => $location_detail) {
-            $panel_url = $location_detail['panel_url'];
-            $usernames = $location_detail['usernames'];
-            $panel_info = $sql->query("SELECT * FROM `panels` WHERE `name` = '" . $sql->real_escape_string($service_location_name) . "' LIMIT 1")->fetch_assoc();
-            $token = loginPanel($panel_info['login_link'], $panel_info['username'], $panel_info['password'])['access_token'];
-            $panel_res = getUsersInfo($token, $panel_url, null, null, null, $usernames);
-            if ($panel_res['success'] == false) {
-                return ['error' => '❌ خطا در دریافت اطلاعات از پنل: ' . $panel_res['error'],
-                    'count_all_active' => 0, 'count_all_inactive' => 0,
-                    'overall_unknown' => 0, 'total_traffic_bought' => 0, 'total_traffic_used' => 0];
-            }
-
-            $users_data = $panel_res['data']['users'] ?? [];
-            foreach ($users_data as $service) {
-                $service_username = $service['username'];
-                switch ($service['status']) {
-                    case 'active':
-                        $location_sorted_objs[$service_location_name]['active_services'][$service_username] = true;
-                        break;
-                    case 'disabled':
-                    case 'limited':
-                    case 'expired':
-                        $location_sorted_objs[$service_location_name]['inactive_services'][$service_username] = true;
-                        break;
-                }
-                unset($location_sorted_objs[$service_location_name]['unknown_services'][$service_username]);
-                $total_traffic_bought += $service['data_limit'];
-                $total_traffic_used   += $service['used_traffic'];
-            }
-            $count_all_active   += count($location_sorted_objs[$service_location_name]['active_services']);
-            $count_all_inactive += count($location_sorted_objs[$service_location_name]['inactive_services']);
-            $overall_unknown    += count($location_sorted_objs[$service_location_name]['unknown_services']);
-        }
-
-        return [
-            'error'               => null,
-            'empty'               => false,
-            'count_all_active'    => $count_all_active,
-            'count_all_inactive'  => $count_all_inactive,
-            'overall_unknown'     => $overall_unknown,
-            'total_traffic_bought'=> $total_traffic_bought,
-            'total_traffic_used'  => $total_traffic_used
-        ];
-    }
+    require_once __DIR__ . '/App/functions/service_overview.php';
 
     if ($user['status'] == 'inactive' and $from_id != $config['dev']) {
         sendMessage($from_id, $texts['block']);
@@ -1730,26 +1640,51 @@ try {
     } elseif ($text == '👤 پروفایل') {
         $services = $sql->query("SELECT `code`, `location` FROM `orders` WHERE `from_id` = '$from_id'");
         $count_all = $services->num_rows;
-        sendMessage($from_id, sprintf($texts['my_account'], $from_id, number_format($user['coin']), $count_all), $profile_key);
-    } elseif ($text == 'جزئیات اولیه 📋') {
-        $services = $sql->query("SELECT `code`, `location` FROM `orders` WHERE `from_id` = '$from_id'");
-        $count_all = $services->num_rows;
-        sendMessage($from_id, sprintf($texts['my_account'], $from_id, number_format($user['coin']), $count_all), $profile_key);
-    } elseif ($text == 'جزئیات مصرف 📊') {
-        sendMessage($from_id, '⏳', $profile_key);
-        $overview_result = fetch_user_service_overview($from_id, $sql);
-        if ($overview_result['error']) {
-            sendMessage($from_id, $overview_result['error'], $profile_key);
+        $keys = [
+            [
+                [
+                    'text' => 'محاسبه 💻',
+                    'callback_data' => 'calc_overview__' . $from_id
+                ]
+            ]
+        ];
+        sendMessage($from_id, sprintf($texts['my_account'], $from_id, number_format($user['coin']), $count_all), json_encode(['inline_keyboard' => $keys]));
+    } elseif (strpos($data, 'calc_overview__') !== false) {
+        alert('⏳ در صف پردازش...', false);
+        $target_user_id = explode('__', $data)[1];
+        
+        $payload = json_encode([
+            'user_id' => $target_user_id,
+            'chat_id' => $chat_id,
+            'message_id' => $message_id
+        ]);
+        $stmt = $sql->prepare("INSERT INTO `task_queue` (`type`, `payload`, `status`, `created_at`) VALUES ('service_overview', ?, 'pending', NOW())");
+        $stmt->bind_param("s", $payload);
+        $stmt->execute();
+        $stmt->close();
+        
+        $pending_keyboard = json_encode([
+            'inline_keyboard' => [
+                [
+                    ['text' => '⏳ در حال پردازش...', 'callback_data' => 'pending_task']
+                ]
+            ]
+        ]);
+        bot('editMessageReplyMarkup', [
+            'chat_id' => $chat_id,
+            'message_id' => $message_id,
+            'reply_markup' => $pending_keyboard
+        ]);
+    } elseif ($data == 'pending_task') {
+        alert('⏳ پردازش در صف است، لطفاً صبر کنید...', true);
+    } elseif (strpos($data, 'show_task_result__') !== false) {
+        $task_id = intval(explode('__', $data)[1]);
+        $res_query = $sql->query("SELECT `result` FROM `task_results` WHERE `task_id` = $task_id LIMIT 1");
+        if ($res_query && $res_query->num_rows > 0) {
+            $result_text = $res_query->fetch_assoc()['result'];
+            alert($result_text, true);
         } else {
-            $overview_text = sprintf(
-                $texts['services_overview__alert__msg'],
-                $overview_result['count_all_active'],
-                $overview_result['count_all_inactive'],
-                $overview_result['overall_unknown'],
-                Conversion($overview_result['total_traffic_bought'], "GB"),
-                Conversion($overview_result['total_traffic_used'], "GB")
-            );
-            sendMessage($from_id, $overview_text, $profile_key);
+            alert('❌ نتیجه هنوز آماده نیست یا یافت نشد.', true);
         }
     } elseif (strpos($data, 'all_service_count__') !== false) {
         // Admin callback: view another user's service stats
@@ -1767,11 +1702,11 @@ try {
         alert(null, false);
         $overview_text = sprintf(
             $texts['services_overview__alert__msg'],
-            $count_all_active,
-            $count_all_inactive,
-            $overall_unknown_services_count,
-            Conversion($total_traffic_bought, "GB"),
-            Conversion($total_traffic_used, "GB")
+            $overview_result['count_all_active'],
+            $overview_result['count_all_inactive'],
+            $overview_result['overall_unknown'],
+            Conversion($overview_result['total_traffic_bought'], "GB"),
+            Conversion($overview_result['total_traffic_used'], "GB")
         );
         $close_keyboard = json_encode([
             'inline_keyboard' => [

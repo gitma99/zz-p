@@ -88,5 +88,20 @@ services:
       mysql:
         condition: service_healthy
 
+  worker:
+    build: .
+    container_name: zzpanel_worker
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: mysql
+    volumes:
+      - ./docker/app/logs:/var/www/html/ZZPanelBot/logs
+      - app_temp:/var/www/html/ZZPanelBot/temp
+    command: php /var/www/html/ZZPanelBot/workers/task_worker.php
+    depends_on:
+      mysql:
+        condition: service_healthy
+
 volumes:
   app_temp:
