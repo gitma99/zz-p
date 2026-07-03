@@ -62,6 +62,7 @@ services:
       - ./docker/nginx/logs:/var/log/nginx
     depends_on:
       - app
+      - phpmyadmin
 
   certbot:
     image: certbot/certbot
