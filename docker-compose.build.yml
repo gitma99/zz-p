@@ -96,11 +96,11 @@ services:
     environment:
       DB_HOST: mysql
     volumes:
-      - ./docker/app/logs:/var/www/html/ZZPanelBot/logs
+      - ./docker/worker/logs:/var/www/html/ZZPanelBot/logs
       - app_temp:/var/www/html/ZZPanelBot/temp
-    command: php /var/www/html/ZZPanelBot/workers/task_worker.php
+    command: ["worker"]
     depends_on:
-      mysql:
+      app:
         condition: service_healthy
 
 volumes:
