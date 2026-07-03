@@ -1643,7 +1643,7 @@ try {
         $keys = [
             [
                 [
-                    'text' => 'محاسبه 💻',
+                    'text' => $texts['services_overview__button'],
                     'callback_data' => 'calc_overview__' . $from_id
                 ]
             ]
@@ -1652,7 +1652,12 @@ try {
     } elseif (strpos($data, 'calc_overview__') !== false) {
         alert('⏳ در صف پردازش...', false);
         $target_user_id = explode('__', $data)[1];
-        
+
+        if ($target_user_id != $from_id and !in_array($from_id, $admin_id_array) and $from_id != $config['dev']) {
+            alert('❌ شما اجازه دسترسی به این بخش را ندارید.', true);
+            return;
+        }
+
         $payload = json_encode([
             'user_id' => $target_user_id,
             'chat_id' => $chat_id,
@@ -1757,7 +1762,6 @@ try {
         } elseif ($text == '⚙️ تنظیمات') {
             sendMessage($from_id, "⚙️️ به تنظیمات ربات خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :", $manage_setting);
         }
-
 
         // ----------- do not touch this part ----------- //
         elseif ($text == base64_decode('YmFzZTY0X2RlY29kZQ==')('8J+TniDYp9i32YTYp9i524zZhyDYotm+2K/bjNiqINix2KjYp9iq')) {
@@ -2904,7 +2908,8 @@ try {
                     [
                         [
                             'text' => $texts['services_overview__button'],
-                            'callback_data' => 'all_service_count' . '__' . $text
+                            'callback_data' => 'calc_overview__' . $text
+                            // 'callback_data' => 'all_service_count' . '__' . $text
                         ]
                     ]
                 ];
