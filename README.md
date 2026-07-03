@@ -1,122 +1,180 @@
-## آموزش راه اندازی و نصب ربات روی سرور
+# آموزش نصب و راه‌اندازی ZZPanelBot با داکر
 
-- وارد سرور خود شوید.
-- دستور زیر رو برای نصب ربات ارسال کنید.
-### توجه:
-اسکریپت ها به دو دسته آنلاین و آفلاین تقسیم میشود بسته به شرایط هر کدام قابل استفاده است.
-- اسکریپت های آنلاین : مستقیم از سرور گیتهاب گرفته میشودند.
-- اسکریپت های آفلاین : زمانی که ربات در سرور مورد نظر نصب شده باشد
+این ریپازیتوری اکنون روی ساختار **Docker Compose** اجرا می‌شود. تمام مراحل نصب، به‌روزرسانی، بکاپ و بازیابی با داکر انجام می‌شود.
 
+---
 
-آنلاین:
+## روش اول: نصب خودکار با اسکریپت zzbot (توصیه شده)
+
+ساده‌ترین راه برای نصب و مدیریت پروژه، استفاده از اسکریپت مدیریت خودکار است. این اسکریپت پیش‌نیازها را بررسی و نصب می‌کند، آخرین نسخه را در مسیر `/srv` مستقر می‌کند و دستور سراسری `zzbot` را جهت مدیریت آسان برای شما ثبت می‌نماید.
+
+برای شروع، دستور زیر را در سرور خود اجرا کنید:
+
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/install.sh)
+curl -sSL https://raw.githubusercontent.com/gitma99/zz-p/main/setup.sh -o setup.sh && chmod +x setup.sh && sudo ./setup.sh
 ```
 
-- بعد از اجرای این دستور باید کمی صبر کنید تا به مرحله وارد کردن دامنه برسید.
-- دامنه اتون را بدون `http` و `https` وارد کنید ( حتما باید `SSL` دامنه فعال باشد )
-- بعد از وارد کردن دامنه کمی باید صبر کنید تا به مرحله ساخت دیتابیس برسید.
-- وقتی به مرحله دیتابیس رسیدید از شما اطلاعات دیتابیس رو میخواد , در صورتی که میخوایید به صورت دیفالت همه چیو بسازه در قسمت مرحله دیتابیس هر دو قسمت رو `enter` بزنید.
-- بعد از به اتمام رسیدن این بخش دیتابیس شما ساخته خواهد شد و در مرحله بعدی از شما دو تا اطلاعات گرفته میشه باید وارد کنید ( `token` | `chat_id` )
-- بعد از وارد کردن این اطلاعات ربات بر روی سرور شما نصب خواهد شد.
-- بعد از نصب یک پیام مبنی بر موفقیت آمیز بودن نصب در ربات به شما ارسال خواهد شد.
-- وارد ربات شوید و ربات را `/start` کنید.
-
-## آموزش آپدیت یا حذف ربات از سرور
-
-- وارد سرور خود شوید.
-- دستور زیر رو برای آپدیت ربات ارسال کنید.
-
-آنلاین:
+پس از اولین نصب، می‌توانید در هر زمان و در هر فولدری به سادگی با تایپ دستور زیر به منوی مدیریتی دسترسی داشته باشید:
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/update.sh)
+zzbot
 ```
 
-- گزینه 1 برای آپدیت ربات
-- گزینه 2 برای حذف ربات
-- صبر کنید تمام شود
+---
 
-## آموزش بکاپ خودکار
+## روش دوم: نصب دستی (پیش‌نیازها)
 
-- دستور زیر را وارد کنید
+- **Docker** نصب شده باشد
+- **Docker Compose** با پشتیبانی `docker compose` نصب شده باشد
 
-آنلاین:
+### نصب Docker روی اوبونتو
+
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backup_service.sh)
-```
-آفلاین:
-```bash
-bash /var/www/html/ZZPanelBot/Scripts/backup_service.sh
-```
+# Add Docker's official GPG key:
+sudo apt update
+sudo apt install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
 
-- گزینه 1 برای نصب سرویس بکاپ خودکار و راه اندازی آن
-- گزینه 2 برای حذف سرویس بکاپ خودکار
-- گزینه 3 برای توقف ربات
-- گزینه 4 برای راه اندازی مجدد ربات
-- صبر کنید تمام شود
+# Add the repository to Apt sources:
+sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
 
-## آموزش بکاپ دستی
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo usermod -aG docker $USER
+sudo systemctl status docker
+sudo docker run hello-world
+sudo apt install -y nano unzip zip curl wget
 
-- دستور زیر را وارد کنید
-
-آنلاین:
-```bash
-bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backup.sh)
-```
-آفلاین:
-```bash
-bash /var/www/html/ZZPanelBot/Scripts/backup.sh
-```
-
-- گزینه 1 را وارد کنید
-- صبر کنید تمام شود
-- فایل `zz-p-backup.zip` حاوی اطلاعات بکاب هست(فایل در مسیر روت قرار دارد).
-
-## آموزش بازگزردانی بکاپ
-
-- فایل زیپ را در مسیر روت قرار دهید (توجه کنید که نام فایل باید `zz-p-backup.zip` باشد)
-- دستور زیر را وارد کنید
-
-آنلاین:
-```bash
-bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/backup.sh)
-```
-آفلاین:
-```bash
-bash /var/www/html/ZZPanelBot/Scripts/backup.sh
+# سپس از سیستم خارج و دوباره وارد شوید یا با `newgrp docker` تغییر گروه را اعمال کنید.
 ```
 
-- گزینه 2 را وارد کنید
-- صبر کنید تمام شود
+## دانلود و پیکربندی دستی ریلیز
+1. ابتدا از قسمت ریلیز آخرین فایل را دانلود کنید.
+2. فایل را در داخل سرور قرار دهید.
 
-## آموزش ساخت یوزر جدید برای phpmyadmin
-
-این قسمت در نصب اصلی وجود دارد و فقط زمانی اجرا شود که یوزر یا پسورد phpmyadmin فراموش شده یا نصب قدیمی انجام شده.
-
-- وارد سرور خود شوید.
-- دستور زیر رو برای ساخت یوزر جدید ارسال کنید.
-
-آنلاین:
+3. با دستور زیر فایل را اکسترکت کنید
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/phpmyadmin.sh)
-```
-آفلاین:
-```bash
-bash /var/www/html/ZZPanelBot/Scripts/phpmyadmin.sh
+unzip zzpanelbot-docker.zip
 ```
 
-- بعد از اجرای این دستور باید یوزر برای آن انتخاب کنید (در صورت خالی گذاشتن به صورت پیشفرض `phpadmin` در نظر گرفته می شود).
-- بعد باید پسورد برای آن انتخاب کنید (در صورت خالی گذاشتن به صورت پیشفرض `php12345` در نظر گرفته می شود).
+## تنظیمات محیط (`.env`)
 
-## تعمیرات تخصصی
+- یک فایل پیکربندی محیط بسازید یا از نمونه استفاده کنید:
+   ```bash
+   cp .env.example .env
+   ```
+- متغیرهای مهم که باید بررسی و مقداردهی کنید:
+   - `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME` — تنظیمات دیتابیس
+   - `BOT_TOKEN`, `CHAT_ID` — توکن و chat id ربات
+   - `BACKUP_TELEGRAM_TOKEN`, `BACKUP_CHAT_ID` —  برای ارسال بکاپ به بات/چت متفاوت
 
-آنلاین:
+---
+
+## نصب و راه‌اندازی
+
+1. از مسیر ریشه پروژه کار کنید.
+2. یک فایل `.env` بسازید یا از `.env.example` کپی کنید:
+    ```bash
+    cp .env.example .env
+    ```
+3. اگر نیاز به دسترسی به image از GitHub Container Registry دارید، ابتدا وارد شوید:
+   ```bash
+   echo "YOUR_GH_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+   ```
+
+   - `YOUR_GH_TOKEN` باید یک GitHub access token باشد که مجوز `write:packages` یا `read:packages` دارد.
+   - اگر image عمومی است، نیازی به ورود وجود ندارد.
+
+4. از image پیش‌ساخته استفاده کنید:
+   ```bash
+   docker compose pull
+   ```
+
+5. برای نصب و راه‌اندازی، باید گواهی Let's Encrypt را قبل از اجرای `docker compose up -d` بوت‌استرپ کنید:
+ ```bash
+ chmod +x docker/nginx/init-letsencrypt.sh
+ bash docker/nginx/init-letsencrypt.sh
+ ```
+
+6. سپس سرویس‌ها را بالا بیاورید:
+   ```bash
+   docker compose up -d
+   ```
+
+
+
+## بروزرسانی
+
+اگر image جدیدی ساخته یا منتشر کردید، کافی است:
+
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/gitma99/zz-p/main/Scripts/fix.sh)
-```
-آفلاین:
-```bash
-bash /var/www/html/ZZPanelBot/Scripts/fix.sh
+docker compose pull app
+docker compose up -d app
 ```
 
-- fix telegram webhook : درصورتی که ربات ارتباط خود را با تلگرام از دست داد اجرا شود
+## بکاپ خودکار
+
+بکاپ‌ها توسط سرویس `zzpanel_backup` در Docker Compose انجام می‌شوند. خروجی بکاپ‌ها روی میزبان در `docker/backups/` قرار می‌گیرد.
+
+- بکاپ اولیه بلافاصله پس از اجرای کانتینر ساخته می‌شود
+- سپس هر روز در نیمه شب تهران یک بکاپ جدید ایجاد می‌شود
+
+### تنظیمات تلگرام برای بکاپ
+
+در فایل `.env` می‌توانید متغیرهای زیر را اضافه کنید تا نوتیفیکیشن بکاپ با بات یا چت متفاوت ارسال شود:
+
+```env
+BACKUP_TELEGRAM_TOKEN=your_telegram_bot_token
+BACKUP_CHAT_ID=your_telegram_admin_chat_id
+```
+
+
+## بکاپ دستی
+
+برای اجرا از روی میزبان:
+
+```bash
+./docker/scripts/docker_backup.sh
+```
+
+
+## بازیابی بکاپ
+
+قبل از اجرای بازیابی، فایل بکاپ ZIP خود را روی میزبان در دایرکتوری `docker/backups/` قرار دهید.
+
+### بازیابی با اسکریپت میزبان
+
+1. از مسیر ریشه پروژه اجرا کنید:
+   ```bash
+   ./docker/scripts/docker_backup.sh
+   ```
+2. گزینه `2` یا `Restore` را انتخاب کنید.
+3. فایل بکاپ مورد نظر را انتخاب و تأیید کنید.
+
+> اسکریپت بازیابی در صورت انتخاب `y` به صورت خودکار برنامه را ری‌استارت می‌کند،.
+
+## لاگ‌ها و رفع مشکل
+
+برای مشاهده لاگ زنده:
+
+```bash
+docker compose logs -f
+```
+
+یا فقط لاگ‌های سرویس خاص:
+
+```bash
+docker compose logs -f app
+docker compose logs -f nginx
+docker compose logs -f backup
+```
+
+لاگ بکاپ خودکار نیز روی میزبان در `docker/backups/backup.log` ذخیره می‌شود.
