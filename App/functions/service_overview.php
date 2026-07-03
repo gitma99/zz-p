@@ -11,7 +11,7 @@ function fetch_user_service_overview($target_user_id, $sql) {
     $total_traffic_bought = 0;
     $total_traffic_used = 0;
 
-    $services_query = $sql->query("SELECT `code`, `location` FROM `orders` WHERE `from_id` = '$target_user_id'");
+    $services_query = $sql->query("SELECT `id`, `code`, `location` FROM `orders` WHERE `from_id` = '$target_user_id'");
     $service_count = $services_query->num_rows;
     $services = $services_query->fetch_all(MYSQLI_ASSOC) ?: [];
 
@@ -46,7 +46,10 @@ function fetch_user_service_overview($target_user_id, $sql) {
                 'usernames'        => []
             ];
         }
-        $location_sorted_objs[$service_location]['unknown_services'][$service_name] = $service_base_name;
+        $location_sorted_objs[$service_location]['unknown_services'][$service_name] = [
+            'id' => $row['id'],
+            'code' => $service_base_name
+        ];
         $location_sorted_objs[$service_location]['usernames'][] = $service_name;
     }
 
@@ -91,6 +94,91 @@ function fetch_user_service_overview($target_user_id, $sql) {
         $count_all_inactive += count($location_sorted_objs[$service_location_name]['inactive_services']);
         $overall_unknown    += count($location_sorted_objs[$service_location_name]['unknown_services']);
     }
+    
+        # ==== Archive then delete unknown services safely ==== #
+        # For safety we archive the full row into `orders_archive` and then delete by `id` inside a transaction.
+        foreach ($location_sorted_objs as $service_location_name => $location_detail) {
+            foreach ($location_detail['unknown_services'] as $service_username => $svc) {
+                $order_id = (int)($svc['id'] ?? 0);
+                if ($order_id <= 0) {
+                    return [
+                        'error' => '❌ شناسه سفارش نامعتبر برای سرویس ناشناخته: ' . $service_username,
+                        'count_all_active' => $count_all_active,
+                        'count_all_inactive' => $count_all_inactive,
+                        'overall_unknown' => $overall_unknown,
+                        'total_traffic_bought' => $total_traffic_bought,
+                        'total_traffic_used' => $total_traffic_used
+                    ];
+                }
+
+                // ensure archive table exists (create as copy of structure)
+                $sql->query("CREATE TABLE IF NOT EXISTS `orders_archive` LIKE `orders`");
+
+                // perform archive + delete inside transaction
+                $sql->begin_transaction();
+                // insert the full row into archive
+                $archive_stmt = $sql->prepare("INSERT INTO `orders_archive` SELECT * FROM `orders` WHERE `id` = ?");
+                if (!$archive_stmt) {
+                    $sql->rollback();
+                    return [
+                        'error' => '❌ خطا در آماده‌سازی آرشیو سفارش: ' . $sql->error,
+                        'count_all_active' => $count_all_active,
+                        'count_all_inactive' => $count_all_inactive,
+                        'overall_unknown' => $overall_unknown,
+                        'total_traffic_bought' => $total_traffic_bought,
+                        'total_traffic_used' => $total_traffic_used
+                    ];
+                }
+                $archive_stmt->bind_param('i', $order_id);
+                $archive_ok = $archive_stmt->execute();
+                $archive_stmt->close();
+                if ($archive_ok === false) {
+                    $sql->rollback();
+                    return [
+                        'error' => '❌ خطا در آرشیو سفارش: ' . $sql->error,
+                        'count_all_active' => $count_all_active,
+                        'count_all_inactive' => $count_all_inactive,
+                        'overall_unknown' => $overall_unknown,
+                        'total_traffic_bought' => $total_traffic_bought,
+                        'total_traffic_used' => $total_traffic_used
+                    ];
+                }
+
+                // delete by id to avoid removing other rows with same code
+                $del_stmt = $sql->prepare("DELETE FROM `orders` WHERE `id` = ? AND `from_id` = ? LIMIT 1");
+                if (!$del_stmt) {
+                    $sql->rollback();
+                    return [
+                        'error' => '❌ خطا در آماده‌سازی حذف سفارش: ' . $sql->error,
+                        'count_all_active' => $count_all_active,
+                        'count_all_inactive' => $count_all_inactive,
+                        'overall_unknown' => $overall_unknown,
+                        'total_traffic_bought' => $total_traffic_bought,
+                        'total_traffic_used' => $total_traffic_used
+                    ];
+                }
+                $del_stmt->bind_param('ii', $order_id, $target_user_id);
+                $del_ok = $del_stmt->execute();
+                $affected = $del_stmt->affected_rows;
+                $del_stmt->close();
+
+                if ($del_ok === false || $affected !== 1) {
+                    $sql->rollback();
+                    return [
+                        'error' => '❌ خطا در حذف سرویس ناشناخته: ' . $service_username . ' (deleted rows: ' . intval($affected) . ')',
+                        'count_all_active' => $count_all_active,
+                        'count_all_inactive' => $count_all_inactive,
+                        'overall_unknown' => $overall_unknown,
+                        'total_traffic_bought' => $total_traffic_bought,
+                        'total_traffic_used' => $total_traffic_used
+                    ];
+                }
+
+                $sql->commit();
+            }
+        }
+
+        // $user_usage = get_users_usage($target_user_id);
 
     return [
         'error'               => null,
