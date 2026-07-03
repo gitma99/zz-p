@@ -304,6 +304,15 @@ restore_services() {
     fi
 }
 
+# 11. View Live Logs
+show_live_logs() {
+    ensure_installed
+    cd "$BASE_DIR"
+    INFO "Showing live logs (Press Ctrl+C to exit)..."
+    "${DOCKER_COMPOSE_CMD[@]}" logs -f
+}
+
+
 # Main menu CLI loop
 show_menu() {
     while true; do
@@ -320,9 +329,10 @@ show_menu() {
         echo " 8) Uninstall ZZPanel"
         echo " 9) Backup Database & Files"
         echo " 10) Restore Database & Files"
+        echo " 11) View Live Logs"
         echo " 0) Close"
         echo "========================================="
-        read -p "Enter choice [0-10]: " -r CHOICE
+        read -p "Enter choice [0-11]: " -r CHOICE
         echo "========================================="
 
         case "$CHOICE" in
@@ -336,6 +346,7 @@ show_menu() {
             8) uninstall_zzbot ;;
             9) backup_services ;;
             10) restore_services ;;
+            11) show_live_logs ;;
             0) INFO "Exiting. Goodbye!"; exit 0 ;;
             *) WARN "Invalid option. Please try again." ;;
         esac
