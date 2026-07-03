@@ -114,7 +114,6 @@ install_zzbot() {
     fi
 
     INFO "Opening .env for configuration..."
-    nano .env
 
     # Register global command
     INFO "Installing setup script to /usr/local/bin/zzbot..."
