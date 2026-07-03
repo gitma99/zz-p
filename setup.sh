@@ -127,24 +127,10 @@ install_or_update_zzbot_script() {
     INFO "Setup script updated successfully."
 }
 
-# 1. Install ZZPanel
-install_zzbot() {
-    INFO "Installation Started..."
-
-    check_prerequisites
-    install_or_update_zzbot_script
-
-    INFO "Creating base directory at $BASE_DIR..."
-    mkdir -p "$BASE_DIR"
-    cd "$BASE_DIR"
-    # check if basedir is empty if not empty cancell the installation
-    if [ "$(ls -A "$BASE_DIR")" ]; then
-        ERROR "$BASE_DIR is not empty. Please ensure the directory is empty before proceeding with installation."
-    fi
+download_and_extract_latest_release() {
     INFO "Downloading latest release..."
     ZIP_NAME="zzpanel-docker-setup.zip"
     DOWNLOAD_URL="https://github.com/gitma99/zz-p/releases/latest/download/${ZIP_NAME}"
-
     if ! curl -L -O -f "$DOWNLOAD_URL"; then
         WARN "Direct download failed. Checking GitHub API..."
         API_URL="https://api.github.com/repos/gitma99/zz-p/releases/latest"
@@ -159,6 +145,24 @@ install_zzbot() {
     INFO "Extracting files to $BASE_DIR..."
     unzip -o "$ZIP_NAME"
     rm -f "$ZIP_NAME"
+}
+
+# 1. Install ZZPanel
+install_zzbot() {
+    INFO "Installation Started..."
+
+    check_prerequisites
+    install_or_update_zzbot_script
+
+    INFO "Creating base directory at $BASE_DIR..."
+    mkdir -p "$BASE_DIR"
+    cd "$BASE_DIR"
+    # check if basedir is empty if not empty cancell the installation
+    if [ "$(ls -A "$BASE_DIR")" ]; then
+        ERROR "$BASE_DIR is not empty. Please ensure the directory is empty before proceeding with installation."
+    fi
+
+    download_and_extract_latest_release
 
     # Configure Environment
     if [ ! -f .env ]; then
@@ -256,12 +260,15 @@ restart_services() {
 update_services() {
     ensure_installed
     cd "$BASE_DIR"
+    
+    download_and_extract_latest_release
     INFO "Updating services..."
     if run_compose_with_login pull; then
         INFO "Pull completed successfully."
     else
         ERROR "Pull failed even after logging in. Please check your credentials and network connection."
     fi
+    
     run_compose_with_login up -d
     INFO "Update completed."
 }
