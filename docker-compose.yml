@@ -7,8 +7,8 @@ services:
     environment:
       DB_HOST: mysql
     volumes:
-      - ./docker/app/logs:/var/www/html/ZZPanelBot/logs
-      - ./docker/apache/logs:/var/log/apache2
+      - ./logs/app:/var/www/html/ZZPanelBot/logs
+      - ./logs/apache:/var/log/apache2
       - app_temp:/var/www/html/ZZPanelBot/temp
     depends_on:
       mysql:
@@ -25,7 +25,7 @@ services:
       MYSQL_PASSWORD: ${DB_PASS}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
-      - ./docker/mysql/db:/var/lib/mysql
+      - ./data/mysql:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
@@ -55,9 +55,9 @@ services:
       - "443:443"
     volumes:
       - ./docker/nginx/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
-      - ./docker/certbot/conf:/etc/letsencrypt:ro
-      - ./docker/certbot/www:/var/www/certbot:ro
-      - ./docker/nginx/logs:/var/log/nginx
+      - ./data/certbot/conf:/etc/letsencrypt:ro
+      - ./data/certbot/www:/var/www/certbot:ro
+      - ./logs/nginx:/var/log/nginx
     depends_on:
       app:
         condition: service_healthy
@@ -69,8 +69,8 @@ services:
     container_name: zzpanel_certbot
     restart: unless-stopped
     volumes:
-      - ./docker/certbot/conf:/etc/letsencrypt
-      - ./docker/certbot/www:/var/www/certbot
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h; done'"
 
   backup:
@@ -83,7 +83,7 @@ services:
       BACKUP_TELEGRAM_TOKEN: ${BACKUP_TELEGRAM_TOKEN:-}
       BACKUP_CHAT_ID: ${BACKUP_CHAT_ID:-}
     volumes:
-      - ./docker/backups:/backups
+      - ./data/backups:/backups
     depends_on:
       app:
         condition: service_healthy
@@ -98,7 +98,7 @@ services:
     environment:
       DB_HOST: mysql
     volumes:
-      - ./docker/worker/logs:/var/www/html/ZZPanelBot/logs
+      - ./logs/worker:/var/www/html/ZZPanelBot/logs
       - app_temp:/var/www/html/ZZPanelBot/temp
     command: ["worker"]
     depends_on:
