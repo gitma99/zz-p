@@ -1747,6 +1747,7 @@ try {
         } elseif ($text == '🌐 مدیریت سرور') {
             sendMessage($from_id, "⚙️ به مدیریت پلن ها خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :", $manage_server);
         } elseif (in_array($text, [$texts['back_to_user_management_button'], '👤 مدیریت کاربران'])) {
+            step('none');
             sendMessage($from_id, "👤 به مدیریت کاربران خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :", $manage_user);
         } elseif (in_array($text, ['📤 مدیریت پیام', '⬅️ بازگشت به مدیریت پیام ها'])) {
             step('none');
