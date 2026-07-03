@@ -5,7 +5,7 @@ set -euo pipefail
 
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_DIR="/srv"
-DOCKER_COMPOSE_CMD="docker compose"
+DOCKER_COMPOSE_CMD=(docker compose)
 GITHUB_USERNAME="gitma99"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 
@@ -72,7 +72,7 @@ EOF
     # Ensure docker compose is working
     if ! docker compose version &> /dev/null; then
         if command -v docker-compose &> /dev/null; then
-            DOCKER_COMPOSE_CMD="docker-compose"
+            DOCKER_COMPOSE_CMD=(docker-compose)
         else
             ERROR "Docker Compose is not available. Please install docker-compose-plugin."
         fi
@@ -90,46 +90,32 @@ login_to_ghcr() {
 }
 
 run_compose_with_login() {
-    local compose_output=""
+    local output_file
     local exit_code=0
 
+    output_file=$(mktemp)
+
     set +e
-    compose_output=$($DOCKER_COMPOSE_CMD "$@" 2>&1)
-    exit_code=$?
+    "${DOCKER_COMPOSE_CMD[@]}" "$@" 2>&1 | tee "$output_file"
+    exit_code=${PIPESTATUS[0]}
     set -e
 
     if [ $exit_code -eq 0 ]; then
-        if [ -n "$compose_output" ]; then
-            printf '%s\n' "$compose_output"
-        fi
+        rm -f "$output_file"
         return 0
     fi
 
-    if [ -n "$compose_output" ]; then
-        printf '%s\n' "$compose_output" >&2
-    fi
-
-    if echo "$compose_output" | grep -qi "unauthorized"; then
+    if grep -qi "unauthorized" "$output_file"; then
         WARN "Docker reported an unauthorized error. Attempting to log in to GitHub Container Registry..."
         login_to_ghcr
 
         set +e
-        compose_output=$($DOCKER_COMPOSE_CMD "$@" 2>&1)
-        exit_code=$?
+        "${DOCKER_COMPOSE_CMD[@]}" "$@" 2>&1 | tee "$output_file"
+        exit_code=${PIPESTATUS[0]}
         set -e
-
-        if [ $exit_code -eq 0 ]; then
-            if [ -n "$compose_output" ]; then
-                printf '%s\n' "$compose_output"
-            fi
-            return 0
-        fi
-
-        if [ -n "$compose_output" ]; then
-            printf '%s\n' "$compose_output" >&2
-        fi
     fi
 
+    rm -f "$output_file"
     return $exit_code
 }
 
@@ -137,6 +123,11 @@ run_compose_with_login() {
 install_zzbot() {
     check_prerequisites
     
+    INFO "Installing setup script to /usr/local/bin/zzbot..."
+    curl -L -o /tmp/zzbot https://raw.githubusercontent.com/gitma99/zz-p/main/setup.sh
+    mv /tmp/zzbot /usr/local/bin/zzbot
+    chmod +x /usr/local/bin/zzbot
+
     INFO "Creating base directory at $BASE_DIR..."
     mkdir -p "$BASE_DIR"
     cd "$BASE_DIR"
@@ -173,11 +164,19 @@ install_zzbot() {
     INFO "Opening .env for configuration..."
     nano .env
 
-    # Register global command
-    INFO "Installing setup script to /usr/local/bin/zzbot..."
-    curl -L -o /tmp/zzbot https://raw.githubusercontent.com/gitma99/zz-p/main/setup.sh
-    mv /tmp/zzbot /usr/local/bin/zzbot
-    chmod +x /usr/local/bin/zzbot
+    # pull images to ensure they are available before starting
+    INFO "Pulling Docker images..."
+    if ! run_compose_with_login pull; then
+        ERROR "Failed to pull Docker images. Please check your network connection and credentials."
+    fi
+
+    # initialize SSL if needed
+    read -p "Do you want to initialize SSL certificates now? (y/N): "
+    if [[ "$REPLY" =~ ^[Yy]$ ]]; then
+        init_ssl
+    else
+        WARN "You must initialize SSL later by running 'zzbot' and selecting the SSL option or the bot won't work properly."
+    fi
 
     INFO "Installation complete! You can now run this script anytime by typing 'zzbot' in the terminal."
 }
@@ -228,7 +227,7 @@ stop_services() {
     ensure_installed
     cd "$BASE_DIR"
     INFO "Stopping services..."
-    $DOCKER_COMPOSE_CMD down
+    "${DOCKER_COMPOSE_CMD[@]}" down
     INFO "Services stopped."
 }
 
@@ -237,7 +236,7 @@ restart_services() {
     ensure_installed
     cd "$BASE_DIR"
     INFO "Restarting services..."
-    $DOCKER_COMPOSE_CMD restart
+    "${DOCKER_COMPOSE_CMD[@]}" restart
     INFO "Services restarted."
 }
 
@@ -262,7 +261,7 @@ uninstall_zzbot() {
         if [ -d "$BASE_DIR" ] && [ -f "$BASE_DIR/docker-compose.yml" ]; then
             cd "$BASE_DIR"
             INFO "Stopping and removing containers & volumes..."
-            $DOCKER_COMPOSE_CMD down -v || true
+            "${DOCKER_COMPOSE_CMD[@]}" down -v || true
         fi
         
         INFO "Removing files in $BASE_DIR..."
