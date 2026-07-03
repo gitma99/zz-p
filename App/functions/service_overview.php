@@ -11,7 +11,17 @@ function fetch_user_service_overview($target_user_id, $sql) {
     $total_traffic_bought = 0;
     $total_traffic_used = 0;
 
-    $services_query = $sql->query("SELECT `id`, `code`, `location` FROM `orders` WHERE `from_id` = '$target_user_id'");
+    $services_query = $sql->query("SELECT `id`, `code`, `location` FROM `orders` WHERE `from_id` = '" . $sql->real_escape_string($target_user_id) . "'");
+    if ($services_query === false) {
+        return [
+            'error' => '❌ خطا در خواندن سفارش‌ها از پایگاه داده: ' . $sql->error,
+            'count_all_active' => 0,
+            'count_all_inactive' => 0,
+            'overall_unknown' => 0,
+            'total_traffic_bought' => 0,
+            'total_traffic_used' => 0
+        ];
+    }
     $service_count = $services_query->num_rows;
     $services = $services_query->fetch_all(MYSQLI_ASSOC) ?: [];
 
@@ -28,7 +38,18 @@ function fetch_user_service_overview($target_user_id, $sql) {
     }
 
     $serviceLocationMap = [];
-    foreach ($sql->query("SELECT `name`, `login_link` FROM `panels`")->fetch_all(MYSQLI_ASSOC) as $row) {
+    $panels_q = $sql->query("SELECT `name`, `login_link` FROM `panels`");
+    if ($panels_q === false) {
+        return [
+            'error' => '❌ خطا در خواندن پنل‌ها از پایگاه داده: ' . $sql->error,
+            'count_all_active' => 0,
+            'count_all_inactive' => 0,
+            'overall_unknown' => 0,
+            'total_traffic_bought' => 0,
+            'total_traffic_used' => 0
+        ];
+    }
+    foreach ($panels_q->fetch_all(MYSQLI_ASSOC) as $row) {
         $serviceLocationMap[$row['name']] = $row['login_link'];
     }
 
@@ -56,7 +77,12 @@ function fetch_user_service_overview($target_user_id, $sql) {
     foreach ($location_sorted_objs as $service_location_name => $location_detail) {
         $panel_url = $location_detail['panel_url'];
         $usernames = $location_detail['usernames'];
-        $panel_info = $sql->query("SELECT * FROM `panels` WHERE `name` = '" . $sql->real_escape_string($service_location_name) . "' LIMIT 1")->fetch_assoc();
+        $panel_q = $sql->query("SELECT * FROM `panels` WHERE `name` = '" . $sql->real_escape_string($service_location_name) . "' LIMIT 1");
+        if ($panel_q === false) {
+            // skip this location if query fails
+            continue;
+        }
+        $panel_info = $panel_q->fetch_assoc();
         if (!$panel_info) {
             continue;
         }
