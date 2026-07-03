@@ -3,6 +3,7 @@
 # Exit immediately if a command exits with a non-zero status
 set -euo pipefail
 
+CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_DIR="/srv"
 DOCKER_COMPOSE_CMD="docker compose"
 
@@ -117,7 +118,7 @@ install_zzbot() {
 
     # Register global command
     INFO "Installing setup script to /usr/local/bin/zzbot..."
-    cp "$0" /usr/local/bin/zzbot
+    cp "$CURRENT_DIR/$0" /usr/local/bin/zzbot
     chmod +x /usr/local/bin/zzbot
 
     INFO "Installation complete! You can now run this script anytime by typing 'zzbot' in the terminal."
