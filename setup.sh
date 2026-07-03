@@ -6,6 +6,8 @@ set -euo pipefail
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_DIR="/srv"
 DOCKER_COMPOSE_CMD="docker compose"
+GITHUB_USERNAME="gitma99"
+GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 
 # Output coloring helper functions
 INFO() { echo -e "\e[32m[INFO]\e[0m $*"; }
@@ -75,6 +77,60 @@ EOF
             ERROR "Docker Compose is not available. Please install docker-compose-plugin."
         fi
     fi
+}
+
+login_to_ghcr() {
+    if [ -z "$GITHUB_TOKEN" ]; then
+        read -s -p "Enter your GitHub token: " GITHUB_TOKEN
+        echo
+    fi
+    if ! docker login ghcr.io -u "$GITHUB_USERNAME" -p "$GITHUB_TOKEN"; then
+        ERROR "Failed to log in to GitHub Container Registry. Please check your credentials."
+    fi
+}
+
+run_compose_with_login() {
+    local compose_output=""
+    local exit_code=0
+
+    set +e
+    compose_output=$($DOCKER_COMPOSE_CMD "$@" 2>&1)
+    exit_code=$?
+    set -e
+
+    if [ $exit_code -eq 0 ]; then
+        if [ -n "$compose_output" ]; then
+            printf '%s\n' "$compose_output"
+        fi
+        return 0
+    fi
+
+    if [ -n "$compose_output" ]; then
+        printf '%s\n' "$compose_output" >&2
+    fi
+
+    if echo "$compose_output" | grep -qi "unauthorized"; then
+        WARN "Docker reported an unauthorized error. Attempting to log in to GitHub Container Registry..."
+        login_to_ghcr
+
+        set +e
+        compose_output=$($DOCKER_COMPOSE_CMD "$@" 2>&1)
+        exit_code=$?
+        set -e
+
+        if [ $exit_code -eq 0 ]; then
+            if [ -n "$compose_output" ]; then
+                printf '%s\n' "$compose_output"
+            fi
+            return 0
+        fi
+
+        if [ -n "$compose_output" ]; then
+            printf '%s\n' "$compose_output" >&2
+        fi
+    fi
+
+    return $exit_code
 }
 
 # 1. Install ZZPanel
@@ -163,7 +219,7 @@ start_services() {
     ensure_installed
     cd "$BASE_DIR"
     INFO "Starting services..."
-    $DOCKER_COMPOSE_CMD up -d
+    run_compose_with_login up -d
     INFO "Services started."
 }
 
@@ -190,8 +246,12 @@ update_services() {
     ensure_installed
     cd "$BASE_DIR"
     INFO "Updating services..."
-    $DOCKER_COMPOSE_CMD pull
-    $DOCKER_COMPOSE_CMD up -d
+    if run_compose_with_login pull; then
+        INFO "Pull completed successfully."
+    else
+        ERROR "Pull failed even after logging in. Please check your credentials and network connection."
+    fi
+    run_compose_with_login up -d
     INFO "Update completed."
 }
 
