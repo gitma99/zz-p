@@ -11,7 +11,7 @@ function fetch_user_service_overview($target_user_id, $sql) {
     $total_traffic_bought = 0;
     $total_traffic_used = 0;
 
-    $services_query = $sql->query("SELECT `id`, `code`, `location` FROM `orders` WHERE `from_id` = '" . $sql->real_escape_string($target_user_id) . "'");
+    $services_query = $sql->query("SELECT `row`, `code`, `location` FROM `orders` WHERE `from_id` = '" . $sql->real_escape_string($target_user_id) . "'");
     if ($services_query === false) {
         return [
             'error' => '❌ خطا در خواندن سفارش‌ها از پایگاه داده: ' . $sql->error,
@@ -68,7 +68,7 @@ function fetch_user_service_overview($target_user_id, $sql) {
             ];
         }
         $location_sorted_objs[$service_location]['unknown_services'][$service_name] = [
-            'id' => $row['id'],
+            'row' => $row['row'],
             'code' => $service_base_name
         ];
         $location_sorted_objs[$service_location]['usernames'][] = $service_name;
@@ -125,7 +125,7 @@ function fetch_user_service_overview($target_user_id, $sql) {
         # For safety we archive the full row into `orders_archive` and then delete by `id` inside a transaction.
         foreach ($location_sorted_objs as $service_location_name => $location_detail) {
             foreach ($location_detail['unknown_services'] as $service_username => $svc) {
-                $order_id = (int)($svc['id'] ?? 0);
+                $order_id = (int)($svc['row'] ?? 0);
                 if ($order_id <= 0) {
                     return [
                         'error' => '❌ شناسه سفارش نامعتبر برای سرویس ناشناخته: ' . $service_username,
@@ -171,7 +171,7 @@ function fetch_user_service_overview($target_user_id, $sql) {
                 }
 
                 // delete by id to avoid removing other rows with same code
-                $del_stmt = $sql->prepare("DELETE FROM `orders` WHERE `id` = ? AND `from_id` = ? LIMIT 1");
+                $del_stmt = $sql->prepare("DELETE FROM `orders` WHERE `row` = ? AND `from_id` = ? LIMIT 1");
                 if (!$del_stmt) {
                     $sql->rollback();
                     return [
