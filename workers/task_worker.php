@@ -4,6 +4,7 @@ if (php_sapi_name() !== 'cli') {
 }
 
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../App/apis/telegram-api/utils/api_utils.php';
 require_once __DIR__ . '/../App/apis/marzban-api/api.php';
 require_once __DIR__ . '/../App/functions/service_overview.php';
 
