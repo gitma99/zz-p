@@ -61,8 +61,10 @@ services:
       - ./docker/certbot/www:/var/www/certbot:ro
       - ./docker/nginx/logs:/var/log/nginx
     depends_on:
-      - app
-      - phpmyadmin
+      app:
+        condition: service_healthy
+      phpmyadmin:
+        condition: service_healthy
 
   certbot:
     image: certbot/certbot
@@ -86,6 +88,8 @@ services:
     volumes:
       - ./docker/backups:/backups
     depends_on:
+      app:
+        condition: service_healthy
       mysql:
         condition: service_healthy
 
