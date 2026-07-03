@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Determine directories
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$SCRIPT_DIR/.."
+PROJECT_ROOT="/srv"
 BACKUPS_DIR="$PROJECT_ROOT/docker/backups"
 
 colorized_echo() {
