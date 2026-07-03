@@ -2822,9 +2822,12 @@ try {
             // $sql->query("UPDATE `sends` SET `send` = 'yes', `text` = '$text', `type` = '$type', `step` = 'send'");
             // $sql->query("UPDATE sends SET send = 'yes', text = '$text', type = '$type', step = 'send'");
             sendMessage($from_id, "✅ پیام شما با موفقیت به صف ارسال همگانی اضافه شد !", $manage_message);
-        } elseif ($text == '📞 ارسال پیام به کاربر' or $text == '📤 ارسال پیام به کاربر') {
+        } elseif ($text == '📞 ارسال پیام به کاربر') {
             step('sendmessage_user1');
             sendMessage($from_id, "🔢 ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_to_manage_message);
+        } elseif ($text == '📤 ارسال پیام به کاربر') {
+            step('sendmessage_user1');
+            sendMessage($from_id, "🔢 ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_to_manage_users);
         } elseif ($user['step'] == 'sendmessage_user1' and $text != $texts['back_to_bot_management_button']) {
             if ($sql->query("SELECT `from_id` FROM `users` WHERE `from_id` = '$text'")->num_rows > 0) {
                 step('sendmessage_user2');
@@ -2996,7 +2999,7 @@ try {
             }
         } elseif ($text == '➕ افزایش موجودی') {
             step('add_coin');
-            sendMessage($from_id, "🔰ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_panel);
+            sendMessage($from_id, "🔰ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_to_manage_users);
         } elseif ($user['step'] == 'add_coin') {
             $user = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$text'");
             if ($user->num_rows > 0) {
@@ -3015,7 +3018,7 @@ try {
             unlink('id.txt');
         } elseif ($text == '➖ کسر موجودی') {
             step('rem_coin');
-            sendMessage($from_id, "🔰ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_panel);
+            sendMessage($from_id, "🔰ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_to_manage_users);
         } elseif ($user['step'] == 'rem_coin' and $text != $texts['back_to_bot_management_button']) {
             $user = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$text'");
             if ($user->num_rows > 0) {
@@ -3044,7 +3047,7 @@ try {
             sendMessage($id, "✅ حساب شما با موفقیت به مبلغ <code>$price</code> تومان شارژ شد !");
         } elseif ($text == '❌ مسدود کردن') {
             step('block');
-            sendMessage($from_id, "🔢 ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_panel);
+            sendMessage($from_id, "🔢 ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_to_manage_users);
         } elseif ($user['step'] == 'block' and $text != $texts['back_to_bot_management_button']) {
             $user = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$text'");
             if ($user->num_rows > 0) {
@@ -3056,7 +3059,7 @@ try {
             }
         } elseif ($text == '✅ آزاد کردن') {
             step('unblock');
-            sendmessage($from_id, "🔢 ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_panel);
+            sendmessage($from_id, "🔢 ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_to_manage_users);
         } elseif ($user['step'] == 'unblock' and $text != $texts['back_to_bot_management_button']) {
             $user = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$text'");
             if ($user->num_rows > 0) {

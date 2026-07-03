@@ -86,13 +86,13 @@ function change_account_status($text, $from_id)
         global $from_id, $user, $text, $sql, $texts, $my_texts, $start_key, $bot_management_keyboard, $config;
         if ($text == $texts['account_status_changer_button']) {
             step('account_status_changer_service_get_service_name');
+            $_keyboard = null;
             if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
-
-                $_keyboard_keys = [[['text' => $texts['back_to_bot_management_button']]]];
+                $_keyboard = $back_to_manage_users; 
             } else {
                 $_keyboard_keys = [[['text' => $texts['back_to_menu_button']]]];
+                $_keyboard = json_encode(['keyboard' => $_keyboard_keys, 'resize_keyboard' => true]);
             }
-            $_keyboard = json_encode(['keyboard' => $_keyboard_keys, 'resize_keyboard' => true]);
             sendMessage($from_id, $my_texts['account_status_changer_service_config_name'], $_keyboard);
         } elseif ($user['step'] == 'account_status_changer_service_get_service_name') {
             if ($from_id == $config['dev'] or in_array($from_id, get_admin_ids())) {
