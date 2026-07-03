@@ -11,7 +11,7 @@ if (!$config) {
     $config = json_decode($config_json, true);
     apcu_store('botpanel_config', $config, 300);
 }
-$config['version'] = '2.5';
+$config['version'] = '3.0.0';
 $config['domain'] = 'https://' . $_SERVER['HTTP_HOST'] . '/' . explode('/', explode('html/', $_SERVER['SCRIPT_FILENAME'])[1])[0];
 $maintainer_telegram_id_number = $config['maintainer'];
 $db_host = $config['database']['db_host'] ?? (getenv('DB_HOST') ?: 'localhost');
