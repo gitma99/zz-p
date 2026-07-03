@@ -1746,7 +1746,7 @@ try {
             sendMessage($from_id, "👋 به مدیریت آمار کلی ربات خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید:", $manage_statistics);
         } elseif ($text == '🌐 مدیریت سرور') {
             sendMessage($from_id, "⚙️ به مدیریت پلن ها خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :", $manage_server);
-        } elseif ($text == '👤 مدیریت کاربران') {
+        } elseif (in_array($text, [$texts['back_to_user_management_button'], '👤 مدیریت کاربران'])) {
             sendMessage($from_id, "👤 به مدیریت کاربران خوش آمدید.\n\n👇🏻یکی از گزینه های زیر را انتخاب کنید :", $manage_user);
         } elseif (in_array($text, ['📤 مدیریت پیام', '⬅️ بازگشت به مدیریت پیام ها'])) {
             step('none');
@@ -2873,7 +2873,7 @@ try {
         // ----------- manage users ----------- //
         elseif ($text == '🔎 اطلاعات کاربر') {
             step('info_user');
-            sendMessage($from_id, "🔰ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_panel);
+            sendMessage($from_id, "🔰ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_to_manage_users);
         } elseif ($user['step'] == 'info_user') {
             $info = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$text'");
             if ($info->num_rows > 0) {

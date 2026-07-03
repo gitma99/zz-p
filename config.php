@@ -703,6 +703,13 @@ $back_panel = json_encode([
     'resize_keyboard' => true
 ]);
 
+$back_to_manage_users = json_encode([
+    'keyboard' => [
+        [['text' => '⬅️بازگشت به مدیریت کاربران']]
+    ],
+    'resize_keyboard' => true
+]);
+
 $back_panellist = json_encode([
     'inline_keyboard' => [
         [['text' => '🔙 بازگشت به لیست پنل ها', 'callback_data' => 'back_panellist']],

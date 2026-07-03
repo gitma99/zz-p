@@ -122,6 +122,7 @@
   "forbidden_section": "عدم دسترسی",
   "back_to_menu_button":"⬅️ بازگشت به صفحه اصلی",
   "back_to_bot_management_button":"⬅️ بازگشت به مدیریت",
+  "back_to_user_management_button":"⬅️بازگشت به مدیریت کاربران",
   "error_encounter_msg":"⚠خطای ربات لطفا به مدیر ربات اطلاع رسانی کنید.⚠",
   "sign__active": "✅",
   "sign__disabled": "❌",
