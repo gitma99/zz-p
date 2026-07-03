@@ -115,10 +115,12 @@ install_zzbot() {
     fi
 
     INFO "Opening .env for configuration..."
+    nano .env
 
     # Register global command
     INFO "Installing setup script to /usr/local/bin/zzbot..."
-    cp "$CURRENT_DIR/$0" /usr/local/bin/zzbot
+    curl -L -o /tmp/zzbot https://raw.githubusercontent.com/gitma99/zz-p/main/setup.sh
+    mv /tmp/zzbot /usr/local/bin/zzbot
     chmod +x /usr/local/bin/zzbot
 
     INFO "Installation complete! You can now run this script anytime by typing 'zzbot' in the terminal."
@@ -131,7 +133,18 @@ ensure_installed() {
     fi
 }
 
-# 2. SSL Initializer
+# Edit .env file
+edit_env() {
+    ensure_installed
+    cd "$BASE_DIR"
+    if [ -f .env ]; then
+        nano .env
+    else
+        ERROR ".env file does not exist."
+    fi
+}
+
+# 3. SSL Initializer
 init_ssl() {
     ensure_installed
     cd "$BASE_DIR"
@@ -145,7 +158,7 @@ init_ssl() {
     fi
 }
 
-# 3. Start
+# 4. Start
 start_services() {
     ensure_installed
     cd "$BASE_DIR"
@@ -154,7 +167,7 @@ start_services() {
     INFO "Services started."
 }
 
-# 4. Stop
+# 5. Stop
 stop_services() {
     ensure_installed
     cd "$BASE_DIR"
@@ -163,7 +176,7 @@ stop_services() {
     INFO "Services stopped."
 }
 
-# 5. Restart
+# 6. Restart
 restart_services() {
     ensure_installed
     cd "$BASE_DIR"
@@ -172,7 +185,7 @@ restart_services() {
     INFO "Services restarted."
 }
 
-# 6. Update
+# 7. Update
 update_services() {
     ensure_installed
     cd "$BASE_DIR"
@@ -182,7 +195,7 @@ update_services() {
     INFO "Update completed."
 }
 
-# 7. Uninstall
+# 8. Uninstall
 uninstall_zzbot() {
     read -p "Are you sure you want to completely uninstall ZZPanel and remove all data? (y/N): " -r RESPONSE
     if [[ "$RESPONSE" =~ ^([yY][eE][sS]|[yY])$ ]]; then
@@ -205,7 +218,7 @@ uninstall_zzbot() {
     fi
 }
 
-# 8. Backup
+# 9. Backup
 backup_services() {
     ensure_installed
     cd "$BASE_DIR"
@@ -218,7 +231,7 @@ backup_services() {
     fi
 }
 
-# 9. Restore
+# 10. Restore
 restore_services() {
     ensure_installed
     cd "$BASE_DIR"
@@ -239,34 +252,37 @@ show_menu() {
         echo -e "         ZZPanelbot Management           "
         echo -e "========================================="
         echo " 1) Install / Setup ZZPanel"
-        echo " 2) Initialize SSL (Let's Encrypt)"
-        echo " 3) Start Services"
-        echo " 4) Stop Services"
-        echo " 5) Restart Services"
-        echo " 6) Update Services"
-        echo " 7) Uninstall ZZPanel"
-        echo " 8) Backup Database & Files"
-        echo " 9) Restore Database & Files"
+        echo " 2) Edit .env"
+        echo " 3) Initialize SSL (Let's Encrypt)"
+        echo " 4) Start Services"
+        echo " 5) Stop Services"
+        echo " 6) Restart Services"
+        echo " 7) Update Services"
+        echo " 8) Uninstall ZZPanel"
+        echo " 9) Backup Database & Files"
+        echo " 10) Restore Database & Files"
         echo " 0) Close"
         echo "========================================="
-        read -p "Enter choice [0-9]: " -r CHOICE
+        read -p "Enter choice [0-10]: " -r CHOICE
         echo "========================================="
 
         case "$CHOICE" in
             1) install_zzbot ;;
-            2) init_ssl ;;
-            3) start_services ;;
-            4) stop_services ;;
-            5) restart_services ;;
-            6) update_services ;;
-            7) uninstall_zzbot ;;
-            8) backup_services ;;
-            9) restore_services ;;
+            2) edit_env ;;
+            3) init_ssl ;;
+            4) start_services ;;
+            5) stop_services ;;
+            6) restart_services ;;
+            7) update_services ;;
+            8) uninstall_zzbot ;;
+            9) backup_services ;;
+            10) restore_services ;;
             0) INFO "Exiting. Goodbye!"; exit 0 ;;
             *) WARN "Invalid option. Please try again." ;;
         esac
     done
 }
+
 
 # Execution start
 check_root
