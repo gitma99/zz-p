@@ -158,9 +158,9 @@ install_zzbot() {
     mkdir -p "$BASE_DIR"
     cd "$BASE_DIR"
     # check if basedir is empty if not empty cancell the installation
-    if [ "$(ls -A "$BASE_DIR")" ]; then
-        ERROR "$BASE_DIR is not empty. Please ensure the directory is empty before proceeding with installation."
-    fi
+    # if [ "$(ls -A "$BASE_DIR")" ]; then
+    #     ERROR "$BASE_DIR is not empty. Please ensure the directory is empty before proceeding with installation."
+    # fi
 
     download_and_extract_latest_release
 
@@ -260,7 +260,7 @@ restart_services() {
 update_services() {
     ensure_installed
     cd "$BASE_DIR"
-    
+
     download_and_extract_latest_release
     INFO "Updating services..."
     if run_compose_with_login pull; then
