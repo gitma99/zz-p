@@ -11,7 +11,7 @@
 برای شروع، دستور زیر را در سرور خود اجرا کنید:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/gitma99/zz-p/main/setup.sh -o setup.sh && chmod +x setup.sh && sudo ./setup.sh
+bash <(curl -Ls "https://raw.githubusercontent.com/gitma99/zz-p/main/setup.sh?t=$(date +%s)" )
 ```
 
 پس از اولین نصب، می‌توانید در هر زمان و در هر فولدری به سادگی با تایپ دستور زیر به منوی مدیریتی دسترسی داشته باشید:
