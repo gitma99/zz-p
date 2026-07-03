@@ -181,6 +181,9 @@ install_zzbot() {
         WARN "You must initialize SSL later by running 'zzbot' and selecting the SSL option or the bot won't work properly."
     fi
 
+    INFO "Starting services..."
+    start_services
+
     INFO "Installation complete! You can now run this script anytime by typing 'zzbot' in the terminal."
 }
 
