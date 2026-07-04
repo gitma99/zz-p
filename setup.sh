@@ -8,6 +8,7 @@ BASE_DIR="/srv"
 DOCKER_COMPOSE_CMD=(docker compose)
 GITHUB_USERNAME="gitma99"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
+VERSION="3.0.0"
 
 # Output coloring helper functions
 INFO() { echo -e "\e[32m[INFO]\e[0m $*"; }
@@ -19,6 +20,10 @@ check_root() {
     if [ "$EUID" -ne 0 ]; then
         ERROR "This script requires root or sudo privileges. Please run as root or with sudo."
     fi
+}
+
+get_current_script_version() {
+    echo "$VERSION"
 }
 
 # Ensure basic utilities are installed
@@ -204,6 +209,14 @@ ensure_installed() {
     fi
 }
 
+ensure_nginx_init_down() {
+    if docker ps -a --format '{{.Names}}' | grep -q '^zzpanel_nginx_init$'; then
+        INFO "Stopping and removing existing Nginx init container..."
+        docker stop zzpanel_nginx_init 2>/dev/null || true
+        docker rm zzpanel_nginx_init 2>/dev/null || true
+    fi
+}
+
 # Edit .env file
 edit_env() {
     ensure_installed
@@ -223,6 +236,7 @@ init_ssl() {
     if [ -f "$ssl_script" ]; then
         INFO "Running SSL Initialization..."
         chmod +x "$ssl_script"
+        ensure_nginx_init_down
         bash "$ssl_script"
     else
         ERROR "SSL Initializer script not found at $ssl_script"
@@ -232,6 +246,7 @@ init_ssl() {
 # 4. Start
 start_services() {
     ensure_installed
+    ensure_nginx_init_down
     cd "$BASE_DIR"
     INFO "Starting services..."
     run_compose_with_login up -d
@@ -241,6 +256,7 @@ start_services() {
 # 5. Stop
 stop_services() {
     ensure_installed
+    ensure_nginx_init_down
     cd "$BASE_DIR"
     INFO "Stopping services..."
     "${DOCKER_COMPOSE_CMD[@]}" down
@@ -250,15 +266,17 @@ stop_services() {
 # 6. Restart
 restart_services() {
     ensure_installed
+    ensure_nginx_init_down
     cd "$BASE_DIR"
     INFO "Restarting services..."
-    "${DOCKER_COMPOSE_CMD[@]}" restart
+    "${DOCKER_COMPOSE_CMD[@]}" down && "${DOCKER_COMPOSE_CMD[@]}" up -d
     INFO "Services restarted."
 }
 
 # 7. Update
 update_services() {
     ensure_installed
+    ensure_nginx_init_down
     cd "$BASE_DIR"
 
     download_and_extract_latest_release
@@ -299,6 +317,7 @@ uninstall_zzbot() {
 # 9. Backup
 backup_services() {
     ensure_installed
+    ensure_nginx_init_down
     cd "$BASE_DIR"
     local backup_script="./docker/scripts/docker_backup.sh"
     if [ -f "$backup_script" ]; then
@@ -312,6 +331,7 @@ backup_services() {
 # 10. Restore
 restore_services() {
     ensure_installed
+    ensure_nginx_init_down
     cd "$BASE_DIR"
     local backup_script="./docker/scripts/docker_backup.sh"
     if [ -f "$backup_script" ]; then
@@ -331,28 +351,40 @@ show_live_logs() {
     "${DOCKER_COMPOSE_CMD[@]}" logs -f
 }
 
+# it gets one arg for service name and shows live logs for that service
+show_live_logs_for_service() {
+    ensure_installed
+    cd "$BASE_DIR"
+    read -p "Enter the service name to view logs (e.g., nginx, mysql, phpmyadmin): " SERVICE_NAME
+    if [ -z "$SERVICE_NAME" ]; then
+        ERROR "Service name cannot be empty."
+    fi
+    INFO "Showing live logs for $SERVICE_NAME (Press Ctrl+C to exit)..."
+    "${DOCKER_COMPOSE_CMD[@]}" logs -f "$SERVICE_NAME"
+}
 
 # Main menu CLI loop
 show_menu() {
     while true; do
         echo -e "\n========================================="
-        echo -e "         ZZPanelbot Management           "
+        echo -e "     ZZPanelBot Management ($VERSION)    "
         echo -e "========================================="
         echo " 1) Install ZZPanel"
         echo " 2) Install / Update zzbot menu"
         echo " 3) Edit .env"
         echo " 4) Initialize SSL (Let's Encrypt)"
-        echo " 5) Start Services"
-        echo " 6) Stop Services"
-        echo " 7) Restart Services"
-        echo " 8) Update Services"
+        echo " 5) Start ZZPanelBot Services"
+        echo " 6) Stop ZZPanelBot Services"
+        echo " 7) Restart ZZPanelBot Services"
+        echo " 8) Update ZZPanelBot Services"
         echo " 9) Uninstall ZZPanel"
         echo " 10) Backup Database & Files"
         echo " 11) Restore Database & Files"
         echo " 12) View Live Logs"
+        echo " 13) View Logs for Specific Service"
         echo " 0) Close"
         echo "========================================="
-        read -p "Enter choice [0-12]: " -r CHOICE
+        read -p "Enter choice [0-13]: " -r CHOICE
         echo "========================================="
 
         case "$CHOICE" in
@@ -368,7 +400,9 @@ show_menu() {
             10) backup_services ;;
             11) restore_services ;;
             12) show_live_logs ;;
+            13) show_live_logs_for_service ;;
             0) INFO "Exiting. Goodbye!"; exit 0 ;;
+            999) get_current_script_version ;;
             *) WARN "Invalid option. Please try again." ;;
         esac
     done

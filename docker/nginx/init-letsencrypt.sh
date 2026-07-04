@@ -91,6 +91,9 @@ email_arg="--email $CERTBOT_EMAIL"
 staging_arg=""
 if [ $staging -ne 0 ]; then staging_arg="--staging"; fi
 
+# if docker result for obtaining resulted in error then stop the init nginx container in any case
+trap 'docker stop zzpanel_nginx_init 2>/dev/null || true' EXIT
+
 docker compose run --rm --entrypoint "certbot" certbot \
   certonly --webroot -w /var/www/certbot \
   $staging_arg \
