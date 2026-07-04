@@ -128,8 +128,8 @@ unzip zzpanelbot-docker.zip
 
 5. برای نصب و راه‌اندازی، باید گواهی Let's Encrypt را قبل از اجرای `docker compose up -d` بوت‌استرپ کنید:
  ```bash
- chmod +x docker/nginx/init-letsencrypt.sh
- bash docker/nginx/init-letsencrypt.sh
+ chmod +x /srv/docker/nginx/init-letsencrypt.sh
+ bash /srv/docker/nginx/init-letsencrypt.sh
  ```
 
 6. سپس سرویس‌ها را بالا بیاورید:
@@ -150,7 +150,7 @@ docker compose up -d app
 
 ## بکاپ خودکار
 
-بکاپ‌ها توسط سرویس `zzpanel_backup` در Docker Compose انجام می‌شوند. خروجی بکاپ‌ها روی میزبان در `docker/backups/` قرار می‌گیرد.
+بکاپ‌ها توسط سرویس `zzpanel_backup` در Docker Compose انجام می‌شوند. خروجی بکاپ‌ها روی میزبان در `data/backups/` قرار می‌گیرد.
 
 - بکاپ اولیه بلافاصله پس از اجرای کانتینر ساخته می‌شود
 - سپس هر روز در نیمه شب تهران یک بکاپ جدید ایجاد می‌شود
@@ -170,19 +170,19 @@ BACKUP_CHAT_ID=your_telegram_admin_chat_id
 برای اجرا از روی میزبان:
 
 ```bash
-./docker/scripts/docker_backup.sh
+/src/docker/scripts/docker_backup.sh
 ```
 
 
 ## بازیابی بکاپ
 
-قبل از اجرای بازیابی، فایل بکاپ ZIP خود را روی میزبان در دایرکتوری `docker/backups/` قرار دهید.
+قبل از اجرای بازیابی، فایل بکاپ ZIP خود را روی میزبان در دایرکتوری `/srv/data/backups/` قرار دهید.
 
 ### بازیابی با اسکریپت میزبان
 
 1. از مسیر ریشه پروژه اجرا کنید:
    ```bash
-   ./docker/scripts/docker_backup.sh
+   /src/docker/scripts/docker_backup.sh
    ```
 2. گزینه `2` یا `Restore` را انتخاب کنید.
 3. فایل بکاپ مورد نظر را انتخاب و تأیید کنید.
@@ -194,15 +194,15 @@ BACKUP_CHAT_ID=your_telegram_admin_chat_id
 برای مشاهده لاگ زنده:
 
 ```bash
-docker compose logs -f
+cd /srv && docker compose logs -f
 ```
 
 یا فقط لاگ‌های سرویس خاص:
 
 ```bash
-docker compose logs -f app
-docker compose logs -f nginx
-docker compose logs -f backup
+cd /srv && docker compose logs -f app
+cd /srv && docker compose logs -f nginx
+cd /srv && docker compose logs -f backup
 ```
 
-لاگ بکاپ خودکار نیز روی میزبان در `docker/backups/backup.log` ذخیره می‌شود.
+لاگ بکاپ خودکار نیز روی میزبان در `/srv/data/backups/backup.log` ذخیره می‌شود.
