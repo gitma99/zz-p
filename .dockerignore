@@ -5,11 +5,7 @@ __LOCAL__
 __TEMP__
 bot_config.json
 logs/
-docker/app/logs/
-docker/apache/logs/
+data/
 temp/
-docker/certbot/
 docker/nginx/init-letsencrypt.sh
 *.md
-docker/mysql/db/
-docker/backups/

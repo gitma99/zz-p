@@ -9,11 +9,7 @@ __TEMP__/
 .vscode/
 
 .env
-docker/certbot/conf/
-docker/certbot/www/
-docker/backups/
-docker/mysql/db/
 
-logs
-docker/app/logs/
-docker/apache/logs/
+logs/
+
+data/
