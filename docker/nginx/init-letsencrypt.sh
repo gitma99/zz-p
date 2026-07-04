@@ -39,7 +39,7 @@ fi
 # -------------------------------------------------------
 # Paths
 # -------------------------------------------------------
-data_path="./docker/certbot"
+data_path="./data/certbot"
 rsa_key_size=4096
 staging=0 # Set to 1 if you're testing to avoid Let's Encrypt rate limits
 
