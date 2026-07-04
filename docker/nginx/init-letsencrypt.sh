@@ -62,6 +62,8 @@ fi
 # -------------------------------------------------------
 # Step 2: Start Nginx with minimal bootstrap config (HTTP only, no upstreams)
 # -------------------------------------------------------
+echo "### Remove old Nginx init container if it exists ..."
+docker rm -f zzpanel_nginx_init 2>/dev/null || true
 echo "### Starting Nginx with minimal bootstrap config ..."
 docker run --rm -d \
   --name zzpanel_nginx_init \
@@ -70,7 +72,10 @@ docker run --rm -d \
   --name zzpanel_nginx_init \
   -p 80:80 \
   -v "$(pwd)/docker/nginx/nginx-init.conf:/etc/nginx/conf.d/default.conf:ro" \
-  -v "$(pwd)/docker/certbot/www:/var/www/certbot:ro" \
+  -v "$(pwd)/data/certbot/www:/var/www/certbot:ro" \
+  -v "$(pwd)/data/certbot/www:/var/www/certbot:ro" \
+  -v "$(pwd)/logs/certbot/nginx:/var/log/nginx" \
+  -v "$(pwd)/logs/certbot/letsencrypt:/var/log/letsencrypt" \
   nginx:alpine
 
 # Give Nginx a moment to start
@@ -95,6 +100,7 @@ docker compose run --rm --entrypoint "certbot" certbot \
   --agree-tos \
   --force-renewal \
   --non-interactive
+
 
 echo "### Certificate obtained successfully."
 
