@@ -187,12 +187,12 @@ install_zzbot() {
     read -p "Do you want to initialize SSL certificates now? (y/N): "
     if [[ "$REPLY" =~ ^[Yy]$ ]]; then
         init_ssl
+        INFO "Starting services..."
+        start_services
     else
         WARN "You must initialize SSL later by running 'zzbot' and selecting the SSL option or the bot won't work properly."
     fi
 
-    INFO "Starting services..."
-    start_services
 
     INFO "Installation complete! You can now run this script anytime by typing 'zzbot' in the terminal."
 }
