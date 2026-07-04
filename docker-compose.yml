@@ -41,6 +41,11 @@ services:
       PMA_HOST: mysql
       PMA_PORT: 3306
       PMA_ABSOLUTE_URI: https://${DOMAIN}/phpmyadmin/
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
       mysql:
         condition: service_healthy
@@ -62,7 +67,7 @@ services:
       app:
         condition: service_healthy
       phpmyadmin:
-        condition: service_started
+        condition: service_healthy
 
   certbot:
     image: certbot/certbot
