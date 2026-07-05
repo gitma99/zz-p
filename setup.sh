@@ -287,7 +287,7 @@ update_services() {
         ERROR "Pull failed even after logging in. Please check your credentials and network connection."
     fi
     
-    run_compose_with_login up -d
+    restart_services
     INFO "Update completed."
 }
 
