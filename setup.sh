@@ -8,7 +8,7 @@ BASE_DIR="/srv"
 DOCKER_COMPOSE_CMD=(docker compose)
 GITHUB_USERNAME="gitma99"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
-VERSION="3.0.0"
+VERSION="3.0.1"
 
 # Output coloring helper functions
 INFO() { echo -e "\e[32m[INFO]\e[0m $*"; }
