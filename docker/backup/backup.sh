@@ -107,8 +107,8 @@ done
 
 # Set BACKUP_RETENTION_DAYS with default and validation
 if [ -z "${BACKUP_RETENTION_DAYS:-}" ]; then
-	log "WARN" "BACKUP_RETENTION_DAYS not set, defaulting to 14 days"
-	BACKUP_RETENTION_DAYS=14
+	log "WARN" "BACKUP_RETENTION_DAYS not set, defaulting to 1 days"
+	BACKUP_RETENTION_DAYS=1
 fi
 
 # Validate BACKUP_RETENTION_DAYS is a positive integer
