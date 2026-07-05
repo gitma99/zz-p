@@ -95,14 +95,30 @@ unzip zzpanelbot-docker.zip
 
 ## تنظیمات محیط (`.env`)
 
-- یک فایل پیکربندی محیط بسازید یا از نمونه استفاده کنید:
-   ```bash
-   cp .env.example .env
-   ```
-- متغیرهای مهم که باید بررسی و مقداردهی کنید:
-   - `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME` — تنظیمات دیتابیس
-   - `BOT_TOKEN`, `CHAT_ID` — توکن و chat id ربات
-   - `BACKUP_TELEGRAM_TOKEN`, `BACKUP_CHAT_ID` —  برای ارسال بکاپ به بات/چت متفاوت
+یک فایل پیکربندی محیط بسازید یا از نمونه استفاده کنید:
+```bash
+cp .env.example .env
+```
+
+### جدول متغیرهای محیطی
+
+| متغیر | شرح | مثال/پیش‌فرض | الزامی |
+|-------|------|------------|--------|
+| **BOT_TOKEN** | توکن ربات تلگرام | `123456:ABCdefGHIjklmnoPQRstuvWXYZ` | ✅ بلی |
+| **CHAT_ID** | شناسه چت/کانال تلگرام برای اطلاع‌رسانی | `987654321` | ✅ بلی |
+| **DOMAIN** | نام دامنه سرویس | `yourdomain.com` | ✅ بلی |
+| **CERTBOT_EMAIL** | ایمیل برای گواهی Let's Encrypt | `admin@yourdomain.com` | ✅ بلی |
+| **DB_NAME** | نام دیتابیس MySQL | `botpanel` | ✅ بلی |
+| **DB_USER** | نام کاربر دیتابیس | `botpanel_user` | ✅ بلی |
+| **DB_PASS** | رمز عبور دیتابیس | `strong_db_password` | ✅ بلی |
+| **MYSQL_ROOT_PASSWORD** | رمز عبور root MySQL | `strong_root_password` | ✅ بلی |
+| **BACKUP_TELEGRAM_TOKEN** | توکن ربات تلگرام برای ارسال بکاپ (اختیاری) | `123456:ABCdefGHIjklmnoPQRstuvWXYZ` | ❌ خیر |
+| **BACKUP_CHAT_ID** | شناسه چت برای ارسال بکاپ (اختیاری) | `987654321` | ❌ خیر |
+| **BACKUP_RETENTION_DAYS** | تعداد روز نگهداری فایل‌های بکاپ | `14` | ❌ خیر (پیش‌فرض: 14) |
+
+**توضیحات اضافی:**
+- `BACKUP_TELEGRAM_TOKEN` و `BACKUP_CHAT_ID`: اگر تنظیم نشوند، سیستم از `BOT_TOKEN` و `CHAT_ID` استفاده می‌کند
+- `BACKUP_RETENTION_DAYS`: اگر تنظیم نشود، به طور پیش‌فرض 14 روز در نظر گرفته می‌شود و یک هشدار ثبت می‌شود
 
 ---
 
