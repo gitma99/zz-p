@@ -105,6 +105,18 @@ for var in DB_HOST DB_NAME DB_USER DB_PASS BOT_TOKEN CHAT_ID DOMAIN; do
 	fi
 done
 
+# Set BACKUP_RETENTION_DAYS with default and validation
+if [ -z "${BACKUP_RETENTION_DAYS:-}" ]; then
+	log "WARN" "BACKUP_RETENTION_DAYS not set, defaulting to 14 days"
+	BACKUP_RETENTION_DAYS=14
+fi
+
+# Validate BACKUP_RETENTION_DAYS is a positive integer
+if ! [[ "$BACKUP_RETENTION_DAYS" =~ ^[0-9]+$ ]] || [ "$BACKUP_RETENTION_DAYS" -le 0 ]; then
+	echo "ERROR: BACKUP_RETENTION_DAYS must be a positive integer!"
+	exit 1
+fi
+
 # Prepare directory
 mkdir -p "$(dirname "$LOG_FILE")"
 
@@ -154,11 +166,10 @@ log "INFO" "Backup successfully created: ${timestamped_archive}"
 # Upload to Telegram and clean up old backups on success
 if [ -n "${TELEGRAM_BOT_TOKEN}" ] && [ -n "${TELEGRAM_USER_ID}" ]; then
 	if send_telegram_document "$timestamped_archive"; then
-		log "INFO" "Cleaning up zip backups older than 14 days..."
-		# Find and delete zip backups matching pattern older than 14 days
-		find /backups -name "zz-p-backup-*.zip" -type f -mtime +14 -print -delete || log "WARN" "Clean up of old backups failed or no old files found"
+		log "INFO" "Cleaning up zip backups older than ${BACKUP_RETENTION_DAYS} days..."
+		# Find and delete zip backups matching pattern older than ${BACKUP_RETENTION_DAYS} days
+		find /backups -name "zz-p-backup-*.zip" -type f -mtime +"${BACKUP_RETENTION_DAYS}" -print -delete || log "WARN" "Clean up of old backups failed or no old files found"
 	fi
 else
 	log "INFO" "Telegram variables not fully set. Skipping upload."
 fi
-
