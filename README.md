@@ -114,11 +114,11 @@ cp .env.example .env
 | **MYSQL_ROOT_PASSWORD** | رمز عبور root MySQL | `strong_root_password` | ✅ بلی |
 | **BACKUP_TELEGRAM_TOKEN** | توکن ربات تلگرام برای ارسال بکاپ (اختیاری) | `123456:ABCdefGHIjklmnoPQRstuvWXYZ` | ❌ خیر |
 | **BACKUP_CHAT_ID** | شناسه چت برای ارسال بکاپ (اختیاری) | `987654321` | ❌ خیر |
-| **BACKUP_RETENTION_DAYS** | تعداد روز نگهداری فایل‌های بکاپ | `14` | ❌ خیر (پیش‌فرض: 14) |
+| **BACKUP_RETENTION_DAYS** | تعداد روز نگهداری فایل‌های بکاپ | `1` | ❌ خیر (پیش‌فرض: 1) |
 
 **توضیحات اضافی:**
 - `BACKUP_TELEGRAM_TOKEN` و `BACKUP_CHAT_ID`: اگر تنظیم نشوند، سیستم از `BOT_TOKEN` و `CHAT_ID` استفاده می‌کند
-- `BACKUP_RETENTION_DAYS`: اگر تنظیم نشود، به طور پیش‌فرض 14 روز در نظر گرفته می‌شود و یک هشدار ثبت می‌شود
+- `BACKUP_RETENTION_DAYS`: اگر تنظیم نشود، به طور پیش‌فرض 1 روز در نظر گرفته می‌شود و یک هشدار ثبت می‌شود
 
 ---
 
