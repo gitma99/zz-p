@@ -29,6 +29,15 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
+
+echo "Checking if docker compose services are running..."
+if [ -n "$(docker compose ps -q 2>/dev/null)" ]; then
+  echo "Stopping services to free up port 80..."
+  docker compose down 2>/dev/null || true
+else
+  echo "No compose services running."
+fi
+
 source .env
 
 if [ -z "$DOMAIN" ] || [ -z "$CERTBOT_EMAIL" ]; then
