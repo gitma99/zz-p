@@ -4,6 +4,9 @@ require_once __DIR__ . '/../utils/api_utils.php';
 function sendMessage($chat_id, $text, $keyboard = null, $mrk = 'html')
 // function sendMessage($chat_id, $text, $keyboard = null, $mrk = 'html', $api_key = API_KEY)
 {
+    if (empty($text)) {
+        return false;
+    }
     $params = [
         'chat_id' => $chat_id,
         'text' => $text,
