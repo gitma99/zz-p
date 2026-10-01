@@ -26,9 +26,9 @@ function sendSuccessResponse($from_id, $qr_code_status, $qr_data, $caption_text,
         try {
             sendMessage($from_id, $message_text, $start_key);
         } catch (Exception $send_msg_ex) {
-            // Suppress fallback exception to preserve the original photo send failure details
+            // Suppress fallback exception
         }
-        throw $last_exception;
+        return null;
     } else {
         return sendMessage($from_id, $message_text, $start_key);
     }
