@@ -238,4 +238,38 @@ check_membership_memo();
 check_skip_locked();
 check_ddl_hoist();
 check_batch_flags();
+check_env_overrides();
+check_env_invalid();
 echo "ALL CHECKS PASSED\n";
+
+function check_env_overrides() {
+    putenv('LOG_LEVEL=warning');
+    putenv('LOG_BUFFER_SIZE=50');
+    putenv('LOG_TELEGRAM_ENABLED=false');
+    putenv('LOG_TELEGRAM_MIN_LEVEL=critical');
+    putenv('LOG_TELEGRAM_DEDUP_SECONDS=60');
+    putenv('LOG_RETENTION_DAYS=7');
+    $cfg = LoggerConfig::fromArray(array('level' => 'INFO', 'buffer_size' => 1000,
+        'telegram' => array('enabled' => true, 'min_level' => 'ERROR', 'dedup_window_seconds' => 3600)));
+    assert($cfg->level === 'WARNING');
+    assert($cfg->bufferSize === 50);
+    assert($cfg->telegramEnabled === false);
+    assert($cfg->telegramMinLevel === 'CRITICAL');
+    assert($cfg->dedupWindowSeconds === 60);
+    assert($cfg->retentionDays === 7);
+    foreach (array('LOG_LEVEL','LOG_BUFFER_SIZE','LOG_TELEGRAM_ENABLED','LOG_TELEGRAM_MIN_LEVEL','LOG_TELEGRAM_DEDUP_SECONDS','LOG_RETENTION_DAYS') as $k) putenv($k);
+    echo "env overrides file: OK\n";
+}
+
+function check_env_invalid() {
+    putenv('LOG_LEVEL=bogus');
+    putenv('LOG_BUFFER_SIZE=abc');
+    putenv('LOG_TELEGRAM_ENABLED=maybe');
+    $cfg = LoggerConfig::fromArray(array());
+    assert($cfg->level === 'INFO');
+    assert($cfg->bufferSize === 1000);
+    assert($cfg->telegramEnabled === true);
+    assert(count($cfg->warnings) === 3);
+    foreach (array('LOG_LEVEL','LOG_BUFFER_SIZE','LOG_TELEGRAM_ENABLED') as $k) putenv($k);
+    echo "env invalid falls back with warnings: OK\n";
+}

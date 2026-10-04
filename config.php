@@ -22,6 +22,7 @@ require_once __DIR__ . "/App/apis/telegram-api/api/send_file.php";
 $__loggerCfg = LoggerConfig::fromArray($config['logging'] ?? []);
 $__loggerCfg->maintainerId = $maintainer_telegram_id_number ?? null;
 Logger::init($__loggerCfg);
+foreach ($__loggerCfg->warnings as $__w) Logger::warning($__w);
 Logger::addHandler(new FileHandler($__loggerCfg->logDir, $__loggerCfg->retentionDays));
 if ($__loggerCfg->telegramEnabled) Logger::addHandler(new TelegramHandler(TelegramHandler::defaultSender($__loggerCfg->maintainerId, isset($config['token']) ? $config['token'] : null), $__loggerCfg->telegramMinLevel, $__loggerCfg->dedupWindowSeconds));
 unset($__loggerCfg);
