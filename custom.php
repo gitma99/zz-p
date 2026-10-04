@@ -18,8 +18,7 @@ function get_users_usage($user_id)
             $config_location = $row['location'];
 
             if (!array_key_exists($config_location, $panel_cache)) {
-                $info_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$config_location'");
-                $panel_cache[$config_location] = $info_panel->fetch_assoc();
+                $panel_cache[$config_location] = get_panel_by_name($config_location);
             }
             $panel = $panel_cache[$config_location];
             $getUserInfoRes = getUserInfo($config_name, get_marzban_panel_token($config_location), $panel['login_link']);
@@ -173,9 +172,7 @@ function change_account_status($text, $from_id)
                 $config_location_name = $config_array['location'];
                 sendMessage($from_id, $my_texts['account_status_changer_service_config_found'],);
 
-                sleep(0.5);
-
-                $panel_info = $sql->query("SELECT * FROM `panels` WHERE `name` = '$config_location_name'")->fetch_assoc();
+                $panel_info = get_panel_by_name($config_location_name);
                 $panel_token = get_marzban_panel_token($config_location_name);
                 $panel_url = $panel_info['login_link'];
 
@@ -293,11 +290,11 @@ function renewal_service($text, $from_id)
                 'old_server' => $old_config_location['location']
             );
             write_renewal_json($from_id, $user_array);
-            $servers = $sql->query("SELECT * FROM `panels` WHERE `status` = 'active'");
-            if ($servers->num_rows > 0) {
+            $server_rows = get_active_panels();
+            if (count($server_rows) > 0) {
                 if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0)
                     $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
-                while ($row = $servers->fetch_assoc()) {
+                foreach ($server_rows as $row) {
                     $location[] = ['text' => $row['name']];
                 }
                 $location = array_chunk($location, 2);
@@ -318,8 +315,8 @@ function renewal_service($text, $from_id)
 
         write_renewal_json($from_id, $renewal_data);
 
-        $plans = $sql->query("SELECT * FROM `category` WHERE `status` = 'active'");
-        while ($row = $plans->fetch_assoc()) {
+        $plan_rows = get_active_categories();
+        foreach ($plan_rows as $row) {
             $plan[] = ['text' => $row['name']];
         }
         $plan = array_chunk($plan, 2);
@@ -342,7 +339,7 @@ function renewal_service($text, $from_id)
             $code_base = $renewal_data['config_base_name'];
 
 
-            $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$location'")->fetch_assoc();
+            $panel = get_panel_by_name($location);
 
             // $getUser = getUserInfo($code, $panel['token'], $panel['login_link']);
 

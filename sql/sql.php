@@ -245,6 +245,12 @@ mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `task_results` (
     `created_at` datetime NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
 
+// Migration: index for SKIP LOCKED worker claim (row-level locking needs status index)
+$check_idx = $sql->query("SHOW INDEX FROM `task_queue` WHERE Key_name = 'idx_status_id'");
+if ($check_idx && $check_idx->num_rows == 0) {
+    $sql->query("ALTER TABLE `task_queue` ADD INDEX `idx_status_id` (`status`, `id`)");
+}
+
 if ($sql->connect_error) {
 	echo json_encode(['status' => false, 'msg' => '❌ The connection with the database encountered an error : ' . $sql->connect_error, 'status_code' => 401], 448);
 } else {

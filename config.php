@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . "/App/vars.php";
+require_once __DIR__ . "/App/Utils/request_cache.php";
 
 date_default_timezone_set('Asia/Tehran');
 error_reporting(E_ALL ^ E_NOTICE);
@@ -14,6 +15,16 @@ if (!$config) {
 $config['version'] = '3.0.1';
 $config['domain'] = 'https://' . $_SERVER['HTTP_HOST'] . '/' . explode('/', explode('html/', $_SERVER['SCRIPT_FILENAME'])[1])[0];
 $maintainer_telegram_id_number = $config['maintainer'];
+require_once __DIR__ . "/App/Utils/Logger.php";
+require_once __DIR__ . "/App/Utils/handlers/FileHandler.php";
+require_once __DIR__ . "/App/Utils/handlers/TelegramHandler.php";
+require_once __DIR__ . "/App/apis/telegram-api/api/send_file.php";
+$__loggerCfg = LoggerConfig::fromArray($config['logging'] ?? []);
+$__loggerCfg->maintainerId = $maintainer_telegram_id_number ?? null;
+Logger::init($__loggerCfg);
+Logger::addHandler(new FileHandler($__loggerCfg->logDir, $__loggerCfg->retentionDays));
+if ($__loggerCfg->telegramEnabled) Logger::addHandler(new TelegramHandler(TelegramHandler::defaultSender($__loggerCfg->maintainerId, isset($config['token']) ? $config['token'] : null), $__loggerCfg->telegramMinLevel, $__loggerCfg->dedupWindowSeconds));
+unset($__loggerCfg);
 $db_host = $config['database']['db_host'] ?? (getenv('DB_HOST') ?: 'localhost');
 $sql = new mysqli($db_host, $config['database']['db_username'], $config['database']['db_password'], $config['database']['db_name']);
 $sql->set_charset("utf8mb4");
@@ -82,23 +93,18 @@ if (!isset($sql->connect_error)) {
             ")) {
                 $test_account_setting = ($result = $sql->store_result()) ? $result->fetch_assoc() : null;
                 if ($result) $result->free();
-                
                 $sql->next_result();
                 $payment_setting = ($result = $sql->store_result()) ? $result->fetch_assoc() : null;
                 if ($result) $result->free();
-                
                 $sql->next_result();
                 $spam_setting = ($result = $sql->store_result()) ? $result->fetch_assoc() : null;
                 if ($result) $result->free();
-                
                 $sql->next_result();
                 $auth_setting = ($result = $sql->store_result()) ? $result->fetch_assoc() : null;
                 if ($result) $result->free();
-                
                 $sql->next_result();
                 $settings = ($result = $sql->store_result()) ? $result->fetch_assoc() : null;
                 if ($result) $result->free();
-                
                 while ($sql->more_results() && $sql->next_result()) {
                     if ($discard = $sql->store_result()) {
                         $discard->free();
@@ -169,14 +175,19 @@ function convertToBytes($from)
 function isJoin($from_id)
 {
     global $sql;
-    $lockSQL = $sql->query("SELECT `chat_id` FROM `lock`");
-    if ($lockSQL->num_rows > 0) {
-        $result = [];
-        while ($id = $lockSQL->fetch_assoc()) {
-            $status = bot('getChatMember', ['chat_id' => $id['chat_id'], 'user_id' => $from_id])['result']['status'];
-            $result[] = $status;
+    $force_join_channels = $sql->query("SELECT `chat_id` FROM `lock`");
+    if (!$force_join_channels || $force_join_channels->num_rows === 0) return true;
+    while ($id = $force_join_channels->fetch_assoc()) {
+        $ck = 'join:' . $id['chat_id'] . ':' . $from_id;
+        if (function_exists('apcu_fetch')) {
+            $hit = false;
+            apcu_fetch('apcu:' . $ck, $hit);
+            if ($hit) continue;
         }
-        return !in_array('left', $result);
+        $s = bot('getChatMember', ['chat_id' => $id['chat_id'], 'user_id' => $from_id]);
+        $status = isset($s['result']['status']) ? $s['result']['status'] : 'left';
+        if ($status === 'left') return false;
+        if (function_exists('apcu_store')) apcu_store('apcu:' . $ck, $status, 60);
     }
     return true;
 }
@@ -184,17 +195,25 @@ function isJoin($from_id)
 function joinSend($from_id)
 {
     global $sql, $texts;
-    $lockSQL = $sql->query("SELECT `chat_id`, `name` FROM `lock`");
+    $force_join_channels = $sql->query("SELECT `chat_id`, `name` FROM `lock`");
     $buttons = [];
-    while ($row = $lockSQL->fetch_assoc()) {
+    while ($row = $force_join_channels->fetch_assoc()) {
         $link = $row['chat_id'];
-        if ($link) {
-            $chat_member = bot('getChatMember', ['chat_id' => $link, 'user_id' => $from_id]);
-            if ($chat_member['ok'] && $chat_member['result']['status'] == 'left') {
-                $link = str_replace("@", "", $link);
-                $buttons[] = [['text' => $row['name'], 'url' => "https://t.me/$link"]];
-            }
+        if (!$link) continue;
+        $ck = 'joinSend:' . $link . ':' . $from_id;
+        if (function_exists('apcu_fetch')) {
+            $hit = false;
+            apcu_fetch('apcu:' . $ck, $hit);
+            if ($hit) continue;
         }
+        $chat_member = bot('getChatMember', ['chat_id' => $link, 'user_id' => $from_id]);
+        if (isset($chat_member['ok']) && $chat_member['ok'] && $chat_member['result']['status'] == 'left') {
+            $link = str_replace("@", "", $link);
+            $buttons[] = [['text' => $row['name'], 'url' => "https://t.me/$link"]];
+            continue;
+        }
+        if (!isset($chat_member['ok']) || !$chat_member['ok']) continue;
+        if (function_exists('apcu_store')) apcu_store('apcu:' . $ck, $chat_member, 60);
     }
     if (count($buttons) > 0) {
         $buttons[] = [['text' => "عضو شدم ✅", 'callback_data' => 'join']];

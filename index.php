@@ -130,12 +130,12 @@ try {
             $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
         sendMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $start_key);
     } elseif ($text == '🛒 خرید سرویس') {
-        $servers = $sql->query("SELECT * FROM `panels` WHERE `status` = 'active'");
-        if ($servers->num_rows > 0) {
+        $server_rows = get_active_panels();
+        if (count($server_rows) > 0) {
             step('buy_service');
             if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0)
                 $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
-            while ($row = $servers->fetch_assoc()) {
+            foreach ($server_rows as $row) {
                 $location[] = ['text' => $row['name']];
             }
             $location = array_chunk($location, 2);
@@ -152,8 +152,8 @@ try {
             exit(1);
         } else {
             step('select_plan');
-            $plans = $sql->query("SELECT * FROM `category` WHERE `status` = 'active'");
-            while ($row = $plans->fetch_assoc()) {
+            $plan_rows = get_active_categories();
+            foreach ($plan_rows as $row) {
                 $plan[] = ['text' => $row['name']];
             }
             $plan = array_chunk($plan, 2);
@@ -203,7 +203,7 @@ try {
             exit(0);
         };
 
-        $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$location'")->fetch_assoc();
+        $panel = get_panel_by_name($location);
         $getUser = getUserInfo($code, get_marzban_panel_token($location), $panel['login_link']);
         # if ($getUser['detail'] == 'Could not validate credentials') {
         // if (in_array($getUser['detail'], ['Could not validate credentials', 'Not authenticated'])) {
@@ -211,7 +211,7 @@ try {
             $new_marzban_token = get_marzban_panel_token($panel['name']);
 
             if ($new_marzban_token !== false) {
-                $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$location'")->fetch_assoc();
+                $panel = get_panel_by_name($location);
                 $getUser = getUserInfo($code, get_marzban_panel_token($location), $panel['login_link']);
             } else {
                 $plan = [];
@@ -1360,10 +1360,10 @@ try {
     } elseif (strpos($data, 'buy_extra_time') !== false) {
         $code = explode('-', $data)[1];
         $type = explode('-', $data)[2];
-        $category_date = $sql->query("SELECT * FROM `category_date` WHERE `status` = 'active'");
+        $category_date_rows = get_active_date_plans();
 
-        if ($category_date->num_rows > 0) {
-            while ($row = $category_date->fetch_assoc()) {
+        if (count($category_date_rows) > 0) {
+            foreach ($category_date_rows as $row) {
                 $key[] = ['text' => $row['name'], 'callback_data' => 'select_extra_time-' . $row['code'] . '-' . $code];
             }
             $key = array_chunk($key, 2);
@@ -1376,10 +1376,10 @@ try {
     } elseif (strpos($data, 'buy_extra_volume') !== false) {
         $code = explode('-', $data)[1];
         $type = explode('-', $data)[2];
-        $category_limit = $sql->query("SELECT * FROM `category_limit` WHERE `status` = 'active'");
+        $category_limit_rows = get_active_limit_plans();
 
-        if ($category_limit->num_rows > 0) {
-            while ($row = $category_limit->fetch_assoc()) {
+        if (count($category_limit_rows) > 0) {
+            foreach ($category_limit_rows as $row) {
                 $key[] = ['text' => $row['name'], 'callback_data' => 'select_extra_volume-' . $row['code'] . '-' . $code];
             }
             $key = array_chunk($key, 2);
@@ -3161,11 +3161,11 @@ try {
                 sendMessage($from_id, "❌ عدد ارسالی شما اشتباه است !", $back_spam);
             }
         } elseif ($text == '◽کانال ها') {
-            $lockSQL = $sql->query("SELECT `chat_id`, `name` FROM `lock`");
-            if (mysqli_num_rows($lockSQL) > 0) {
+            $force_join_channels = $sql->query("SELECT `chat_id`, `name` FROM `lock`");
+            if (mysqli_num_rows($force_join_channels) > 0) {
                 $locksText = "☑️ به بخش (🔒 بخش قفل ها) خوش امدید\n\n🚦 راهنما :\n1 - 👁 برای مشاهده ی هر کدام روی اسم ان بزنید.\n2 - برای حذف هر کدام روی دکمه ی ( 🗑 ) بزنید\n3 - برای افزودن قفل روی دکمه ی ( ➕ افزودن قفل ) بزنید";
                 $button[] = [['text' => '🗝 نام قفل', 'callback_data' => 'none'], ['text' => '🗑 حذف', 'callback_data' => 'none']];
-                while ($row = $lockSQL->fetch_assoc()) {
+                while ($row = $force_join_channels->fetch_assoc()) {
                     $name = $row['name'];
                     $link = str_replace("@", "", $row['chat_id']);
                     $button[] = [['text' => $name, 'url' => "https://t.me/$link"], ['text' => '🗑', 'callback_data' => "remove_lock-{$row['chat_id']}"]];
@@ -3212,11 +3212,11 @@ try {
         } elseif (strpos($data, "remove_lock-") !== false) {
             $link = explode("-", $data)[1];
             $sql->query("DELETE FROM `lock` WHERE `chat_id` = '$link' LIMIT 1");
-            $lockSQL = $sql->query("SELECT `chat_id`, `name` FROM `lock`");
-            if (mysqli_num_rows($lockSQL) > 0) {
+            $force_join_channels = $sql->query("SELECT `chat_id`, `name` FROM `lock`");
+            if (mysqli_num_rows($force_join_channels) > 0) {
                 $locksText = "☑️ به بخش (🔒 بخش قفل ها) خوش امدید\n\n🚦 راهنما :\n1 - 👁 برای مشاهده ی هر کدام روی اسم ان بزنید.\n2 - برای حذف هر کدام روی دکمه ی ( 🗑 ) بزنید\n3 - برای افزودن قفل روی دکمه ی ( ➕ افزودن قفل ) بزنید";
                 $button[] = [['text' => '🗝 نام قفل', 'callback_data' => 'none'], ['text' => '🗑 حذف', 'callback_data' => 'none']];
-                while ($row = $lockSQL->fetch_assoc()) {
+                while ($row = $force_join_channels->fetch_assoc()) {
                     $name = $row['name'];
                     $link = str_replace("@", "", $row['chat_id']);
                     $button[] = [['text' => $name, 'url' => "https://t.me/$link"], ['text' => '🗑', 'callback_data' => "remove_lock_{$row['chat_id']}"]];
@@ -3570,12 +3570,6 @@ try {
             'error_trace_string' => $e->getTraceAsString(),
         ]
     ];
-    error_log(json_encode($report, 448));
-    $init_msg = "☢ FATAL_ERROR ☢\n\n";
-    $init_msg .= "⭕ USER_ID: {$from_id}\n";
-    $init_msg .= "⭕ USER_NAME: {$username}";
-    // ================= Send debug array
-    send_debug_msg_to_maintainer($init_msg, $maintainer_telegram_id_number);
-    send_debug_data_to_maintainer(json_encode($report, 448), $maintainer_telegram_id_number, TRUE);
+    Logger::error('Fatal exception', array('report' => $report), false);
     sendMessage($from_id, $texts['error_encounter_msg']);
 }

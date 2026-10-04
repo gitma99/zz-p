@@ -44,9 +44,4 @@ function send_debug_msg_to_maintainer($text, $dev_id, $exit = false)
         exit(0);
     }
 }
-
-function send_multiple_debug_msg_to_maintainer($dev_id, $exit = false, ...$content_array)
-{
-    return send_debug_msg_to_maintainer(json_encode($content_array, 448), $dev_id, $exit = false);
-}
 ?>

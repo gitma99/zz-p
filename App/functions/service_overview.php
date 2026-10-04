@@ -123,6 +123,7 @@ function fetch_user_service_overview($target_user_id, $sql) {
     
         # ==== Archive then delete unknown services safely ==== #
         # For safety we archive the full row into `orders_archive` and then delete by `id` inside a transaction.
+        $sql->query("CREATE TABLE IF NOT EXISTS `orders_archive` LIKE `orders`");
         foreach ($location_sorted_objs as $service_location_name => $location_detail) {
             foreach ($location_detail['unknown_services'] as $service_username => $svc) {
                 $order_id = (int)($svc['row'] ?? 0);
@@ -136,9 +137,6 @@ function fetch_user_service_overview($target_user_id, $sql) {
                         'total_traffic_used' => $total_traffic_used
                     ];
                 }
-
-                // ensure archive table exists (create as copy of structure)
-                $sql->query("CREATE TABLE IF NOT EXISTS `orders_archive` LIKE `orders`");
 
                 // perform archive + delete inside transaction
                 $sql->begin_transaction();

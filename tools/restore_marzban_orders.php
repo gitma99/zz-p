@@ -70,6 +70,7 @@ logline("Run started: id={$run_id}, log={$logFile}, csv={$csvFile}");
 function logline($s)
 {
     global $logHandle;
+    Logger::info($s);
     $time = date('Y-m-d H:i:s');
     $line = "[$time] $s\n";
     echo $line;

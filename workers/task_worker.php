@@ -8,12 +8,9 @@ require_once __DIR__ . '/../App/apis/telegram-api/utils/api_utils.php';
 require_once __DIR__ . '/../App/apis/marzban-api/api.php';
 require_once __DIR__ . '/../App/functions/service_overview.php';
 
-$log_file = __DIR__ . '/../logs/worker.log';
-
 function log_message($msg) {
-    global $log_file;
     $date = date('Y-m-d H:i:s');
-    file_put_contents($log_file, "[$date] $msg\n", FILE_APPEND);
+    Logger::info($msg);
     echo "[$date] $msg\n";
 }
 
@@ -23,23 +20,28 @@ while (true) {
     // 1. Recover stale tasks (locked for more than 5 minutes)
     $sql->query("UPDATE `task_queue` SET `status` = 'pending', `started_at` = NULL, `locked_at` = NULL WHERE `status` = 'running' AND `locked_at` < NOW() - INTERVAL 5 MINUTE");
     
-    // 2. Claim one pending task atomically
-    $sql->query("UPDATE `task_queue` SET `status` = 'running', `started_at` = NOW(), `locked_at` = NOW() WHERE `status` = 'pending' ORDER BY `id` ASC LIMIT 1");
-    
-    if ($sql->affected_rows === 0) {
+    // 2. Claim one pending task (row lock held via transaction until COMMIT)
+    $sql->begin_transaction();
+    $claim = $sql->query("SELECT `id` FROM `task_queue` WHERE `status` = 'pending' ORDER BY `id` ASC LIMIT 1 FOR UPDATE SKIP LOCKED");
+
+    if (!$claim || $claim->num_rows === 0) {
+        $sql->rollback();
         sleep(3);
         continue;
     }
-    
+
+    $task_id = (int)$claim->fetch_assoc()['id'];
+    $sql->query("UPDATE `task_queue` SET `status` = 'running', `started_at` = NOW(), `locked_at` = NOW() WHERE `id` = $task_id");
+    $sql->commit();
+
     // 3. Fetch the claimed task
-    $task_res = $sql->query("SELECT * FROM `task_queue` WHERE `status` = 'running' ORDER BY `started_at` DESC LIMIT 1");
+    $task_res = $sql->query("SELECT * FROM `task_queue` WHERE `id` = $task_id");
     if (!$task_res || $task_res->num_rows === 0) {
         sleep(3);
         continue;
     }
-    
+
     $task = $task_res->fetch_assoc();
-    $task_id = $task['id'];
     $payload = json_decode($task['payload'], true);
     $user_id = $payload['user_id'] ?? null;
     $chat_id = $payload['chat_id'] ?? null;

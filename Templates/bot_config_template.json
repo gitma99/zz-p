@@ -7,5 +7,15 @@
         "db_username": "[*DB-USER*]",
         "db_password": "[*DB-PASS*]"
     },
-    "maintainer": "1212754771"
+    "maintainer": "1212754771",
+    "logging": {
+        "level": "INFO",
+        "buffer_size": 1000,
+        "retention_days": 30,
+        "telegram": {
+            "enabled": true,
+            "min_level": "ERROR",
+            "dedup_window_seconds": 3600
+        }
+    }
 }

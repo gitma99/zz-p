@@ -115,7 +115,7 @@ function loginPanel($address, $username, $password)
     $response = curl_exec($curl);
     if ($response === false) {
         sendMessage($from_id, curl_error($curl), $cancel_add_server);
-        error_log('cURL Error: ' . curl_error($curl));
+        Logger::error('Marzban cURL error', ['error' => curl_error($curl)]);
         curl_close($curl);
     } else {
         curl_close($curl);
