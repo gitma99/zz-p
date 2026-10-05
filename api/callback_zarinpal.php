@@ -3,6 +3,7 @@
 if (!isset($_GET['code'], $_GET['price'], $_GET['from_id'])) die(json_encode(['status' => false, 'msg' => 'Some mandatory parameters have not been sent!', 'code' => 404], 448));
 
 include_once '../config.php';
+require_once __DIR__ . '/../App/apis/telegram-api/api/send_message.php';
 
 $factor = $sql->query("SELECT * FROM `factors` WHERE `code` = '{$_GET['code']}'");
 $setting = $sql->query("SELECT `zarinpal_token` FROM `payment_setting`")->fetch_assoc();

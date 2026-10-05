@@ -40,7 +40,7 @@ class FakeSql {
 
 function check_config_defaults() {
     $cfg = LoggerConfig::fromArray(array());
-    assert($cfg->level === 'INFO');
+    assert($cfg->level === 'WARNING');
     assert($cfg->bufferSize === 1000);
     $h = new NullHandler();
     $h->handle(array('msg' => 'x'));
@@ -85,7 +85,7 @@ function check_logger_core() {
     assert(!empty($null->seen[1]['trace']));
     // Buffer of 1 drops oldest.
     Logger::setInstance(null);
-    Logger::init(LoggerConfig::fromArray(array('buffer_size' => 1)));
+    Logger::init(LoggerConfig::fromArray(array('level' => 'INFO', 'buffer_size' => 1)));
     $n2 = new NullHandler();
     Logger::addHandler($n2);
     Logger::info('first', array());
@@ -240,6 +240,7 @@ check_ddl_hoist();
 check_batch_flags();
 check_env_overrides();
 check_env_invalid();
+check_telegram_api_single();
 echo "ALL CHECKS PASSED\n";
 
 function check_env_overrides() {
@@ -266,10 +267,39 @@ function check_env_invalid() {
     putenv('LOG_BUFFER_SIZE=abc');
     putenv('LOG_TELEGRAM_ENABLED=maybe');
     $cfg = LoggerConfig::fromArray(array());
-    assert($cfg->level === 'INFO');
+    assert($cfg->level === 'WARNING');
     assert($cfg->bufferSize === 1000);
     assert($cfg->telegramEnabled === true);
     assert(count($cfg->warnings) === 3);
     foreach (array('LOG_LEVEL','LOG_BUFFER_SIZE','LOG_TELEGRAM_ENABLED') as $k) putenv($k);
     echo "env invalid falls back with warnings: OK\n";
+}
+
+function check_telegram_api_single() {
+    assert(!is_file(__DIR__ . '/../App/apis/telegram-api/api.php'));
+    $utils = file_get_contents(__DIR__ . '/../App/apis/telegram-api/utils/api_utils.php');
+    assert(strpos($utils, 'retry_on_failure_count') !== false);
+    assert(strpos($utils, "'sendPhoto'") !== false);
+    assert(strpos($utils, "'editMessageReplyMarkup'") !== false);
+    assert(strpos($utils, "'getChatMember'") !== false);
+    assert(strpos($utils, "'getChat'") !== false);
+    assert(strpos($utils, "'getMe'") !== false);
+    assert(strpos($utils, 'strtolower($method)') !== false);
+    assert(is_file(__DIR__ . '/../App/apis/telegram-api/api/edit_message_reply_markup.php'));
+    assert(is_file(__DIR__ . '/../App/apis/telegram-api/api/send_photo.php'));
+    assert(is_file(__DIR__ . '/../App/apis/telegram-api/api/get_chat_member.php'));
+    assert(is_file(__DIR__ . '/../App/apis/telegram-api/api/get_chat.php'));
+    $helpers = array('send_message.php','send_file.php','send_photo.php','forward_message.php','edit_message.php','delete_message.php','send_alert.php','edit_message_reply_markup.php','get_chat_member.php','get_chat.php');
+    foreach ($helpers as $hf) {
+        $src = file_get_contents(__DIR__ . '/../App/apis/telegram-api/api/' . $hf);
+        assert(strpos($src, 'Logger::warning') !== false);
+        assert(strpos($src, 'Logger::info') !== false);
+    }
+    echo "telegram helpers log warnings: OK\n";
+    $del = file_get_contents(__DIR__ . '/../App/apis/telegram-api/api/delete_message.php');
+    assert(strpos($del, "bot('deleteMessages'") !== false);
+    $resp = file_get_contents(__DIR__ . '/../App/apis/telegram-api/functions/responses.php');
+    assert(strpos($resp, 'Logger::warning') !== false);
+    assert(strpos($resp, 'Logger::error') !== false);
+    echo "telegram api single source: OK\n";
 }

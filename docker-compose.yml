@@ -6,7 +6,7 @@ services:
     env_file: .env
     environment:
       DB_HOST: mysql
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_LEVEL: ${LOG_LEVEL:-WARNING}
       LOG_BUFFER_SIZE: ${LOG_BUFFER_SIZE:-1000}
       LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-30}
       LOG_TELEGRAM_ENABLED: ${LOG_TELEGRAM_ENABLED:-true}
@@ -108,7 +108,7 @@ services:
     env_file: .env
     environment:
       DB_HOST: mysql
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_LEVEL: ${LOG_LEVEL:-WARNING}
       LOG_BUFFER_SIZE: ${LOG_BUFFER_SIZE:-1000}
       LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-30}
       LOG_TELEGRAM_ENABLED: ${LOG_TELEGRAM_ENABLED:-true}

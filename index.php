@@ -16,10 +16,14 @@ try {
     require_once __DIR__ . "/App/Debug/debug.php";
     require_once __DIR__ . "/App/apis/telegram-api/api/delete_message.php";
     require_once __DIR__ . "/App/apis/telegram-api/api/edit_message.php";
+    require_once __DIR__ . "/App/apis/telegram-api/api/edit_message_reply_markup.php";
     require_once __DIR__ . "/App/apis/telegram-api/api/forward_message.php";
     require_once __DIR__ . "/App/apis/telegram-api/api/send_alert.php";
     require_once __DIR__ . "/App/apis/telegram-api/api/send_file.php";
     require_once __DIR__ . "/App/apis/telegram-api/api/send_message.php";
+    require_once __DIR__ . "/App/apis/telegram-api/api/send_photo.php";
+    require_once __DIR__ . "/App/apis/telegram-api/api/get_chat_member.php";
+    require_once __DIR__ . "/App/apis/telegram-api/api/get_chat.php";
     require_once __DIR__ . "/App/apis/telegram-api/functions/responses.php";
     require_once __DIR__ . "/App/Utils/temp_tools.php";
 
@@ -143,7 +147,7 @@ try {
             $location = json_encode(['keyboard' => $location, 'resize_keyboard' => true]);
             sendMessage($from_id, $texts['select_location'], $location);
         } else {
-            sendmessage($from_id, $texts['inactive_buy_service'], $start_key);
+            sendMessage($from_id, $texts['inactive_buy_service'], $start_key);
         }
     } elseif ($user['step'] == 'buy_service') {
         $response = $sql->query("SELECT `name` FROM `panels` WHERE `name` = '$text'");
@@ -323,7 +327,7 @@ try {
         }
         # ---------------- check database ----------------#
         if ($get_plan->num_rows == 0) {
-            sendmessage($from_id, sprintf($texts['create_error'], 0), $start_key);
+            sendMessage($from_id, sprintf($texts['create_error'], 0), $start_key);
             throw new Exception("Plan check failed: plan '$plan' not found in database.");
         }
         # ---------------- create service proccess ---------------- #
@@ -355,7 +359,7 @@ try {
             $token = loginPanel($panel['login_link'], $panel['username'], $panel['password'])['access_token'];
             if ($token == false) {
                 step('none');
-                sendmessage($from_id, $my_texts['error_show_service__token_is_incorrect'], $start_key);
+                sendMessage($from_id, $my_texts['error_show_service__token_is_incorrect'], $start_key);
                 exit();
             }
             $create_service = createService($name, convertToBytes($limit . 'GB'), strtotime("+ $date day"), $proxies, ($panel_inbounds->num_rows > 0) ? $inbounds : 'all', $token, $panel['login_link']);
@@ -378,9 +382,9 @@ try {
                 $message_text = sprintf($texts['success_create_service'], $code_base, $location, $date, $limit, number_format($price), $subscribe, '@' . $getMe['result']['username']);
                 sendSuccessResponse($from_id, $panel['qr_code'], $subscribe, $caption_text, $message_text, $start_key);
                 $sql->query("INSERT INTO `orders` (`from_id`, `location`, `protocol`, `date`, `volume`, `link`, `price`, `code`, `status`, `type`) VALUES ('$from_id', '$location', 'null', '$date', '$limit', '$links', '$price', '$code_base', 'active', 'marzban')");
-                // sendmessage($config['dev'], sprintf($texts['success_create_notif']), $first_name, $username, $from_id, $user['count_service'], $user['coin'], $location, $plan, $limit, $date, $code, number_format($price));
+                // sendMessage($config['dev'], sprintf($texts['success_create_notif']), $first_name, $username, $from_id, $user['count_service'], $user['coin'], $location, $plan, $limit, $date, $code, number_format($price));
             } else {
-                sendmessage($from_id, sprintf($texts['create_error'], 2), $start_key);
+                sendMessage($from_id, sprintf($texts['create_error'], 2), $start_key);
                 throw new Exception("Panel exists check failed on success check: panel '$location' not found in database.");
             }
         } elseif ($panel['type'] == 'sanayi') {
@@ -1330,7 +1334,7 @@ try {
             if (isset($getUser['links']) and $getUser != false) {
                 $subscribe = (strpos($getUser['subscription_url'], 'http') !== false) ? $getUser['subscription_url'] : $panel['login_link'] . $getUser['subscription_url'];
                 $encode_url = urldecode($subscribe);
-                bot('sendPhoto', ['chat_id' => $from_id, 'photo' => "https://api.qrserver.com/v1/create-qr-code/?data=$encode_url&size=800x800", 'caption' => "", 'parse_mode' => 'html']);
+                sendPhoto($from_id, "https://api.qrserver.com/v1/create-qr-code/?data=$encode_url&size=800x800");
             } else {
                 alert('❌ Error', true);
             }
@@ -1338,7 +1342,7 @@ try {
             $order = $sql->query("SELECT * FROM `orders` WHERE `code` = '$code' AND `from_id` = '$from_id'")->fetch_assoc();
             $link = $order['link'];
             $encode_url = urlencode($link);
-            bot('sendPhoto', ['chat_id' => $from_id, 'photo' => "https://api.qrserver.com/v1/create-qr-code/?data=$encode_url&size=800x800", 'caption' => "", 'parse_mode' => 'html']);
+            sendPhoto($from_id, "https://api.qrserver.com/v1/create-qr-code/?data=$encode_url&size=800x800");
         } else {
             alert('❌ Error -> not found type !', true);
         }
@@ -1675,11 +1679,7 @@ try {
                 ]
             ]
         ]);
-        bot('editMessageReplyMarkup', [
-            'chat_id' => $chat_id,
-            'message_id' => $message_id,
-            'reply_markup' => $pending_keyboard
-        ]);
+        editMessageReplyMarkup($chat_id, $message_id, $pending_keyboard);
     } elseif ($data == 'pending_task') {
         alert($texts['alert__pending_calculating_results'], true);
     } elseif (strpos($data, 'show_task_result__') !== false) {
@@ -2069,7 +2069,7 @@ try {
             step('none');
             $info = explode("\n", file_get_contents('add_panel.txt'));
             $response = loginPanel($info[1], $info[2], $text);
-            if (isset($response['access_token'])) {
+            if ($response !== false && isset($response['access_token'])) {
                 $code = rand(11111111, 99999999);
                 $sql->query("INSERT INTO `panels` (`name`, `login_link`, `username`, `password`, `token`, `code`, `type`) VALUES ('{$info[0]}', '{$info[1]}', '{$info[2]}', '$text', '{$response['access_token']}', '$code', 'marzban')");
                 sendMessage($from_id, "✅ ربات با موفقیت به پنل شما لاگین شد!\n\n▫️یوزرنیم : <code>{$info[2]}</code>\n▫️پسورد : <code>{$text}</code>\n▫️کد پیگیری : <code>$code</code>", $manage_server);
@@ -2105,7 +2105,7 @@ try {
             $info = explode("\n", file_get_contents('add_plan.txt'));
             $code = rand(1111111, 9999999);
             $sql->query("INSERT INTO `category` (`limit`, `date`, `name`, `price`, `code`, `status`) VALUES ('{$info[1]}', '{$info[2]}', '{$info[0]}', '$text', '$code', 'active')");
-            sendmessage($from_id, "✅ اطلاعات ارسالی شما با موفقیت ثبت و به لیست اضافه شد.\n\n◽حجم ارسالی : <code>{$info[1]}</code>\n◽قیمت ارسالی : <code>$text</code>", $manage_server);
+            sendMessage($from_id, "✅ اطلاعات ارسالی شما با موفقیت ثبت و به لیست اضافه شد.\n\n◽حجم ارسالی : <code>{$info[1]}</code>\n◽قیمت ارسالی : <code>$text</code>", $manage_server);
             if (file_exists('add_plan.txt'))
                 unlink('add_plan.txt');
         } elseif ($data == 'add_limit_plan') {
@@ -2125,7 +2125,7 @@ try {
             $info = explode("\n", file_get_contents('add_plan_limit.txt'));
             $code = rand(1111111, 9999999);
             $sql->query("INSERT INTO `category_limit` (`limit`, `name`, `price`, `code`, `status`) VALUES ('{$info[1]}', '{$info[0]}', '$text', '$code', 'active')");
-            sendmessage($from_id, "✅ اطلاعات ارسالی شما با موفقیت ثبت و به لیست اضافه شد.\n\n◽حجم ارسالی : <code>{$info[1]}</code>\n◽قیمت ارسالی : <code>$text</code>", $manage_server);
+            sendMessage($from_id, "✅ اطلاعات ارسالی شما با موفقیت ثبت و به لیست اضافه شد.\n\n◽حجم ارسالی : <code>{$info[1]}</code>\n◽قیمت ارسالی : <code>$text</code>", $manage_server);
             if (file_exists('add_plan_limit.txt'))
                 unlink('add_plan_limit.txt');
         } elseif ($data == 'add_date_plan') {
@@ -2145,7 +2145,7 @@ try {
             $info = explode("\n", file_get_contents('add_plan_date.txt'));
             $code = rand(1111111, 9999999);
             $sql->query("INSERT INTO `category_date` (`date`, `name`, `price`, `code`, `status`) VALUES ('{$info[1]}', '{$info[0]}', '$text', '$code', 'active')");
-            sendmessage($from_id, "✅ اطلاعات ارسالی شما با موفقیت ثبت و به لیست اضافه شد.\n\n◽حجم ارسالی : <code>{$info[1]}</code>\n◽قیمت ارسالی : <code>$text</code>", $manage_server);
+            sendMessage($from_id, "✅ اطلاعات ارسالی شما با موفقیت ثبت و به لیست اضافه شد.\n\n◽حجم ارسالی : <code>{$info[1]}</code>\n◽قیمت ارسالی : <code>$text</code>", $manage_server);
             if (file_exists('add_plan_date.txt'))
                 unlink('add_plan_date.txt');
         } elseif ($text == '⚙️ لیست سرور ها' or $data == 'back_panellist') {
@@ -2469,7 +2469,7 @@ try {
                     editmessage($from_id, "❌ لیست پلن ها خالی است.", $message_id);
                     exit();
                 } else {
-                    sendmessage($from_id, "❌ لیست پلن ها خالی است.", $manage_server);
+                    sendMessage($from_id, "❌ لیست پلن ها خالی است.", $manage_server);
                     exit();
                 }
             }
@@ -2495,7 +2495,7 @@ try {
                     editmessage($from_id, "❌ لیست پلن ها خالی است.", $message_id);
                     exit();
                 } else {
-                    sendmessage($from_id, "❌ لیست پلن ها خالی است.", $manage_server);
+                    sendMessage($from_id, "❌ لیست پلن ها خالی است.", $manage_server);
                     exit();
                 }
             }
@@ -2521,7 +2521,7 @@ try {
                     editmessage($from_id, "❌ لیست پلن ها خالی است.", $message_id);
                     exit();
                 } else {
-                    sendmessage($from_id, "❌ لیست پلن ها خالی است.", $manage_server);
+                    sendMessage($from_id, "❌ لیست پلن ها خالی است.", $manage_server);
                     exit();
                 }
             }
@@ -2847,19 +2847,19 @@ try {
             $id = file_get_contents('id.txt');
             sendMessage($from_id, "✅ پیام شما با موفقیت به کاربر <code>$id</code> ارسال شد.", $manage_message);
             if (isset($update->message->text)) {
-                sendmessage($id, $text);
+                sendMessage($id, $text);
             } else {
                 $file_id = $update->message->photo[count($update->message->photo) - 1]->file_id;
                 $caption = $update->message->caption;
-                bot('sendphoto', ['chat_id' => $id, 'photo' => $file_id, 'caption' => $caption]);
+                sendPhoto($id, $file_id, $caption);
             }
             unlink('id.txt');
         } elseif ($text == 'ارسال پیام ها 📧') {
             $info_send = $sql->query("SELECT * FROM `sends` WHERE `user` = '$from_id'")->fetch_assoc();
             if (isset($info_send)) {
-                sendmessage($from_id, "درحال ارسال پیام های صف ⌛");
+                sendMessage($from_id, "درحال ارسال پیام های صف ⌛");
             } else {
-                sendmessage($from_id, "صف خالی است ❌");
+                sendMessage($from_id, "صف خالی است ❌");
                 exit(0);
             };
             $url = "http://127.0.0.1/ZZPanelBot/send.php";
@@ -2887,7 +2887,7 @@ try {
             if ($info->num_rows > 0) {
                 step('none');
                 $info = $info->fetch_assoc();
-                $res_get = bot('getchatmember', ['user_id' => $text, 'chat_id' => $text]);
+                $res_get = getChatMember($text, $text);
                 if ($res_get['ok']) {
                     $first_name = $res_get['result']['user']['first_name'];
                     $username = '@' . $res_get['result']['user']['username'];
@@ -2965,7 +2965,7 @@ try {
             if ($info->num_rows > 0) {
                 $info = $info->fetch_assoc();
                 step('none');
-                $res_get = bot('getchatmember', ['user_id' => $text, 'chat_id' => $text]);
+                $res_get = getChatMember($text, $text);
                 $first_name = $res_get->result->user->first_name;
                 $username = '@' . $res_get->result->user->username;
                 $coin = number_format($info['coin']) ?? 0;
@@ -3065,7 +3065,7 @@ try {
             }
         } elseif ($text == '✅ آزاد کردن') {
             step('unblock');
-            sendmessage($from_id, "🔢 ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_to_manage_users);
+            sendMessage($from_id, "🔢 ایدی عددی کاربر مورد نظر را ارسال کنید :", $back_to_manage_users);
         } elseif ($user['step'] == 'unblock' and $text != $texts['back_to_bot_management_button']) {
             $user = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$text'");
             if ($user->num_rows > 0) {
@@ -3185,7 +3185,7 @@ try {
             if (strpos($text, "@") !== false) {
                 if ($sql->query("SELECT * FROM `lock` WHERE `chat_id` = '$text'")->num_rows == 0) {
                     try {
-                        $info_channel = bot('getChatMember', ['chat_id' => $text, 'user_id' => bot('getMe')['result']['id']]);
+                        $info_channel = getChatMember($text, getMe()['result']['id']);
                     } catch (\Throwable $e) {
                         if (strpos($e->getMessage(), 'member list is inaccessible') !== false) {
                             sendMessage($from_id, "❌  ربات دسترسی به لیست اعضای کانال مربوطه ندارد!", $back_panel);
@@ -3196,10 +3196,10 @@ try {
                     }
                     if ($info_channel['result']['status'] == 'administrator') {
                         step('none');
-                        $channel_name = bot('getChat', ['chat_id' => $text])['result']['title'] ?? 'بدون نام';
+                        $channel_name = getChat($text)['result']['title'] ?? 'بدون نام';
                         $sql->query("INSERT INTO `lock`(`name`, `chat_id`) VALUES ('$channel_name', '$text')");
                         $txt = "✅ کانال شما با موفقیت به لیست جوین اجباری اضافه شد.\n\n🆔 - $text";
-                        sendmessage($from_id, $txt, $bot_management_keyboard);
+                        sendMessage($from_id, $txt, $bot_management_keyboard);
                     } else {
                         sendMessage($from_id, "❌  ربات داخل کانال $text ادمین نیست !", $back_panel);
                     }
@@ -3207,7 +3207,7 @@ try {
                     sendMessage($from_id, "❌ این کانال از قبل در ربات ثبت شده است !", $back_panel);
                 }
             } else {
-                sendmessage($from_id, "❌ یوزرنیم ارسالی شما باید با @ باشد !", $back_panel);
+                sendMessage($from_id, "❌ یوزرنیم ارسالی شما باید با @ باشد !", $back_panel);
             }
         } elseif (strpos($data, "remove_lock-") !== false) {
             $link = explode("-", $data)[1];
@@ -3532,7 +3532,7 @@ try {
         } elseif ($text == '⚙️ لیست ادمین ها') {
             $res = $sql->query("SELECT * FROM `admins`");
             if ($res->num_rows == 0) {
-                sendmessage($from_id, "❌ لیست ادمین های ربات خالی است.");
+                sendMessage($from_id, "❌ لیست ادمین های ربات خالی است.");
                 exit();
             }
             while ($row = $res->fetch_array()) {

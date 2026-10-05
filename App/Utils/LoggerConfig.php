@@ -1,6 +1,6 @@
 <?php
 class LoggerConfig {
-    public $level = 'INFO';
+    public $level = 'WARNING';
     public $bufferSize = 1000;
     public $retentionDays = 30;
     public $logDir = '';
@@ -15,7 +15,7 @@ class LoggerConfig {
         $c->level = self::pickLevel(
             getenv('LOG_LEVEL'),
             isset($cfg['level']) ? $cfg['level'] : null,
-            'INFO', $c->warnings, 'LOG_LEVEL'
+            'WARNING', $c->warnings, 'LOG_LEVEL'
         );
         $c->bufferSize = self::pickInt(
             getenv('LOG_BUFFER_SIZE'),

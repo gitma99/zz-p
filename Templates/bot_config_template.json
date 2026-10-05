@@ -9,7 +9,7 @@
     },
     "maintainer": "1212754771",
     "logging": {
-        "level": "INFO",
+        "level": "WARNING",
         "buffer_size": 1000,
         "retention_days": 30,
         "telegram": {

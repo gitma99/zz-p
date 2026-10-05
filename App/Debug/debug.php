@@ -4,7 +4,7 @@ require_once __DIR__ . "/../Utils/open_file.php";
 require_once __DIR__ . "/../Utils/config_tools.php";
 require_once __DIR__ . '/../vars.php';
 
-function send_debug_data_to_maintainer($text_string, $dev_id = null, $delete_debug_file = False, $exit = false) {
+function send_debug_data_to_maintainer($text_string, $dev_id = null, $exit = false) {
     global $LOG_DIR_PATH;
     if (is_null($dev_id)){
         $config = get_config();
@@ -18,10 +18,7 @@ function send_debug_data_to_maintainer($text_string, $dev_id = null, $delete_deb
     $file_path = $LOG_DIR_PATH . "/$file_name";
     write_file($text_string, $file_path);
     sendFile($dev_id, $file_path, $file_name, 'text/plain');
-    if ($delete_debug_file){
-        unlink($file_path);
-    }
-    unlink($file_path);
+    @unlink($file_path);
     if ($exit) {
         exit(0);
     }
@@ -38,7 +35,7 @@ function send_debug_msg_to_maintainer($text, $dev_id, $exit = false)
     }
     $bot_response = sendMessage($dev_id, $text);
     if ($bot_response["ok"] == false) {
-        return send_debug_data_to_maintainer($text, $exit);
+        return send_debug_data_to_maintainer($text, $dev_id, $exit);
     }
     if ($exit) {
         exit(0);

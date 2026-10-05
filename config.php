@@ -19,6 +19,8 @@ require_once __DIR__ . "/App/Utils/Logger.php";
 require_once __DIR__ . "/App/Utils/handlers/FileHandler.php";
 require_once __DIR__ . "/App/Utils/handlers/TelegramHandler.php";
 require_once __DIR__ . "/App/apis/telegram-api/api/send_file.php";
+require_once __DIR__ . "/App/apis/telegram-api/api/edit_message_reply_markup.php";
+require_once __DIR__ . "/App/apis/telegram-api/api/get_chat_member.php";
 $__loggerCfg = LoggerConfig::fromArray($config['logging'] ?? []);
 $__loggerCfg->maintainerId = $maintainer_telegram_id_number ?? null;
 Logger::init($__loggerCfg);
@@ -185,7 +187,7 @@ function isJoin($from_id)
             apcu_fetch('apcu:' . $ck, $hit);
             if ($hit) continue;
         }
-        $s = bot('getChatMember', ['chat_id' => $id['chat_id'], 'user_id' => $from_id]);
+        $s = getChatMember($id['chat_id'], $from_id);
         $status = isset($s['result']['status']) ? $s['result']['status'] : 'left';
         if ($status === 'left') return false;
         if (function_exists('apcu_store')) apcu_store('apcu:' . $ck, $status, 60);
@@ -207,7 +209,7 @@ function joinSend($from_id)
             apcu_fetch('apcu:' . $ck, $hit);
             if ($hit) continue;
         }
-        $chat_member = bot('getChatMember', ['chat_id' => $link, 'user_id' => $from_id]);
+        $chat_member = getChatMember($link, $from_id);
         if (isset($chat_member['ok']) && $chat_member['ok'] && $chat_member['result']['status'] == 'left') {
             $link = str_replace("@", "", $link);
             $buttons[] = [['text' => $row['name'], 'url' => "https://t.me/$link"]];
@@ -218,7 +220,7 @@ function joinSend($from_id)
     }
     if (count($buttons) > 0) {
         $buttons[] = [['text' => "عضو شدم ✅", 'callback_data' => 'join']];
-        sendmessage($from_id, $texts['send_join'], json_encode(['inline_keyboard' => $buttons]));
+        sendMessage($from_id, $texts['send_join'], json_encode(['inline_keyboard' => $buttons]));
     }
 }
 

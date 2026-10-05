@@ -303,7 +303,7 @@ function renewal_service($text, $from_id)
                 step('renewal_service_choose_server');
                 sendMessage($from_id, $my_texts['renewal_service_server_selection'], $location);
             } else {
-                sendmessage($from_id, $texts['inactive_buy_service'], $start_key);
+                sendMessage($from_id, $texts['inactive_buy_service'], $start_key);
             }
         } else {
             step('renewal_service_get_service_name');
@@ -391,7 +391,7 @@ function renewal_service($text, $from_id)
 
         # --------------- check if panel exists -------------- #
         if ($info_panel->num_rows == 0) {
-            sendmessage($from_id, sprintf($texts['create_error'], 2), $start_key);
+            sendMessage($from_id, sprintf($texts['create_error'], 2), $start_key);
             throw new Exception("Panel exists check failed: panel '$location' not found in database.");
         }
 
@@ -405,12 +405,12 @@ function renewal_service($text, $from_id)
         }
         # ---------------- check database ----------------#
         if ($get_plan->num_rows == 0) {
-            sendmessage($from_id, sprintf($texts['create_error'], 0), $start_key);
+            sendMessage($from_id, sprintf($texts['create_error'], 0), $start_key);
             throw new Exception("Plan check failed: plan '$plan' not found in category table.");
         }
         # ---------------- create service proccess ---------------- #
         if ($panel['type'] !== 'marzban') {
-            sendmessage($from_id, "Not implanted Error", $start_key);
+            sendMessage($from_id, "Not implanted Error", $start_key);
             exit();
         }
         # ---------------- create service ---------------- #
@@ -418,7 +418,7 @@ function renewal_service($text, $from_id)
 
         if ($token == false) {
             step('none');
-            sendmessage($from_id, $my_texts['error_show_service__token_is_incorrect'], $start_key);
+            sendMessage($from_id, $my_texts['error_show_service__token_is_incorrect'], $start_key);
             exit();
         }
         $renewal_service = marzban_renewal_api($name, convertToBytes($limit . 'GB'), strtotime("+ $date day"), $token, $panel['login_link']);

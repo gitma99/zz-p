@@ -91,7 +91,6 @@ function marzban_renewal_api($username, $new_traffic_limit, $new_expire_time, $t
 
 function loginPanel($address, $username, $password)
 {
-    global $from_id, $cancel_add_server;
     $fields = array('username' => $username, 'password' => $password);
     $curl = curl_init($address . '/api/admin/token');
     $marzban_login_headers = array(
@@ -114,9 +113,9 @@ function loginPanel($address, $username, $password)
     );
     $response = curl_exec($curl);
     if ($response === false) {
-        sendMessage($from_id, curl_error($curl), $cancel_add_server);
-        Logger::error('Marzban cURL error', ['error' => curl_error($curl)]);
+        Logger::error('Marzban panel login failed', array('error' => curl_error($curl)));
         curl_close($curl);
+        return false;
     } else {
         curl_close($curl);
         return json_decode($response, true);

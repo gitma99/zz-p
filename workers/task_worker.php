@@ -4,7 +4,6 @@ if (php_sapi_name() !== 'cli') {
 }
 
 require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../App/apis/telegram-api/utils/api_utils.php';
 require_once __DIR__ . '/../App/apis/marzban-api/api.php';
 require_once __DIR__ . '/../App/functions/service_overview.php';
 
@@ -86,11 +85,7 @@ while (true) {
                 ]
             ]);
             
-            bot('editMessageReplyMarkup', [
-                'chat_id' => $chat_id,
-                'message_id' => $message_id,
-                'reply_markup' => $new_keyboard
-            ]);
+            editMessageReplyMarkup($chat_id, $message_id, $new_keyboard);
             
             // Mark task as done
             $sql->query("UPDATE `task_queue` SET `status` = 'done' WHERE `id` = $task_id");
@@ -110,10 +105,6 @@ while (true) {
                 ]
             ]
         ]);
-        bot('editMessageReplyMarkup', [
-            'chat_id' => $chat_id,
-            'message_id' => $message_id,
-            'reply_markup' => $err_keyboard
-        ]);
+        editMessageReplyMarkup($chat_id, $message_id, $err_keyboard);
     }
 }
