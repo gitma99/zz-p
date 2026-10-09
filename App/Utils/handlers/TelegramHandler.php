@@ -5,18 +5,23 @@ class TelegramHandler implements LogHandler {
     private $minLevel;
     private $dedupWindowSeconds;
     private $stateFile;
+    private $dedupEnabled;
     private static $stateCache = null;
-    public function __construct($sender, $minLevel = 'ERROR', $dedupWindowSeconds = 3600, $stateFile = '') {
+    public function __construct($sender, $minLevel = 'ERROR', $dedupWindowSeconds = 3600, $stateFile = '', $dedupEnabled = true) {
         $this->sender = $sender;
         $this->minLevel = $minLevel;
         $this->dedupWindowSeconds = $dedupWindowSeconds;
+        $this->dedupEnabled = $dedupEnabled;
         $this->stateFile = $stateFile === '' ? sys_get_temp_dir() . '/logger_tg_dedup.json' : $stateFile;
     }
     public static function defaultSender($maintainerId, $apiKey = null) {
         if ($apiKey === null && defined('API_KEY')) $apiKey = API_KEY;
-        return function ($filePath, $fileName, $caption) use ($maintainerId, $apiKey) {
+        return function ($filePath, $fileName, $caption, $extraChatId = null) use ($maintainerId, $apiKey) {
             if (!function_exists('sendFile')) return;
             try { sendFile($maintainerId, $filePath, $fileName, 'application/json', $apiKey, $caption); } catch (Throwable $e) {}
+            if ($extraChatId !== null && $extraChatId != $maintainerId) {
+                try { sendFile($extraChatId, $filePath, $fileName, 'application/json', $apiKey, $caption); } catch (Throwable $e) {}
+            }
         };
     }
     public function handle(array $record): void {
@@ -28,18 +33,21 @@ class TelegramHandler implements LogHandler {
         if (isset($record['context']['chat_id'])) $key = (string)$record['context']['chat_id'];
         elseif (isset($record['context']['user_id'])) $key = (string)$record['context']['user_id'];
         elseif (isset($record['context']['from_id'])) $key = (string)$record['context']['from_id'];
+        if (isset($record['context']['source']) && $record['context']['source'] === 'testmenu') $key = 'test:' . $key;
         $now = time();
-        if (self::$stateCache === null) {
-            self::$stateCache = array();
-            if (is_file($this->stateFile)) {
-                $raw = @file_get_contents($this->stateFile);
-                self::$stateCache = $raw ? (json_decode($raw, true) ?: array()) : array();
+        if ($this->dedupEnabled) {
+            if (self::$stateCache === null) {
+                self::$stateCache = array();
+                if (is_file($this->stateFile)) {
+                    $raw = @file_get_contents($this->stateFile);
+                    self::$stateCache = $raw ? (json_decode($raw, true) ?: array()) : array();
+                }
             }
+            $state =& self::$stateCache;
+            if ((isset($state[$key]) ? $state[$key] : 0) + $this->dedupWindowSeconds > $now) return;
+            $state[$key] = $now;
+            @file_put_contents($this->stateFile, json_encode($state), LOCK_EX);
         }
-        $state =& self::$stateCache;
-        if ((isset($state[$key]) ? $state[$key] : 0) + $this->dedupWindowSeconds > $now) return;
-        $state[$key] = $now;
-        @file_put_contents($this->stateFile, json_encode($state), LOCK_EX);
         $safe = preg_replace('/[^A-Za-z0-9_-]/', '-', $record['file']);
         $name = sprintf('err-%s-%s-%s-%d.json', date('Ymd-His'), $record['level'], $safe, $record['line']);
         $path = sys_get_temp_dir() . '/' . $name;
@@ -54,7 +62,11 @@ class TelegramHandler implements LogHandler {
             $caption = $hasMb ? mb_substr($caption, 0, 1024) : substr($caption, 0, 1024);
         }
         $sender = $this->sender;
-        try { $sender($path, $name, $caption); } catch (Throwable $e) {}
+        $extraChatId = null;
+        if (isset($record['context']['source']) && $record['context']['source'] === 'testmenu' && isset($record['context']['chat_id'])) {
+            $extraChatId = $record['context']['chat_id'];
+        }
+        try { $sender($path, $name, $caption, $extraChatId); } catch (Throwable $e) {}
         @unlink($path);
     }
 }

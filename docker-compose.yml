@@ -12,6 +12,7 @@ services:
       LOG_TELEGRAM_ENABLED: ${LOG_TELEGRAM_ENABLED:-true}
       LOG_TELEGRAM_MIN_LEVEL: ${LOG_TELEGRAM_MIN_LEVEL:-ERROR}
       LOG_TELEGRAM_DEDUP_SECONDS: ${LOG_TELEGRAM_DEDUP_SECONDS:-3600}
+      LOG_TELEGRAM_DEDUP_ENABLED: ${LOG_TELEGRAM_DEDUP_ENABLED:-true}
     volumes:
       - ./logs/app:/var/www/html/ZZPanelBot/logs
       - ./logs/apache:/var/log/apache2
@@ -114,6 +115,7 @@ services:
       LOG_TELEGRAM_ENABLED: ${LOG_TELEGRAM_ENABLED:-true}
       LOG_TELEGRAM_MIN_LEVEL: ${LOG_TELEGRAM_MIN_LEVEL:-ERROR}
       LOG_TELEGRAM_DEDUP_SECONDS: ${LOG_TELEGRAM_DEDUP_SECONDS:-3600}
+      LOG_TELEGRAM_DEDUP_ENABLED: ${LOG_TELEGRAM_DEDUP_ENABLED:-true}
     volumes:
       - ./logs/worker:/var/www/html/ZZPanelBot/logs
       - app_temp:/var/www/html/ZZPanelBot/temp

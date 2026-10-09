@@ -15,7 +15,8 @@
         "telegram": {
             "enabled": true,
             "min_level": "ERROR",
-            "dedup_window_seconds": 3600
+            "dedup_window_seconds": 3600,
+            "dedup_enabled": true
         }
     }
 }

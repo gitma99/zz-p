@@ -242,6 +242,7 @@ check_env_overrides();
 check_env_invalid();
 check_telegram_api_single();
 check_testmenu_gate();
+check_dedup_toggle();
 echo "ALL CHECKS PASSED\n";
 
 function check_env_overrides() {
@@ -311,5 +312,49 @@ function check_testmenu_gate() {
     assert(substr_count($src, "\$from_id != \$config['dev'] && \$from_id != \$maintainer_telegram_id_number") >= 4);
     assert(strpos($src, 'نتیجه تست توابع') !== false);
     assert(strpos($src, 'try { sendMessage($from_id, "🤖') !== false);
+    $tg = file_get_contents(__DIR__ . '/../App/Utils/handlers/TelegramHandler.php');
+    assert(strpos($tg, 'extraChatId') !== false);
     echo "testmenu gate: OK\n";
+}
+
+function check_dedup_toggle() {
+    $noop = function ($path, $name, $caption) {};
+    // Disabled: same chat sends twice, no state file written.
+    $state_off = sys_get_temp_dir() . '/logger_tg_off_' . getmypid() . '.json';
+    @unlink($state_off);
+    $tg_off = new TelegramHandler($noop, 'ERROR', 3600, $state_off, false);
+    $rec = array('ts' => 'x', 'level' => 'ERROR', 'file' => 'r.php', 'line' => 1,
+        'msg' => 'm', 'context' => array('chat_id' => 70), 'trace' => null);
+    $tg_off->handle($rec);
+    $tg_off->handle($rec);
+    assert(!is_file($state_off));
+    // Enabled (default): second send suppressed.
+    $state_on = sys_get_temp_dir() . '/logger_tg_on_' . getmypid() . '.json';
+    @unlink($state_on);
+    $sent = 0;
+    $tg_on = new TelegramHandler(function ($p, $n, $c) use (&$sent) { $sent++; }, 'ERROR', 3600, $state_on, true);
+    $tg_on->handle($rec);
+    $tg_on->handle($rec);
+    assert($sent === 1);
+    // Testmenu source: separate test: key, still windowed.
+    $state_test = sys_get_temp_dir() . '/logger_tg_test_' . getmypid() . '.json';
+    @unlink($state_test);
+    $sent_test = 0;
+    $tg_test = new TelegramHandler(function ($p, $n, $c) use (&$sent_test) { $sent_test++; }, 'ERROR', 3600, $state_test, true);
+    $trec = array('ts' => 'x', 'level' => 'ERROR', 'file' => 'r.php', 'line' => 1,
+        'msg' => 'm', 'context' => array('chat_id' => 71, 'source' => 'testmenu'), 'trace' => null);
+    $tg_test->handle($trec);
+    $tg_test->handle($trec);
+    assert($sent_test === 1);
+    $st = json_decode(file_get_contents($state_test), true);
+    assert(isset($st['test:71']) && !isset($st['71']));
+    // Env parsing: explicit false, garbage falls back true with warning.
+    putenv('LOG_TELEGRAM_DEDUP_ENABLED=false');
+    $cfg_off = LoggerConfig::fromArray(array());
+    assert($cfg_off->dedupEnabled === false);
+    putenv('LOG_TELEGRAM_DEDUP_ENABLED=maybe');
+    $cfg_bad = LoggerConfig::fromArray(array());
+    assert($cfg_bad->dedupEnabled === true && count($cfg_bad->warnings) === 1);
+    putenv('LOG_TELEGRAM_DEDUP_ENABLED');
+    echo "dedup toggle: OK\n";
 }
