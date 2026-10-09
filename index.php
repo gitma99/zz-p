@@ -123,6 +123,62 @@ try {
     if ($text == '/start' or $text == '🔙 بازگشت' or $text == '/back') {
         step('none');
         sendMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $start_key);
+    } elseif ($text == '/testmenu') {
+        if ($from_id != $config['dev'] && $from_id != $maintainer_telegram_id_number) exit(0);
+        step('testmenu');
+        $testmenu_key = json_encode(['keyboard' => [
+            [['text' => '🧪 تست هشدار'], ['text' => '📊 پنل‌ها']],
+            [['text' => '🤖 توابع']],
+            [['text' => '🔙 بازگشت']]
+        ], 'resize_keyboard' => true]);
+        sendMessage($from_id, '🧪 منوی تست — مخصوص توسعه‌دهنده و پشتیبان', $testmenu_key);
+    } elseif ($text == '🧪 تست هشدار') {
+        if ($from_id != $config['dev'] && $from_id != $maintainer_telegram_id_number) exit(0);
+        Logger::error('Maintainer test alert', array('chat_id' => $from_id, 'source' => 'testmenu'));
+        Logger::flush();
+        sendMessage($from_id, '✅ خطای آزمایشی ثبت شد و فایل JSON در صف ارسال قرار گرفت. صندوق ورودی پشتیبان را بررسی کنید (محدودیت ارسال یک‌بار در ساعت هم اعمال می‌شود).');
+    } elseif ($text == '📊 پنل‌ها') {
+        if ($from_id != $config['dev'] && $from_id != $maintainer_telegram_id_number) exit(0);
+        $lines = array();
+        $panels = $sql->query("SELECT `name`, `login_link`, `username`, `password` FROM `panels`");
+        if ($panels) while ($p = $panels->fetch_assoc()) {
+            $t0 = microtime(true);
+            $tok = loginPanel($p['login_link'], $p['username'], $p['password']);
+            $ms = round((microtime(true) - $t0) * 1000);
+            $lines[] = $p['name'] . ': ' . (isset($tok['access_token']) ? $ms . 'ms OK' : 'FAIL');
+        }
+        sendMessage($from_id, "📊 <b>تأخیر پنل‌ها</b>\n" . ($lines ? implode("\n", $lines) : 'پنلی ثبت نشده'));
+    } elseif ($text == '🤖 توابع') {
+        if ($from_id != $config['dev'] && $from_id != $maintainer_telegram_id_number) exit(0);
+        $r = array();
+        try { $m = sendMessage($from_id, '🧪 تست ارسال پیام موفق'); $mid = $m['result']['message_id']; $r[] = 'sendMessage: موفق'; }
+        catch (Exception $e) { $r[] = 'sendMessage: ناموفق'; $mid = null; }
+        if ($mid) {
+            try { editMessage($from_id, '🧪 تست ویرایش پیام موفق', $mid); $r[] = 'editMessage: موفق'; }
+            catch (Exception $e) { $r[] = 'editMessage: ناموفق'; }
+            try { editMessageReplyMarkup($from_id, $mid, json_encode(['inline_keyboard' => [[['text' => 'ok', 'callback_data' => 'null']]]])); $r[] = 'markup: موفق'; }
+            catch (Exception $e) { $r[] = 'markup: ناموفق'; }
+            try { forwardMessage($from_id, $from_id, $mid); $r[] = 'forward: موفق'; }
+            catch (Exception $e) { $r[] = 'forward: ناموفق'; }
+        }
+        try { sendPhoto($from_id, 'https://api.qrserver.com/v1/create-qr-code/?data=testmenu&size=200x200', '🧪 تست ارسال عکس موفق'); $r[] = 'sendPhoto: موفق'; }
+        catch (Exception $e) { $r[] = 'sendPhoto: ناموفق'; }
+        try { file_put_contents('/tmp/testmenu.txt', 'test'); sendFile($from_id, '/tmp/testmenu.txt', 'testmenu.txt', 'text/plain'); @unlink('/tmp/testmenu.txt'); $r[] = 'sendFile: موفق'; }
+        catch (Exception $e) { $r[] = 'sendFile: ناموفق'; }
+        try { getChatMember($from_id, $from_id); $r[] = 'getChatMember: موفق'; }
+        catch (Exception $e) { $r[] = 'getChatMember: ناموفق'; }
+        try { getChat($from_id); $r[] = 'getChat: موفق'; }
+        catch (Exception $e) { $r[] = 'getChat: ناموفق'; }
+        try { getMe(); $r[] = 'getMe: موفق'; }
+        catch (Exception $e) { $r[] = 'getMe: ناموفق'; }
+        try { alert('🧪 تست هشدار موفق'); $r[] = 'alert: موفق'; }
+        catch (Exception $e) { $r[] = 'alert: رد شد (نیاز به لمس دکمه دارد)'; }
+        if (isset($mid)) {
+            try { deleteMessage($from_id, $mid); $r[] = 'delete: موفق (پاک‌سازی شد)'; }
+            catch (Exception $e) { $r[] = 'delete: ناموفق (پاک‌سازی دستی لازم است)'; }
+        }
+        try { sendMessage($from_id, "🤖 <b>نتیجه تست توابع</b>\n" . implode("\n", $r)); }
+        catch (Exception $e) { Logger::error('testmenu summary failed', array('chat_id' => $from_id)); }
     } elseif ($data == 'back_to_home') {
         step('none');
         editMessage($from_id, sprintf($texts['greetings'] . $texts['start'], $first_name), $message_id, $start_key);

@@ -241,6 +241,7 @@ check_batch_flags();
 check_env_overrides();
 check_env_invalid();
 check_telegram_api_single();
+check_testmenu_gate();
 echo "ALL CHECKS PASSED\n";
 
 function check_env_overrides() {
@@ -302,4 +303,13 @@ function check_telegram_api_single() {
     assert(strpos($resp, 'Logger::warning') !== false);
     assert(strpos($resp, 'Logger::error') !== false);
     echo "telegram api single source: OK\n";
+}
+
+function check_testmenu_gate() {
+    $src = file_get_contents(__DIR__ . '/../index.php');
+    assert(strpos($src, "'/testmenu'") !== false);
+    assert(substr_count($src, "\$from_id != \$config['dev'] && \$from_id != \$maintainer_telegram_id_number") >= 4);
+    assert(strpos($src, 'نتیجه تست توابع') !== false);
+    assert(strpos($src, 'try { sendMessage($from_id, "🤖') !== false);
+    echo "testmenu gate: OK\n";
 }
