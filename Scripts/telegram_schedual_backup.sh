@@ -8,6 +8,9 @@ CONFIG_JSON_PATH='/root/backup_service_config.json'
 APP_DIR="/var/www/html/ZZPanelBot"
 ZZ_BOT_CONFIG_JSON_PATH="${APP_DIR}/bot_config.json"
 LOG_FILE='/root/zz-p-backup.log'
+readonly RETRY_DELAY_SECONDS=10
+readonly FALLBACK_SLEEP_SECONDS=3600
+readonly SEND_RETRIES=3
 
 TELEGRAM_BOT_TOKEN=''
 TELEGRAM_USER_ID=''
@@ -68,7 +71,7 @@ send_telegram_message() {
 
 send_telegram_document() {
     local file_path=$1
-    local max_attempts=3
+    local max_attempts="$SEND_RETRIES"
     local attempt=1
 
     if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_USER_ID:-}" ]; then
@@ -93,8 +96,8 @@ send_telegram_document() {
         fi
 
         if [ "$attempt" -lt "$max_attempts" ]; then
-            log "WARN" "Telegram document send failed, retrying in 10 seconds"
-            sleep 10
+            log "WARN" "Telegram document send failed, retrying in ${RETRY_DELAY_SECONDS} seconds"
+            sleep "$RETRY_DELAY_SECONDS"
         fi
 
         attempt=$((attempt + 1))
@@ -117,6 +120,32 @@ handle_error() {
 
 trap 'handle_error "${BASH_COMMAND}" "$LINENO"' ERR
 trap 'handle_error "Script interrupted" "${LINENO:-?}"' INT TERM
+
+validate_schedule_env() {
+	if [ -z "${BACKUP_MAX_RETRIES:-}" ]; then
+		BACKUP_MAX_RETRIES=3
+	fi
+	if ! [[ "$BACKUP_MAX_RETRIES" =~ ^[0-9]+$ ]] || (( 10#$BACKUP_MAX_RETRIES < 1 )); then
+		echo "[$(timestamp)] ERROR: BACKUP_MAX_RETRIES must be a positive integer (>= 1)! Got: '${BACKUP_MAX_RETRIES:-}'" | tee -a "$LOG_FILE"
+		exit 1
+	fi
+
+	USE_INTERVAL=false
+	INTERVAL_SECONDS=0
+	if [ -n "${BACKUP_INTERVAL_MINUTES:-}" ]; then
+		if ! [[ "$BACKUP_INTERVAL_MINUTES" =~ ^[0-9]+$ ]] || (( 10#$BACKUP_INTERVAL_MINUTES < 5 )); then
+			echo "[$(timestamp)] ERROR: BACKUP_INTERVAL_MINUTES must be an integer >= 5! Got: '${BACKUP_INTERVAL_MINUTES:-}'" | tee -a "$LOG_FILE"
+			exit 1
+		fi
+		USE_INTERVAL=true
+		INTERVAL_SECONDS=$((10#$BACKUP_INTERVAL_MINUTES * 60))
+	fi
+}
+
+# Fail fast on bad schedule env before traps/heavy init can mask or double-report it.
+trap - ERR
+validate_schedule_env
+trap 'handle_error "${BASH_COMMAND}" "$LINENO"' ERR
 
 check_required_commands() {
     local cmds=(jq mysqldump zip curl date)
@@ -211,16 +240,69 @@ validate_bot_config
 parse_db_credentials
 prepare_environment
 
+if [ "$USE_INTERVAL" = true ]; then
+	log "INFO" "Schedule: every ${BACKUP_INTERVAL_MINUTES} minutes (${INTERVAL_SECONDS} seconds)"
+else
+	log "INFO" "Schedule: daily at midnight ($target_time_zone)"
+fi
+log "INFO" "Max backup retries per run: $BACKUP_MAX_RETRIES (retry delay ${RETRY_DELAY_SECONDS}s, fallback ${FALLBACK_SLEEP_SECONDS}s)"
+log "INFO" "Telegram upload retries per backup: $SEND_RETRIES (delay ${RETRY_DELAY_SECONDS}s)"
+
+run_backup_with_retries() {
+	local attempt=1
+	local delay="$RETRY_DELAY_SECONDS"
+
+	while [ "$attempt" -le "$BACKUP_MAX_RETRIES" ]; do
+		log "INFO" "Running backup (attempt ${attempt}/${BACKUP_MAX_RETRIES})..."
+
+		set +e
+		(trap - ERR; backup_database; send_backup)
+		local status=$?
+		set -e
+
+		if [ "$status" -eq 0 ]; then
+			log "INFO" "Backup completed successfully."
+			return 0
+		else
+			log "WARN" "Backup failed with exit code ${status}."
+		fi
+
+		if [ "$attempt" -lt "$BACKUP_MAX_RETRIES" ]; then
+			log "INFO" "Retrying in ${delay} seconds..."
+			sleep "$delay"
+		fi
+		attempt=$((attempt + 1))
+	done
+
+	log "ERROR" "Backup failed after ${BACKUP_MAX_RETRIES} attempts. Will try again in ${FALLBACK_SLEEP_SECONDS} seconds."
+	return 1
+}
+
+schedule_sleep_seconds() {
+	if [ "$USE_INTERVAL" = true ]; then
+		echo "$INTERVAL_SECONDS"
+	else
+		calculate_sleep_seconds
+	fi
+}
+
+if ! run_backup_with_retries; then
+	log "INFO" "Backup failed on startup. Sleeping for ${FALLBACK_SLEEP_SECONDS} seconds..."
+	sleep "$FALLBACK_SLEEP_SECONDS"
+fi
+
 while true; do
-    if [ ! -d "$APP_DIR" ]; then
-        handle_error "The BotPanel folder was not found for the backup process, install the bot first!"
-    fi
+	if [ ! -d "$APP_DIR" ]; then
+		handle_error "The BotPanel folder was not found for the backup process, install the bot first!"
+	fi
 
-    backup_database
-    send_backup
+	if ! run_backup_with_retries; then
+		log "INFO" "Scheduled backup failed. Postponing next attempt for ${FALLBACK_SLEEP_SECONDS} seconds..."
+		sleep "$FALLBACK_SLEEP_SECONDS"
+		continue
+	fi
 
-    local time_remaining
-    time_remaining=$(calculate_sleep_seconds)
-    log "INFO" "Next backup in ${time_remaining} seconds"
-    sleep "$time_remaining"
+	time_remaining=$(schedule_sleep_seconds)
+	log "INFO" "Next backup in ${time_remaining} seconds"
+	sleep "$time_remaining"
 done

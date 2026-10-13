@@ -94,6 +94,8 @@ services:
       DB_HOST: mysql
       BACKUP_TELEGRAM_TOKEN: ${BACKUP_TELEGRAM_TOKEN:-}
       BACKUP_CHAT_ID: ${BACKUP_CHAT_ID:-}
+      BACKUP_INTERVAL_MINUTES: ${BACKUP_INTERVAL_MINUTES:-}
+      BACKUP_MAX_RETRIES: ${BACKUP_MAX_RETRIES:-}
     volumes:
       - ./data/backups:/backups
     depends_on:

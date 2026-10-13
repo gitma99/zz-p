@@ -19,8 +19,24 @@ All backups are stored on the host machine in the [docker/backups/](file:///d:/3
 
 The `zzpanel_backup` service runs a background loop that:
 1. Performs an initial backup immediately when the container starts.
-2. Calculates the remaining time until midnight (Tehran time / `Asia/Tehran`).
-3. Sleeps until midnight, performs another backup, sends it to Telegram, and repeats.
+2. By default, calculates the remaining time until midnight (Tehran time / `Asia/Tehran`).
+3. Sleeps until the next run, performs another backup, sends it to Telegram, and repeats.
+
+### Schedule Configuration
+Unset/empty `BACKUP_INTERVAL_MINUTES` keeps the default midnight (`Asia/Tehran`) schedule. Set it to a fixed interval in minutes (minimum 5):
+```env
+# Run every 60 minutes instead of once a day at midnight
+BACKUP_INTERVAL_MINUTES=60
+```
+Invalid values (non-integer or below 5) fail fast at startup.
+
+### Retry Configuration
+Each run retries failed backups with 10 seconds between attempts. Total backup attempts per run:
+```env
+# Default 3, minimum 1
+BACKUP_MAX_RETRIES=3
+```
+Invalid values (non-integer or below 1) fail fast at startup with a Telegram alert (systemd script) and an error log. After all attempts fail, the service waits 1 hour before the next try. Note: each backup attempt itself retries the Telegram upload up to 3 times, so worst-case upload tries per run = `BACKUP_MAX_RETRIES × 3`.
 
 ### Telegram Configuration
 By default, the backup service uses the main bot credentials (`BOT_TOKEN` and `CHAT_ID`) defined in your `.env` file. 
