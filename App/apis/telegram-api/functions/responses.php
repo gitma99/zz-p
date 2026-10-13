@@ -1,6 +1,7 @@
 <?php
 function sendSuccessResponse($from_id, $qr_code_status, $qr_data, $caption_text, $message_text, $start_key, $retry_count = 3)
 {
+    global $texts;
     if ($qr_code_status == 'active') {
         $encode_url = urlencode($qr_data);
         $photo_url = "https://api.qrserver.com/v1/create-qr-code/?data=$encode_url&size=800x800";
@@ -22,9 +23,11 @@ function sendSuccessResponse($from_id, $qr_code_status, $qr_data, $caption_text,
             }
         }
         Logger::error('sendPhoto retries exhausted, falling back to text', array('chat_id' => $from_id, 'attempts' => $retry_count));
-        // Fallback: send without QR code
+        // Fallback: no QR photo possible (e.g. Telegram cannot fetch it).
+        // Never dump the raw link; point to the QR in My Services instead.
+        $fallback_text = isset($texts['qr_unavailable_hint']) ? $caption_text . "\n\n" . $texts['qr_unavailable_hint'] : $caption_text;
         try {
-            return sendMessage($from_id, $message_text, $start_key);
+            return sendMessage($from_id, $fallback_text, $start_key);
         } catch (Exception $send_msg_ex) {
             Logger::error('sendSuccessResponse fallback failed', array('chat_id' => $from_id, 'error' => $send_msg_ex->getMessage()));
         }
