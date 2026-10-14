@@ -1,16 +1,23 @@
 <?php
 require_once __DIR__ . "/App/vars.php";
+require_once __DIR__ . "/App/Utils/apcu_tools.php";
+require_once __DIR__ . "/App/Utils/Logger.php";
 require_once __DIR__ . "/App/Utils/request_cache.php";
+
+define('CONFIG_CACHE_KEY', 'botpanel_config'); define('CONFIG_TTL', 300);
+define('SCHEMA_CACHE_KEY', 'botpanel_tables_exist'); define('SCHEMA_TTL', 60);
+define('MEMBER_TTL', 60);
+function membership_key($kind, $chat, $user) { return 'apcu:' . $kind . ':' . $chat . ':' . $user; }
 
 date_default_timezone_set('Asia/Tehran');
 error_reporting(E_ALL ^ E_NOTICE);
 
 $config = null;
-$config = apcu_fetch('botpanel_config');
+$config = apcu_safe_get(CONFIG_CACHE_KEY);
 if (!$config) {
     $config_json = file_get_contents($BOT_CONFIG_PATH);
     $config = json_decode($config_json, true);
-    apcu_store('botpanel_config', $config, 300);
+    apcu_safe_set(CONFIG_CACHE_KEY, $config, CONFIG_TTL);
 }
 $config['version'] = '3.0.1';
 $config['domain'] = 'https://' . $_SERVER['HTTP_HOST'] . '/' . explode('/', explode('html/', $_SERVER['SCRIPT_FILENAME'])[1])[0];
@@ -69,13 +76,13 @@ if (isset($update->message)) {
 # ----------------- [ <- others -> ] ----------------- #
 
 if (!isset($sql->connect_error)) {
-    $tables_exist = apcu_fetch('botpanel_tables_exist', $_apcu_hit) ?: false;
-    if (!$_apcu_hit) {
+    $tables_exist = apcu_safe_get(SCHEMA_CACHE_KEY, null);
+    if ($tables_exist === null) {
         $needed = ['users', 'admins', 'test_account_setting'];
         $in = implode(',', array_map(fn($t) => "'$t'", $needed));
         $found = $sql->query("SELECT COUNT(*) as c FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ($in)")->fetch_assoc()['c'];
         $tables_exist = ((int)$found === count($needed));
-        apcu_store('botpanel_tables_exist', $tables_exist, 60);
+        apcu_safe_set(SCHEMA_CACHE_KEY, $tables_exist, SCHEMA_TTL);
     }
 
     if ($tables_exist) {
@@ -181,16 +188,12 @@ function isJoin($from_id)
     $force_join_channels = $sql->query("SELECT `chat_id` FROM `lock`");
     if (!$force_join_channels || $force_join_channels->num_rows === 0) return true;
     while ($id = $force_join_channels->fetch_assoc()) {
-        $ck = 'join:' . $id['chat_id'] . ':' . $from_id;
-        if (function_exists('apcu_fetch')) {
-            $hit = false;
-            apcu_fetch('apcu:' . $ck, $hit);
-            if ($hit) continue;
-        }
+        $ck = membership_key('join', $id['chat_id'], $from_id);
+        if (apcu_safe_get($ck, null) !== null) continue;
         $s = getChatMember($id['chat_id'], $from_id);
         $status = isset($s['result']['status']) ? $s['result']['status'] : 'left';
         if ($status === 'left') return false;
-        if (function_exists('apcu_store')) apcu_store('apcu:' . $ck, $status, 60);
+        apcu_safe_set($ck, $status, MEMBER_TTL);
     }
     return true;
 }
@@ -203,12 +206,8 @@ function joinSend($from_id)
     while ($row = $force_join_channels->fetch_assoc()) {
         $link = $row['chat_id'];
         if (!$link) continue;
-        $ck = 'joinSend:' . $link . ':' . $from_id;
-        if (function_exists('apcu_fetch')) {
-            $hit = false;
-            apcu_fetch('apcu:' . $ck, $hit);
-            if ($hit) continue;
-        }
+        $ck = membership_key('joinSend', $link, $from_id);
+        if (apcu_safe_get($ck, null) !== null) continue;
         $chat_member = getChatMember($link, $from_id);
         if (isset($chat_member['ok']) && $chat_member['ok'] && $chat_member['result']['status'] == 'left') {
             $link = str_replace("@", "", $link);
@@ -216,7 +215,7 @@ function joinSend($from_id)
             continue;
         }
         if (!isset($chat_member['ok']) || !$chat_member['ok']) continue;
-        if (function_exists('apcu_store')) apcu_store('apcu:' . $ck, $chat_member, 60);
+        apcu_safe_set($ck, $chat_member, MEMBER_TTL);
     }
     if (count($buttons) > 0) {
         $buttons[] = [['text' => "عضو شدم ✅", 'callback_data' => 'join']];

@@ -1,6 +1,7 @@
 <?php
 $my_texts = $texts;
 require_once __DIR__ . "/App/vars.php";
+require_once __DIR__ . "/App/Utils/db_tools.php";
 
 $BOT_CONFIG = json_decode(file_get_contents($BOT_CONFIG_PATH), true);
 function get_users_usage($user_id)
@@ -11,16 +12,12 @@ function get_users_usage($user_id)
         $total_traffic_bought = 0;
         $total_traffic_used = 0;
         $users_not_found_count = 0;
-        
-        $panel_cache = [];
+
         while ($row = $services->fetch_assoc()) {
             $config_name = $row['code'] . '_' . $user_id;
             $config_location = $row['location'];
 
-            if (!array_key_exists($config_location, $panel_cache)) {
-                $panel_cache[$config_location] = get_panel_by_name($config_location);
-            }
-            $panel = $panel_cache[$config_location];
+            $panel = get_panel_by_name($config_location);
             $getUserInfoRes = getUserInfo($config_name, get_marzban_panel_token($config_location), $panel['login_link']);
             if ($getUserInfoRes[0] == false) {
                 alert($my_texts['error_show_service__token_is_incorrect']);
@@ -59,6 +56,7 @@ function modify_bot_config()
     global $BOT_CONFIG, $BOT_CONFIG_PATH;
     $bot_config_data_json = json_encode($BOT_CONFIG, JSON_PRETTY_PRINT);
     file_put_contents($BOT_CONFIG_PATH, $bot_config_data_json);
+    if (function_exists('apcu_delete')) apcu_delete('botpanel_config');
 };
 
 function change_account_status($text, $from_id)
@@ -239,7 +237,7 @@ function reset_panel_panel_token($panel_name, $panel_login_address, $panel_usern
     $login_result = loginPanel($panel_login_address, $panel_username, $panel_password);
     if (isset($login_result["access_token"])) {
         $new_token = $login_result["access_token"];
-        $sql->query("UPDATE `panels` SET `token` = '$new_token' WHERE `name` = '$panel_name'");
+        db_exec($sql, "UPDATE `panels` SET `token` = ? WHERE `name` = ?", "ss", array($new_token, $panel_name));
         return $new_token;
     } else {
         return false;

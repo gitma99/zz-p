@@ -1,11 +1,15 @@
 <?php
+// Memo vocabulary (see GLOSSARY.md): short-TTL remote-check note; expiry is the invalidation.
+require_once __DIR__ . '/../../Utils/db_tools.php';
+if (!isset($token_tested) || !is_array($token_tested)) $token_tested = array();
 function get_marzban_panel_token($panel_name)
 {
     global $sql, $token_tested;
-    $panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$panel_name'")->fetch_assoc();
+    $panel = db_row($sql, "SELECT * FROM `panels` WHERE `name` = ?", "s", array($panel_name));
+    if (!$panel) return false;
     $panel_url = $panel['login_link'];
     $panel_token = $panel['token'];
-    if (isset($token_tested)) {
+    if (isset($token_tested[$panel_name])) {
         return $panel_token;
     } else {
         $ch = curl_init();
@@ -21,13 +25,13 @@ function get_marzban_panel_token($panel_name)
 
         $token_test_res = json_decode($test_response, true);
         if (isset($token_test_res['version'])) {
-            $token_tested = true;
+            $token_tested[$panel_name] = true;
             return $panel_token;
         } else {
             $panel_username = $panel['username'];
             $panel_password = $panel['password'];
             $new_token = reset_panel_panel_token($panel_name, $panel_url, $panel_username, $panel_password);
-            $token_tested = true;
+            $token_tested[$panel_name] = true;
             if ($new_token !== false) {
                 return $new_token;
             } else {

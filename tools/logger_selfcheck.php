@@ -10,6 +10,9 @@ require_once __DIR__ . '/../App/Utils/handlers/FileHandler.php';
 require_once __DIR__ . '/../App/Utils/Logger.php';
 require_once __DIR__ . '/../App/Utils/handlers/TelegramHandler.php';
 require_once __DIR__ . '/../App/Utils/request_cache.php';
+require_once __DIR__ . '/../App/Utils/apcu_tools.php';
+require_once __DIR__ . '/../App/Utils/db_tools.php';
+require_once __DIR__ . '/../App/Utils/temp_tools.php';
 
 if (!defined('MYSQLI_ASSOC')) define('MYSQLI_ASSOC', 1);
 
@@ -32,8 +35,28 @@ class FakeSql {
         if (strpos($q, 'active') !== false && strpos($q, 'panels') !== false) {
             return new FakeResult(array(array('name' => 'p1', 'status' => 'active')));
         }
+        if (strpos($q, "'p1'") !== false) {
+            return new FakeResult(array(array('name' => 'p1', 'status' => 'active')));
+        }
+        if (strpos($q, "'zzz'") !== false) {
+            return new FakeResult(array());
+        }
         return new FakeResult(array(array('name' => 'px', 'status' => 'inactive')));
     }
+    public function prepare($q) { return new FakeStmt($this, $q); }
+}
+
+class FakeStmt {
+    private $sql; private $q; private $args = array();
+    public function __construct($sql, $q) { $this->sql = $sql; $this->q = $q; }
+    public function bind_param($types, ...$args) { $this->args = $args; return true; }
+    public function execute() { return true; }
+    public function get_result() {
+        $q = $this->q;
+        foreach ($this->args as $a) { $q = preg_replace('/\?/', "'" . $a . "'", $q, 1); }
+        return $this->sql->query($q);
+    }
+    public function close() { return true; }
 }
 
 // ---------- logger checks ----------
@@ -193,6 +216,61 @@ function check_panel_cache_hit() {
     echo "panel cache (hit skips query, miss falls through): OK\n";
 }
 
+function check_apcu_helpers() {
+    assert(apcu_safe_get('zz_no_such_key_xyz') === false);
+    assert(apcu_safe_get('zz_no_such_key_xyz', 'dflt') === 'dflt');
+    if (function_exists('apcu_store')) {
+        assert(apcu_safe_set('zz_rt_xyz', 'V', 60) === true);
+        assert(apcu_safe_get('zz_rt_xyz') === 'V');
+        apcu_safe_del('zz_rt_xyz');
+        assert(apcu_safe_get('zz_rt_xyz') === false);
+    } else {
+        assert(apcu_safe_set('zz_rt_xyz', 'V', 60) === false);
+        apcu_safe_del('zz_rt_xyz');
+    }
+    echo "apcu helpers (guarded + round-trip): OK\n";
+}
+
+function check_db_row() {
+    $GLOBALS['sql'] = new FakeSql();
+    $row = db_row($GLOBALS['sql'], "SELECT * FROM `panels` WHERE `name` = ?", "s", array('p1'));
+    assert($row['name'] === 'p1');
+    $none = db_row($GLOBALS['sql'], "SELECT * FROM `panels` WHERE `name` = ?", "s", array('zzz'));
+    assert($none === null);
+    $ok = db_exec($GLOBALS['sql'], "UPDATE `panels` SET `token` = ? WHERE `name` = ?", "ss", array('T', 'p1'));
+    assert($ok === true);
+    $GLOBALS['sql'] = null;
+    echo "db helpers (row-or-null + exec): OK\n";
+}
+
+function check_cache_keys() {
+    assert(panel_key('nl') === 'panel:name:nl');
+    assert(temp_key('a/b') === 'botpanel_temp_b');
+    assert(FLOW_TTL === 86400);
+    $w = write_temp_file(array('a' => 1), 'zz_rt_selfcheck.json', true);
+    assert($w !== false);
+    $back = read_temp_file('zz_rt_selfcheck.json', true);
+    assert($back[0] == array('a' => 1));
+    delete_temp_file('zz_rt_selfcheck.json');
+    $w2 = true;
+    if (function_exists('apcu_store')) {
+        $w2 = write_temp_file(array('b' => 2), 'zz_rt2_selfcheck.json');
+    }
+    assert($w2 !== false);
+    if (function_exists('apcu_store')) {
+        $back2 = read_temp_file('zz_rt2_selfcheck.json', true);
+        assert($back2[0] == array('b' => 2));
+        delete_temp_file('zz_rt2_selfcheck.json');
+    }
+    $src = file_get_contents(__DIR__ . '/../config.php');
+    assert(strpos($src, "define('CONFIG_TTL', 300)") !== false);
+    assert(strpos($src, "define('SCHEMA_TTL', 60)") !== false);
+    assert(strpos($src, "define('MEMBER_TTL', 60)") !== false);
+    assert(strpos($src, 'function membership_key') !== false);
+    assert(strpos(file_get_contents(__DIR__ . '/../App/Utils/apcu_tools.php'), 'apcu_warn_once') !== false);
+    echo "cache keys + TTL constants: OK\n";
+}
+
 function check_membership_memo() {
     $GLOBALS['__bot_calls'] = 0;
     if (!function_exists('bot')) {
@@ -234,6 +312,9 @@ check_call_sites();
 check_sender_token();
 check_request_cache();
 check_panel_cache_hit();
+check_apcu_helpers();
+check_db_row();
+check_cache_keys();
 check_membership_memo();
 check_skip_locked();
 check_ddl_hoist();

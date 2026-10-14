@@ -16,6 +16,9 @@ function log_message($msg) {
 log_message("Worker started.");
 
 while (true) {
+    global $cache, $token_tested;
+    $cache->clear();
+    $token_tested = array();
     // 1. Recover stale tasks (locked for more than 5 minutes)
     $sql->query("UPDATE `task_queue` SET `status` = 'pending', `started_at` = NULL, `locked_at` = NULL WHERE `status` = 'running' AND `locked_at` < NOW() - INTERVAL 5 MINUTE");
     
