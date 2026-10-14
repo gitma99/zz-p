@@ -39,13 +39,14 @@ zzbot
 * **4) Initialize SSL (Let's Encrypt)**: راه‌اندازی و تمدید گواهی SSL برای امنیت اتصالات دامنه.
 * **5) Start Services**: روشن کردن کانتینرهای پروژه داکر در پس‌زمینه.
 * **6) Stop Services**: خاموش کردن و متوقف کردن کانتینرها.
-* **7) Restart Services**: راه‌اندازی مجدد سرویس‌های پروژه بدون تغییر در وضعیت کانتینرها.
-* **8) Update Services**: دریافت آخرین نسخه‌های پایدار ایمیج‌ها و اعمال بروزرسانی روی کانتینرها.
-* **9) Uninstall ZZPanel**: پاک کردن کامل تمامی کانتینرها، ایمیج‌ها، دیتابیس و حذف دستور `zzbot`.
-* **10) Backup Database & Files**: ایجاد فایل پشتیبان دستی از دیتابیس و فایل‌های کلیدی.
-* **11) Restore Database & Files**: بازیابی اطلاعات دیتابیس از روی فایل‌های بکاپ موجود.
-* **12) View Live Logs**: مشاهده لاگ‌های زنده تمامی سرویس‌ها به صورت همزمان (خروج با کلیدهای ترکیبی `Ctrl+C`).
-* **13) View Live Logs for Specific Service**: مشاهده لاگ‌های زنده یک سرویس خاص (مانند `app`, `nginx`, یا `backup`).
+* **7) Soft Restart Services**: راه‌اندازی مجدد سریع سرویس‌ها با `docker compose restart` بدون حذف کانتینرها.
+* **8) Hard Restart Services**: توقف کامل (`down`) و اجرای مجدد (`up -d`) سرویس‌ها.
+* **9) Update Services**: دریافت آخرین نسخه‌های پایدار ایمیج‌ها و اعمال بروزرسانی روی کانتینرها.
+* **10) Uninstall ZZPanel**: پاک کردن کامل تمامی کانتینرها، ایمیج‌ها، دیتابیس و حذف دستور `zzbot`.
+* **11) Backup Database & Files**: ایجاد فایل پشتیبان دستی از دیتابیس و فایل‌های کلیدی.
+* **12) Restore Database & Files**: بازیابی اطلاعات دیتابیس از روی فایل‌های بکاپ موجود.
+* **13) View Live Logs**: مشاهده لاگ‌های زنده تمامی سرویس‌ها به صورت همزمان (خروج با کلیدهای ترکیبی `Ctrl+C`).
+* **14) View Live Logs for Specific Service**: مشاهده لاگ‌های زنده یک سرویس خاص (مانند `app`, `nginx`, یا `backup`).
 
 ---
 
@@ -187,7 +188,7 @@ BACKUP_CHAT_ID=your_telegram_admin_chat_id
    ```bash
    zzbot
    ```
-2. گزینه `10) Backup Database & Files` را انتخاب کنید.
+2. گزینه `11) Backup Database & Files` را انتخاب کنید.
 
 3. گزینه Backup را انتخاب کنید. 
 
@@ -198,7 +199,7 @@ BACKUP_CHAT_ID=your_telegram_admin_chat_id
    ```bash
    zzbot
    ```
-3. گزینه `11) Restore Database & Files` را انتخاب کنید.
+3. گزینه `12) Restore Database & Files` را انتخاب کنید.
 
 4. گزینه `Restore` را انتخاب کنید و فایل بکاپ مورد نظر را انتخاب و تأیید کنید.
 

@@ -312,7 +312,7 @@ start_services() {
     if run_compose_with_login up -d; then
         INFO "Services started."
     else
-        ERROR "Failed to start services. Check logs with option (12)." || return 1
+        ERROR "Failed to start services. Check logs with option (13)." || return 1
     fi
 }
 
@@ -327,14 +327,25 @@ stop_services() {
     fi
 }
 
-# 6. Restart
-restart_services() {
+# 6. Soft Restart (docker compose restart)
+soft_restart_services() {
     require_installed || return 1
-    INFO "Restarting services..."
-    if run_compose_with_login down && run_compose_with_login up -d; then
-        INFO "Services restarted."
+    INFO "Soft restarting services (docker compose restart)..."
+    if "${DOCKER_COMPOSE_CMD[@]}" restart; then
+        INFO "Services soft-restarted."
     else
-        ERROR "Restart failed. Check logs with option (12)." || return 1
+        ERROR "Soft restart failed. Check logs with option (13)." || return 1
+    fi
+}
+
+# 7. Hard Restart (down + up)
+hard_restart_services() {
+    require_installed || return 1
+    INFO "Hard restarting services (down + up)..."
+    if run_compose_with_login down && run_compose_with_login up -d; then
+        INFO "Services hard-restarted."
+    else
+        ERROR "Hard restart failed. Check logs with option (13)." || return 1
     fi
 }
 
@@ -353,10 +364,10 @@ update_services() {
         ERROR "Pull failed even after logging in. Please check your credentials and network connection." || return 1
     fi
 
-    if restart_services; then
+    if hard_restart_services; then
         INFO "Update completed."
     else
-        ERROR "Update applied but restart failed; run Restart (7) to finish."
+        ERROR "Update applied but hard restart failed; run Hard Restart (8) to finish."
     fi
 }
 
@@ -441,16 +452,17 @@ show_menu() {
         echo " 4) Initialize SSL (Let's Encrypt)"
         echo " 5) Start ZZPanelBot Services"
         echo " 6) Stop ZZPanelBot Services"
-        echo " 7) Restart ZZPanelBot Services"
-        echo " 8) Update ZZPanelBot Services"
-        echo " 9) Uninstall ZZPanel"
-        echo " 10) Backup Database & Files"
-        echo " 11) Restore Database & Files"
-        echo " 12) View Live Logs"
-        echo " 13) View Logs for Specific Service"
+        echo " 7) Soft Restart ZZPanelBot Services"
+        echo " 8) Hard Restart ZZPanelBot Services"
+        echo " 9) Update ZZPanelBot Services"
+        echo " 10) Uninstall ZZPanel"
+        echo " 11) Backup Database & Files"
+        echo " 12) Restore Database & Files"
+        echo " 13) View Live Logs"
+        echo " 14) View Logs for Specific Service"
         echo " 0) Close"
         echo "========================================="
-        read -r -p "Enter choice [0-13]: " CHOICE
+        read -r -p "Enter choice [0-14]: " CHOICE
         echo "========================================="
 
         case "$CHOICE" in
@@ -460,13 +472,14 @@ show_menu() {
             4) init_ssl || true ;;
             5) start_services || true ;;
             6) stop_services || true ;;
-            7) restart_services || true ;;
-            8) update_services || true ;;
-            9) uninstall_zzbot ;;
-            10) backup_services || true ;;
-            11) restore_services || true ;;
-            12) show_live_logs || true ;;
-            13) show_live_logs_for_service || true ;;
+            7) soft_restart_services || true ;;
+            8) hard_restart_services || true ;;
+            9) update_services || true ;;
+            10) uninstall_zzbot ;;
+            11) backup_services || true ;;
+            12) restore_services || true ;;
+            13) show_live_logs || true ;;
+            14) show_live_logs_for_service || true ;;
             0) INFO "Exiting. Goodbye!"; exit 0 ;;
             999) get_current_script_version ;;
             *) WARN "Invalid option. Please try again." ;;
