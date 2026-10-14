@@ -46,6 +46,14 @@ COPY docker/apache/botpanel-perf.conf /etc/apache2/conf-available/botpanel-perf.
 # Enable custom Apache performance config
 RUN a2enconf botpanel-perf
 
+# Forward PHP-FPM worker stderr to container stderr (docker logs).
+# NOTE: catch_workers_output / error_log are FPM daemon directives and do
+# not belong in conf.d php.ini files, so they are set here.
+RUN sed -i 's|^error_log.*|error_log = /proc/self/fd/2|' /etc/php/7.4/fpm/php-fpm.conf \
+    && grep -q '^error_log' /etc/php/7.4/fpm/php-fpm.conf || echo "error_log = /proc/self/fd/2" >> /etc/php/7.4/fpm/php-fpm.conf \
+    && sed -i 's/^;*catch_workers_output.*/catch_workers_output = yes/' /etc/php/7.4/fpm/pool.d/www.conf \
+    && grep -q '^catch_workers_output' /etc/php/7.4/fpm/pool.d/www.conf || echo "catch_workers_output = yes" >> /etc/php/7.4/fpm/pool.d/www.conf
+
 # Copy entrypoint script
 COPY docker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

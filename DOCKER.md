@@ -151,9 +151,19 @@ logs are mapped directly to your host machine's filesystem under the `docker/` d
 # View all container logs
 docker compose logs -f
 
-# View only the application logs
-docker compose logs -f app
+# View app + worker Logger output (stderr, same level as LOG_LEVEL)
+docker compose logs -f app worker
+
+# Filter by level
+docker compose logs -f app | grep ERROR
 
 # View only the Nginx logs
 docker compose logs -f nginx
+
+# Verbose file + docker logs together
+LOG_LEVEL=INFO docker compose up -d
 ```
+
+Note: file logs remain the source of truth under `./logs/app` and
+`./logs/worker`; `docker logs` shows the same human-readable single line
+at the same `LOG_LEVEL`.

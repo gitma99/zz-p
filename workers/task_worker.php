@@ -8,9 +8,8 @@ require_once __DIR__ . '/../App/apis/marzban-api/api.php';
 require_once __DIR__ . '/../App/functions/service_overview.php';
 
 function log_message($msg) {
-    $date = date('Y-m-d H:i:s');
     Logger::info($msg);
-    echo "[$date] $msg\n";
+    Logger::flush();
 }
 
 log_message("Worker started.");

@@ -54,7 +54,9 @@ class Logger {
                 register_shutdown_function(array('Logger', 'flush'));
             }
             require_once __DIR__ . '/handlers/FileHandler.php';
+            require_once __DIR__ . '/handlers/StderrHandler.php';
             self::$instance->handlers[] = new FileHandler($cfg->logDir, $cfg->retentionDays);
+            self::$instance->handlers[] = new StderrHandler($cfg->level);
         }
         return self::$instance;
     }

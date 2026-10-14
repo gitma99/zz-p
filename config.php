@@ -24,6 +24,7 @@ $config['domain'] = 'https://' . $_SERVER['HTTP_HOST'] . '/' . explode('/', expl
 $maintainer_telegram_id_number = $config['maintainer'];
 require_once __DIR__ . "/App/Utils/Logger.php";
 require_once __DIR__ . "/App/Utils/handlers/FileHandler.php";
+require_once __DIR__ . "/App/Utils/handlers/StderrHandler.php";
 require_once __DIR__ . "/App/Utils/handlers/TelegramHandler.php";
 require_once __DIR__ . "/App/apis/telegram-api/api/send_file.php";
 require_once __DIR__ . "/App/apis/telegram-api/api/edit_message_reply_markup.php";
@@ -33,6 +34,7 @@ $__loggerCfg->maintainerId = $maintainer_telegram_id_number ?? null;
 Logger::init($__loggerCfg);
 foreach ($__loggerCfg->warnings as $__w) Logger::warning($__w);
 Logger::addHandler(new FileHandler($__loggerCfg->logDir, $__loggerCfg->retentionDays));
+Logger::addHandler(new StderrHandler($__loggerCfg->level));
 if ($__loggerCfg->telegramEnabled) Logger::addHandler(new TelegramHandler(TelegramHandler::defaultSender($__loggerCfg->maintainerId, isset($config['token']) ? $config['token'] : null), $__loggerCfg->telegramMinLevel, $__loggerCfg->dedupWindowSeconds, '', $__loggerCfg->dedupEnabled));
 unset($__loggerCfg);
 $db_host = $config['database']['db_host'] ?? (getenv('DB_HOST') ?: 'localhost');
