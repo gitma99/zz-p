@@ -77,6 +77,15 @@ mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `orders` (
     `type` varchar(20) COLLATE utf8mb4_bin NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
 
+// `orders_archive` is created HERE, not in the request path.
+// It used to be created by App/functions/service_overview.php on every
+// service-overview request; even a no-op CREATE TABLE IF NOT EXISTS takes a
+// metadata lock, which was a candidate cause of the 2-minute bot hang.
+// Created BEFORE the hot indexes below on purpose: LIKE copies the table
+// definition, so the archive stays PK-only and does not carry indexes it
+// never queries (it is only read by `row`).
+mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `orders_archive` LIKE `orders`");
+
 mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `factors` (
     `row` int(200) AUTO_INCREMENT PRIMARY KEY,
     `from_id` varchar(20) COLLATE utf8mb4_bin NOT NULL,
@@ -245,10 +254,40 @@ mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `task_results` (
     `created_at` datetime NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
 
+// Migration tracker: records which versioned migration files have been
+// applied, so schema changes reach existing databases without manual DDL.
+mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `schema_migrations` (
+    `filename` varchar(255) COLLATE utf8mb4_bin PRIMARY KEY,
+    `applied_at` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
+
 // Migration: index for SKIP LOCKED worker claim (row-level locking needs status index)
 $check_idx = $sql->query("SHOW INDEX FROM `task_queue` WHERE Key_name = 'idx_status_id'");
 if ($check_idx && $check_idx->num_rows == 0) {
     $sql->query("ALTER TABLE `task_queue` ADD INDEX `idx_status_id` (`status`, `id`)");
+}
+
+// Migration: hot-path secondary indexes.
+// MySQL 8.0 has no CREATE INDEX IF NOT EXISTS, so each index is guarded with
+// SHOW INDEX first — same pattern as the task_queue index above.
+//
+// `orders` is looked up by (from_id, code) on nearly every request; a single
+// composite index covers both `WHERE from_id = ? AND code = ?` and the
+// `WHERE from_id = ?` lookups (leftmost prefix). A separate index on `code`
+// alone is deliberately NOT created: `orders`.`code` stores the base plan name
+// (e.g. "vip1"), which every customer of that plan shares, so it has almost no
+// selectivity on its own.
+$hot_indexes = [
+    ['table' => 'orders',          'index' => 'idx_orders_from_id_code',     'columns' => '(`from_id`, `code`)'],
+    ['table' => 'users',           'index' => 'idx_users_from_id',           'columns' => '(`from_id`)'],
+    ['table' => 'service_factors', 'index' => 'idx_service_factors_from_id', 'columns' => '(`from_id`)'],
+    ['table' => 'factors',         'index' => 'idx_factors_code',            'columns' => '(`code`)'],
+];
+foreach ($hot_indexes as $hot_index) {
+    $check_hot = $sql->query("SHOW INDEX FROM `{$hot_index['table']}` WHERE Key_name = '{$hot_index['index']}'");
+    if ($check_hot && $check_hot->num_rows == 0) {
+        $sql->query("ALTER TABLE `{$hot_index['table']}` ADD INDEX `{$hot_index['index']}` {$hot_index['columns']}");
+    }
 }
 
 if ($sql->connect_error) {

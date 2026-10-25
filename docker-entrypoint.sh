@@ -59,11 +59,9 @@ $_GET["db_name"] = $argv[3];
 include "/var/www/html/ZZPanelBot/sql/sql.php";
 ' -- "$DB_USER" "$DB_PASS" "$DB_NAME"
 
-# 6. Run migrations
-if [ -f "/var/www/html/ZZPanelBot/migrate.php" ]; then
-    echo "Running migrations..."
-    php /var/www/html/ZZPanelBot/migrate.php
-fi
+# 6. Run versioned schema migrations
+echo "Running versioned schema migrations..."
+php "/var/www/html/ZZPanelBot/tools/run-migrations.php"
 
 # 7. Set Telegram Webhook
 echo "Configuring Telegram Webhook..."

@@ -1,0 +1,31 @@
+# MySQL tuning for the ZZPanel 1 vCPU / 2 GB host.
+#
+# Mounted read-only at /etc/mysql/conf.d/lowcpu.cnf by docker-compose.yml.
+# This file is the ONLY place these values are set — never duplicate them via
+# the compose `command:` option, that is how tuning drifts out of sync.
+
+[mysqld]
+# --- diagnosability: the next multi-minute hang must be explainable afterwards ---
+slow_query_log        = 1
+slow_query_log_file   = /var/log/mysql/slow.log
+long_query_time       = 2
+# Every lookup that misses an index would be logged here, which floods the slow
+# log on a 1 vCPU box and costs more than it reveals. The missing indexes were
+# found by reading the code, not by this flag.
+log_queries_not_using_indexes = 0
+
+# --- performance_schema: the flight recorder reads the by-digest summary ---
+performance_schema = ON
+# The recorder never reads the per-statement history, only
+# events_statements_summary_by_digest. Pinning the two history consumers off
+# saves memory and CPU on a 1 vCPU host.
+performance-schema-consumer-events-statements-history = OFF
+performance-schema-consumer-events-waits-history         = OFF
+
+# --- 2 GB host ---
+# The whole dataset is far smaller than this (orders < 10k rows), so the pool
+# is sized to leave room for the other containers, not to hold the data.
+innodb-buffer-pool-size = 128M
+# Apache's MaxRequestWorkers is 60 (docker/apache/botpanel-perf.conf), so
+# requests queue at Apache instead of failing with "Too many connections" here.
+max-connections = 60

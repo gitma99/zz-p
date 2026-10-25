@@ -98,6 +98,13 @@ do
 
             curl --location "https://${domain}/ZZPanelBot/sql/sql.php?db_password=${db_password}&db_name=${db_name}&db_username=${db_username}"
             echo -e "\n"
+
+            # -----------------------
+            # Versioned Schema Migrations
+            # -----------------------
+            log "Running versioned schema migrations..."
+            export DB_HOST="${DB_HOST:-127.0.0.1}" DB_USER="$db_username" DB_PASS="$db_password" DB_NAME="$db_name"
+            php "${APP_DIR}/tools/run-migrations.php" || warn "Schema migrations failed."
             # ============================= reset apache server and telegram webhook ============================= #
             echo "" > "${APP_DIR}/error.log"
             

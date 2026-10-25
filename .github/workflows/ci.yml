@@ -27,8 +27,39 @@ jobs:
       - name: Run ShellCheck
         run: |
           shellcheck --severity=error install.sh update.sh docker-entrypoint.sh
+          shellcheck --severity=error tests/integration/explain-hot-queries.sh
 
       - name: Run Gitleaks (Secret Scan)
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  indexes:
+    name: Hot-path index check
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -ptest"
+          --health-interval=5s --health-timeout=3s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+
+      - name: Assert the hot queries use an index
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_USER: root
+          MYSQL_PASS: test
+        run: bash tests/integration/explain-hot-queries.sh

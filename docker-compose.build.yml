@@ -31,6 +31,9 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - ./data/mysql:/var/lib/mysql
+      # tuning lives ONLY in lowcpu.cnf — never duplicate the values via command: (drift risk)
+      - ./docker/mysql/lowcpu.cnf:/etc/mysql/conf.d/lowcpu.cnf:ro
+      - ./logs/mysql:/var/log/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s

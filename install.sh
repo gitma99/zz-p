@@ -256,6 +256,37 @@ mkdir -p "${APP_DIR}/logs" "${APP_DIR}/temp"
 ok "Application files cloned to $APP_DIR"
 
 # -----------------------
+# MySQL tuning (bare-metal path)
+# -----------------------
+# The Docker path gets this from docker/mysql/lowcpu.cnf via docker-compose.
+# This path installs MySQL natively, so the same file is dropped into Ubuntu's
+# config directory instead.
+install_mysql_tuning() {
+	local conf_dir="/etc/mysql/mysql.conf.d"
+	local conf_file="${conf_dir}/zzpanel-lowcpu.cnf"
+	local log_dir="/var/log/mysql"
+	local source_conf="${APP_DIR}/docker/mysql/lowcpu.cnf"
+
+	[ -d "$conf_dir" ] || { warn "MySQL config directory ${conf_dir} not found - skipping tuning."; return 0; }
+	[ -f "$source_conf" ] || { warn "Tuning source ${source_conf} not found - skipping tuning."; return 0; }
+
+	# the slow log file lives here; mysqld refuses to start if it cannot write it
+	mkdir -p "$log_dir" || { warn "Cannot create ${log_dir} - skipping tuning."; return 0; }
+	chown mysql:mysql "$log_dir" || { warn "Cannot set ownership of ${log_dir} - skipping tuning."; return 0; }
+
+	install -m 0644 "$source_conf" "$conf_file" || { warn "Cannot install ${conf_file} - skipping tuning."; return 0; }
+
+	if ! systemctl restart mysql; then
+		warn "MySQL failed to restart with the new config - rolling back."
+		rm -f "$conf_file"
+		systemctl restart mysql || fatal "MySQL is down and the rollback failed. Fix MySQL by hand."
+		fatal "MySQL tuning aborted; the previous configuration was restored."
+	fi
+	ok "MySQL tuning applied (${conf_file})."
+}
+install_mysql_tuning
+
+# -----------------------
 # SSL setup
 # -----------------------
 log "Setting up SSL for domain $DOMAIN..."
@@ -341,6 +372,13 @@ else
 	fatal "Database schema initialization script returned no output."
 fi
 ok "Database schema initialized successfully."
+
+# -----------------------
+# Versioned Schema Migrations
+# -----------------------
+log "Running versioned schema migrations..."
+export DB_USER DB_PASS DB_NAME
+php "${APP_DIR}/tools/run-migrations.php" || fatal "Schema migrations failed."
 
 # -----------------------
 # Configure Performance Settings

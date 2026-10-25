@@ -443,7 +443,10 @@ function renewal_service($text, $from_id)
         $caption_text = sprintf($texts['success_create_service'], $name, $location, $date, $limit, number_format($price), '', '@' . $bot_username);
         $message_text = sprintf($texts['success_create_service'], $name_base, $location, $date, $limit, number_format($price), $subscribe, '@' . $bot_username);
         sendSuccessResponse($from_id, $panel['qr_code'], $subscribe, $caption_text, $message_text, $start_key);
-        $sql->query("UPDATE `orders` SET `location` = '$location', `date` = '$date', `volume` = '$limit', `link` = '$links', `price` = '$price' WHERE `code` = '$code_base'");
+        // `code` holds the BASE plan name, shared by every customer of that plan.
+        // Without `from_id` this UPDATE overwrote the location, date, volume,
+        // link and price of every other customer's order for the same plan.
+        $sql->query("UPDATE `orders` SET `location` = '$location', `date` = '$date', `volume` = '$limit', `link` = '$links', `price` = '$price' WHERE `code` = '$code_base' AND `from_id` = '$from_id'");
 
         # ---------------- Deduct Coins  ---------------- #
         $sql->query("UPDATE `users` SET `coin` = coin - $price WHERE `from_id` = '$from_id' LIMIT 1");
