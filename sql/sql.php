@@ -1,297 +1,32 @@
 <?php
 
-if (!isset($_GET['db_username'], $_GET['db_password'], $_GET['db_name'])) die(json_encode(['status' => false, 'msg' => 'Database operation failed -> ' . $sql->connect_error, 'error_code' => 401], 448));
+// sql/sql.php — thin compatibility shim.
+//
+// All schema creation now lives in versioned migration files under
+// sql/migrations/ and is applied by tools/run-migrations.php on every boot,
+// install, and update. This file no longer creates tables or indexes — it
+// only ensures the schema_migrations tracker table exists (defensive; the
+// runner also creates it) and returns a JSON status so the HTTP update path
+// in update.sh can check it.
+
+if (!isset($_GET['db_username'], $_GET['db_password'], $_GET['db_name'])) {
+    die(json_encode(['status' => false, 'msg' => 'Database operation failed -> missing credentials', 'error_code' => 401], 448));
+}
 
 $db_host = getenv('DB_HOST') ?: 'localhost';
 $sql = new mysqli($db_host, $_GET['db_username'], $_GET['db_password'], $_GET['db_name']);
 $sql->set_charset("utf8mb4");
 
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `users` (
-    `row` int(200) AUTO_INCREMENT PRIMARY KEY,
-    `from_id` bigint(13) NOT NULL,
-    `step` varchar(50) COLLATE utf8mb4_bin DEFAULT 'none',
-    `coin` int DEFAULT 0,
-    `count_service` int DEFAULT 0,
-    `count_charge` int DEFAULT 0,
-    `phone` varchar(20) COLLATE utf8mb4_bin DEFAULT NULL,
-    `test_account` varchar(10) COLLATE utf8mb4_bin DEFAULT 'no',
-    `count_warn` varchar(10) COLLATE utf8mb4_bin DEFAULT '0',
-    `view_status` varchar(20) COLLATE utf8mb4_bin DEFAULT 'active',
-    `timestamp` varchar(50) COLLATE utf8mb4_bin DEFAULT '0',
-    `status` varchar(15) COLLATE utf8mb4_bin DEFAULT 'active'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `panels` (
-    `row` int(200) AUTO_INCREMENT PRIMARY KEY,
-    `name` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-    `login_link` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-    `username` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-    `password` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-    `count_create` varchar(50) COLLATE utf8mb4_bin DEFAULT '0',
-    `qr_code` varchar(30) COLLATE utf8mb4_bin DEFAULT 'active',
-    `protocols` varchar(50) COLLATE utf8mb4_bin DEFAULT 'vless|',
-    `flow` varchar(15) COLLATE utf8mb4_bin DEFAULT 'flowon',
-    `code` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-    `token` varchar(500) COLLATE utf8mb4_bin NOT NULL,
-    `type` varchar(30) COLLATE utf8mb4_bin NOT NULL,
-    `status` varchar(20) COLLATE utf8mb4_bin DEFAULT 'active'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `hiddify_panels` (
-    `row` int(200) AUTO_INCREMENT PRIMARY KEY,
-    `name` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-    `login_link` TEXT COLLATE utf8mb4_bin NOT NULL,
-    `token` TEXT COLLATE utf8mb4_bin NOT NULL,
-    `count_create` varchar(50) COLLATE utf8mb4_bin DEFAULT '0',
-    `qr_code` varchar(30) COLLATE utf8mb4_bin DEFAULT 'active',
-    `code` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-    `type` varchar(30) COLLATE utf8mb4_bin NOT NULL,
-    `status` varchar(20) COLLATE utf8mb4_bin DEFAULT 'active'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `sanayi_panel_setting` (
-    `code` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL,
-    `inbound_id` varchar(10) COLLATE utf8mb4_bin DEFAULT NULL,
-    `example_link` TEXT COLLATE utf8mb4_bin DEFAULT NULL,
-    `flow` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `marzban_inbounds` (
-    `panel` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL,
-    `inbound` TEXT COLLATE utf8mb4_bin DEFAULT NULL,
-    `code` varchar(20) COLLATE utf8mb4_bin DEFAULT NULL,
-    `status` varchar(20) COLLATE utf8mb4_bin DEFAULT 'active'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `orders` (
-    `row` int(200) AUTO_INCREMENT PRIMARY KEY,
-    `from_id` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `location` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-    `protocol` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL,
-    `date` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `volume` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `link` TEXT COLLATE utf8mb4_bin NOT NULL,
-    `price` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `code` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `status` varchar(15) COLLATE utf8mb4_bin NOT NULL,
-    `type` varchar(20) COLLATE utf8mb4_bin NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-// `orders_archive` is created HERE, not in the request path.
-// It used to be created by App/functions/service_overview.php on every
-// service-overview request; even a no-op CREATE TABLE IF NOT EXISTS takes a
-// metadata lock, which was a candidate cause of the 2-minute bot hang.
-// Created BEFORE the hot indexes below on purpose: LIKE copies the table
-// definition, so the archive stays PK-only and does not carry indexes it
-// never queries (it is only read by `row`).
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `orders_archive` LIKE `orders`");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `factors` (
-    `row` int(200) AUTO_INCREMENT PRIMARY KEY,
-    `from_id` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `price` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-    `code` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `status` varchar(15) COLLATE utf8mb4_bin NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `sends` (
-    `send` varchar(50) PRIMARY KEY,
-    `step` varchar(50) DEFAULT NULL,
-    `user` INT(11) DEFAULT NULL,
-    `type` varchar(50) DEFAULT NULL,
-    `text` varchar(7000) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `category` (
-    `row` int(200) AUTO_INCREMENT PRIMARY KEY,
-    `limit` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `date` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `name` varchar(100) COLLATE utf8mb4_bin NOT NULL,
-    `price` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-    `code` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `status` varchar(15) COLLATE utf8mb4_bin NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `category_limit` (
-    `row` int(200) AUTO_INCREMENT PRIMARY KEY,
-    `limit` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `name` varchar(100) COLLATE utf8mb4_bin NOT NULL,
-    `price` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-    `code` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `status` varchar(15) COLLATE utf8mb4_bin NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `category_date` (
-    `row` int(200) AUTO_INCREMENT PRIMARY KEY,
-    `date` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `name` varchar(100) COLLATE utf8mb4_bin NOT NULL,
-    `price` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-    `code` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `status` varchar(15) COLLATE utf8mb4_bin NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `service_factors` (
-    `row` int(200) AUTO_INCREMENT PRIMARY KEY,
-    `from_id` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `location` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-    `protocol` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-    `plan` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-    `price` varchar(200) COLLATE utf8mb4_bin NOT NULL,
-    `code` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `status` varchar(15) COLLATE utf8mb4_bin NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `lock` (
-    `id` int(11) AUTO_INCREMENT PRIMARY KEY,
-    `chat_id` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL,
-    `name` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `payment_setting` (
-    `zarinpal_token` varchar(200) COLLATE utf8mb4_bin DEFAULT 'none',
-    `idpay_token` varchar(200) COLLATE utf8mb4_bin DEFAULT 'none',
-    `nowpayment_token` varchar(200) COLLATE utf8mb4_bin DEFAULT 'none',
-    `card_number` varchar(20) COLLATE utf8mb4_bin DEFAULT 'none',
-    `card_number_name` varchar(100) COLLATE utf8mb4_bin DEFAULT 'none',
-    `zarinpal_status` varchar(15) COLLATE utf8mb4_bin DEFAULT 'inactive',
-    `idpay_status` varchar(15) COLLATE utf8mb4_bin DEFAULT 'inactive',
-    `nowpayment_status` varchar(15) COLLATE utf8mb4_bin DEFAULT 'inactive',
-    `card_status` varchar(15) COLLATE utf8mb4_bin DEFAULT 'inactive'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `test_account_setting` (
-    `panel` varchar(20) COLLATE utf8mb4_bin DEFAULT 'none',
-    `volume` varchar(20) COLLATE utf8mb4_bin DEFAULT '0',
-    `time` varchar(20) COLLATE utf8mb4_bin DEFAULT '0',
-    `status` varchar(50) COLLATE utf8mb4_bin DEFAULT 'inactive'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `test_account` (
-    `row` int(200) AUTO_INCREMENT PRIMARY KEY,
-    `from_id` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `location` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-    `date` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `volume` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `link` TEXT COLLATE utf8mb4_bin NOT NULL,
-    `price` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `code` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `status` varchar(15) COLLATE utf8mb4_bin NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `admins` (
-    `chat_id` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `settings` (
-    `log_channel` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL,
-    `count_warn_ban` varchar(50) COLLATE utf8mb4_bin DEFAULT '3',
-    `show_account_status_changer_btn` varchar(15) COLLATE utf8mb4_bin DEFAULT 'active',
-    `show_charge_account_btn` varchar(15) COLLATE utf8mb4_bin DEFAULT 'active'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `spam_setting` (
-    `type` varchar(20) COLLATE utf8mb4_bin DEFAULT 'ban',
-    `time` varchar(20) COLLATE utf8mb4_bin DEFAULT '3',
-    `count_message` varchar(20) COLLATE utf8mb4_bin DEFAULT '10',
-    `status` varchar(50) COLLATE utf8mb4_bin DEFAULT 'active'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `copens` (
-    `copen` varchar(100) COLLATE utf8mb4_bin NOT NULL,
-    `percent` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-    `count_use` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `status` varchar(50) COLLATE utf8mb4_bin DEFAULT 'active'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `notes` (
-    `note` TEXT COLLATE utf8mb4_bin NOT NULL,
-    `code` varchar(30) COLLATE utf8mb4_bin NOT NULL,
-    `type` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-    `status` varchar(20) COLLATE utf8mb4_bin DEFAULT 'active'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `auth_setting` (
-    `iran_number` varchar(15) COLLATE utf8mb4_bin DEFAULT NULL,
-    `virtual_number` varchar(15) COLLATE utf8mb4_bin DEFAULT NULL,
-    `both_number` varchar(15) COLLATE utf8mb4_bin DEFAULT NULL,
-    `status` varchar(15) COLLATE utf8mb4_bin DEFAULT 'inactive'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-if ($sql->query("SELECT * FROM `auth_setting`")->num_rows == 0) $sql->query("INSERT INTO `auth_setting` (`iran_number`, `virtual_number`, `both_number`) VALUES ('inactive', 'inactive', 'inactive')");
-if ($sql->query("SELECT * FROM `settings`")->num_rows == 0) $sql->query("INSERT INTO `settings` (`count_warn_ban`, `show_account_status_changer_btn`, `show_charge_account_btn`) VALUES ('3', 'active', 'active')");
-if ($sql->query("SELECT * FROM `spam_setting`")->num_rows == 0) $sql->query("INSERT INTO `spam_setting` (`type`) VALUES ('ban')");
-if ($sql->query("SELECT * FROM `test_account_setting`")->num_rows == 0) $sql->query("INSERT INTO `test_account_setting` (`panel`) VALUES ('none')");
-if ($sql->query("SELECT * FROM `sends` WHERE `send` = 'no'")->num_rows == 0) $sql->query("INSERT INTO `sends` (`send`) VALUES('no');");
-if ($sql->query("SELECT * FROM `payment_setting`")->num_rows == 0) $sql->query("INSERT INTO `payment_setting` (`zarinpal_token`, `idpay_token`, `nowpayment_token`) VALUES ('none', 'none', 'none')");
-
-// Migration: Check and add show_account_status_changer_btn column if missing
-$check_col1 = $sql->query("SHOW COLUMNS FROM `settings` LIKE 'show_account_status_changer_btn'");
-if ($check_col1 && $check_col1->num_rows == 0) {
-    $sql->query("ALTER TABLE `settings` ADD `show_account_status_changer_btn` varchar(15) COLLATE utf8mb4_bin DEFAULT 'active'");
-    $sql->query("UPDATE `settings` SET `show_account_status_changer_btn` = 'active' WHERE `show_account_status_changer_btn` IS NULL OR `show_account_status_changer_btn` = ''");
-}
-
-// Migration: Check and add show_charge_account_btn column if missing
-$check_col2 = $sql->query("SHOW COLUMNS FROM `settings` LIKE 'show_charge_account_btn'");
-if ($check_col2 && $check_col2->num_rows == 0) {
-    $sql->query("ALTER TABLE `settings` ADD `show_charge_account_btn` varchar(15) COLLATE utf8mb4_bin DEFAULT 'active'");
-    $sql->query("UPDATE `settings` SET `show_charge_account_btn` = 'active' WHERE `show_charge_account_btn` IS NULL OR `show_charge_account_btn` = ''");
-}
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `task_queue` (
-    `id` int AUTO_INCREMENT PRIMARY KEY,
-    `type` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-    `payload` TEXT COLLATE utf8mb4_bin NOT NULL,
-    `status` ENUM('pending','running','done','failed') COLLATE utf8mb4_bin DEFAULT 'pending',
-    `created_at` datetime NOT NULL,
-    `started_at` datetime DEFAULT NULL,
-    `locked_at` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `task_results` (
-    `task_id` int PRIMARY KEY,
-    `result` TEXT COLLATE utf8mb4_bin NOT NULL,
-    `created_at` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
-
-// Migration tracker: records which versioned migration files have been
-// applied, so schema changes reach existing databases without manual DDL.
-mysqli_multi_query($sql, "CREATE TABLE IF NOT EXISTS `schema_migrations` (
+// Defensive: ensure the migration tracker table exists even if this file is
+// run without the migration runner. The runner applies all versioned
+// migrations (init + indexes) right after this on every boot/install/update.
+$sql->query("CREATE TABLE IF NOT EXISTS `schema_migrations` (
     `filename` varchar(255) COLLATE utf8mb4_bin PRIMARY KEY,
     `applied_at` datetime NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;");
 
-// Migration: index for SKIP LOCKED worker claim (row-level locking needs status index)
-$check_idx = $sql->query("SHOW INDEX FROM `task_queue` WHERE Key_name = 'idx_status_id'");
-if ($check_idx && $check_idx->num_rows == 0) {
-    $sql->query("ALTER TABLE `task_queue` ADD INDEX `idx_status_id` (`status`, `id`)");
-}
-
-// Migration: hot-path secondary indexes.
-// MySQL 8.0 has no CREATE INDEX IF NOT EXISTS, so each index is guarded with
-// SHOW INDEX first — same pattern as the task_queue index above.
-//
-// `orders` is looked up by (from_id, code) on nearly every request; a single
-// composite index covers both `WHERE from_id = ? AND code = ?` and the
-// `WHERE from_id = ?` lookups (leftmost prefix). A separate index on `code`
-// alone is deliberately NOT created: `orders`.`code` stores the base plan name
-// (e.g. "vip1"), which every customer of that plan shares, so it has almost no
-// selectivity on its own.
-$hot_indexes = [
-    ['table' => 'orders',          'index' => 'idx_orders_from_id_code',     'columns' => '(`from_id`, `code`)'],
-    ['table' => 'users',           'index' => 'idx_users_from_id',           'columns' => '(`from_id`)'],
-    ['table' => 'service_factors', 'index' => 'idx_service_factors_from_id', 'columns' => '(`from_id`)'],
-    ['table' => 'factors',         'index' => 'idx_factors_code',            'columns' => '(`code`)'],
-];
-foreach ($hot_indexes as $hot_index) {
-    $check_hot = $sql->query("SHOW INDEX FROM `{$hot_index['table']}` WHERE Key_name = '{$hot_index['index']}'");
-    if ($check_hot && $check_hot->num_rows == 0) {
-        $sql->query("ALTER TABLE `{$hot_index['table']}` ADD INDEX `{$hot_index['index']}` {$hot_index['columns']}");
-    }
-}
-
 if ($sql->connect_error) {
-	echo json_encode(['status' => false, 'msg' => '❌ The connection with the database encountered an error : ' . $sql->connect_error, 'status_code' => 401], 448);
+    echo json_encode(['status' => false, 'msg' => '❌ The connection with the database encountered an error : ' . $sql->connect_error, 'status_code' => 401], 448);
 } else {
     echo json_encode(['status' => true, 'msg' => '✅ The database operation was completed successfully.', 'status_code' => 200], 448);
 }
