@@ -60,3 +60,15 @@ SET @ddl := IF(
     'ALTER TABLE `factors` ADD INDEX `idx_factors_code` (`code`)',
     'DO 0');
 PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 5) task_queue: idx_status_id (baseline from v3.1.0)
+-- Worker claim uses SKIP LOCKED and needs the status index:
+--   `SHOW INDEX FROM `task_queue` WHERE Key_name = 'idx_status_id'`
+--   `ALTER TABLE `task_queue` ADD INDEX `idx_status_id` (`status`, `id`)`
+SET @ddl := IF(
+    (SELECT COUNT(*) FROM information_schema.statistics
+     WHERE table_schema = DATABASE() AND table_name = 'task_queue'
+       AND index_name = 'idx_status_id') = 0,
+    'ALTER TABLE `task_queue` ADD INDEX `idx_status_id` (`status`, `id`)',
+    'DO 0');
+PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;

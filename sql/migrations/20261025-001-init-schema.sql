@@ -197,6 +197,22 @@ CREATE TABLE IF NOT EXISTS `spam_setting` (
     `status` varchar(50) COLLATE utf8mb4_bin DEFAULT 'active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
+CREATE TABLE IF NOT EXISTS `task_queue` (
+    `id` int AUTO_INCREMENT PRIMARY KEY,
+    `type` varchar(50) COLLATE utf8mb4_bin NOT NULL,
+    `payload` TEXT COLLATE utf8mb4_bin NOT NULL,
+    `status` ENUM('pending','running','done','failed') COLLATE utf8mb4_bin DEFAULT 'pending',
+    `created_at` datetime NOT NULL,
+    `started_at` datetime DEFAULT NULL,
+    `locked_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+CREATE TABLE IF NOT EXISTS `task_results` (
+    `task_id` int PRIMARY KEY,
+    `result` TEXT COLLATE utf8mb4_bin NOT NULL,
+    `created_at` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
 CREATE TABLE IF NOT EXISTS `copens` (
     `copen` varchar(100) COLLATE utf8mb4_bin NOT NULL,
     `percent` varchar(50) COLLATE utf8mb4_bin NOT NULL,
