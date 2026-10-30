@@ -1,5 +1,5 @@
 <?php
-function sendSuccessResponse($from_id, $qr_code_status, $qr_data, $caption_text, $message_text, $start_key, $retry_count = 3)
+function sendSuccessResponse($from_id, $qr_code_status, $qr_data, $caption_text, $message_text, $start_key, $retry_count = 3, $sleeper = 'sleep')
 {
     global $texts;
     if ($qr_code_status == 'active') {
@@ -16,6 +16,20 @@ function sendSuccessResponse($from_id, $qr_code_status, $qr_data, $caption_text,
                 ]);
                 if (isset($bot_reply['ok']) && $bot_reply['ok'] === true) {
                     return $bot_reply;
+                }
+                if (isset($bot_reply['error_code']) && $bot_reply['error_code'] === 429) {
+                    $retry_after = (isset($bot_reply['parameters']['retry_after']) && is_numeric($bot_reply['parameters']['retry_after']) && (int)$bot_reply['parameters']['retry_after'] > 0)
+                        ? (int)$bot_reply['parameters']['retry_after']
+                        : 3;
+                    if ($retry_after > 5) {
+                        Logger::warning('sendPhoto 429 retry_after exceeds threshold, aborting retries', array('chat_id' => $from_id, 'retry_after' => $retry_after));
+                        break;
+                    }
+                    Logger::warning('sendPhoto 429 rate limited, waiting to retry', array('chat_id' => $from_id, 'attempt' => $i + 1, 'retry_after' => $retry_after));
+                    if ($i + 1 < $retry_count && is_callable($sleeper)) {
+                        call_user_func($sleeper, $retry_after);
+                    }
+                    continue;
                 }
                 throw new Exception(json_encode($bot_reply));
             } catch (Exception $e) {
