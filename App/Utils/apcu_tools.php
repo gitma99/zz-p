@@ -10,6 +10,9 @@ function apcu_warn_once() {
 }
 
 function apcu_safe_get($k, $default = false) {
+    if (!is_string($k) || $k === '') {
+        throw new InvalidArgumentException("apcu_safe_get: key must be a non-empty string");
+    }
     if (function_exists('apcu_fetch')) {
         $v = apcu_fetch($k, $hit);
         if ($hit) return $v;
@@ -19,6 +22,9 @@ function apcu_safe_get($k, $default = false) {
 }
 
 function apcu_safe_set($k, $v, $ttl = 0) {
+    if (!is_string($k) || $k === '') {
+        throw new InvalidArgumentException("apcu_safe_set: key must be a non-empty string");
+    }
     if (function_exists('apcu_store')) {
         return apcu_store($k, $v, $ttl);
     }
@@ -27,6 +33,9 @@ function apcu_safe_set($k, $v, $ttl = 0) {
 }
 
 function apcu_safe_del($k) {
+    if (!is_string($k) || $k === '') {
+        throw new InvalidArgumentException("apcu_safe_del: key must be a non-empty string");
+    }
     if (function_exists('apcu_delete')) {
         return apcu_delete($k);
     }

@@ -1,0 +1,37 @@
+# Local test harness mirroring .github/workflows/ci.yml "tests" job.
+# Runs unit tests (tests/unit) and integration tests (tests/integration)
+# against a throwaway MySQL 8.0 service — the same versions CI uses.
+#
+# Usage:
+#   docker compose -f docker-compose.test.yml up --abort-on-container-exit --exit-code-from tests
+#
+#   (with docker-compose v1: replace `docker compose` with `docker-compose`)
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: zzpanel_test_db
+    environment:
+      MYSQL_ROOT_PASSWORD: test
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ptest"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  tests:
+    build:
+      context: .
+      dockerfile: tests/integration/test.Dockerfile
+    container_name: zzpanel_test_runner
+    working_dir: /app
+    environment:
+      MYSQL_HOST: db
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASS: test
+      MYSQL_DB: zzpanel_explain_test
+    depends_on:
+      db:
+        condition: service_healthy
+    command: bash tests/integration/test-run.sh

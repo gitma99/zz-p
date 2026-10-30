@@ -17,6 +17,12 @@ $cache = new RequestCache();
 
 function cached_query($key, $fn) {
     global $cache;
+    if (!is_string($key) || $key === '') {
+        throw new InvalidArgumentException("cached_query: key must be a non-empty string");
+    }
+    if (!is_callable($fn)) {
+        throw new InvalidArgumentException("cached_query: second argument must be callable");
+    }
     if ($cache->has($key)) return $cache->get($key);
     $val = $fn();
     $cache->set($key, $val);
@@ -24,6 +30,9 @@ function cached_query($key, $fn) {
 }
 function get_active_rows($key, $table) {
     global $sql;
+    if (!is_string($table) || !preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
+        throw new InvalidArgumentException("get_active_rows: invalid table name: " . var_export($table, true));
+    }
     return cached_query($key, function () use ($sql, $table) {
         $r = $sql->query("SELECT * FROM `$table` WHERE `status` = 'active'");
         return $r ? $r->fetch_all(MYSQLI_ASSOC) : array();
@@ -35,6 +44,9 @@ function get_active_date_plans() { return get_active_rows('category_date:active'
 function get_active_limit_plans() { return get_active_rows('category_limit:active', 'category_limit'); }
 function get_panel_by_name($name) {
     global $sql, $cache;
+    if (!is_string($name) || $name === '') {
+        throw new InvalidArgumentException("get_panel_by_name: name must be a non-empty string");
+    }
     if ($cache->has('panels:active')) {
         foreach ($cache->get('panels:active') as $row) {
             if ($row['name'] === $name) {

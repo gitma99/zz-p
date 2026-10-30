@@ -11,6 +11,7 @@ if (php_sapi_name() !== 'cli') {
 
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../App/apis/marzban-api/api.php';
+require_once __DIR__ . '/../App/Utils/pure.php';
 
 $options = getopt('', ['panel:', 'all', 'limit::', 'offset::', 'insert', 'verbose', 'log-file:', 'report-csv:', 'batch-size::', 'skip-disabled', 'force']);
 
@@ -75,13 +76,6 @@ function logline($s)
     $line = "[$time] $s\n";
     echo $line;
     if ($logHandle) fwrite($logHandle, $line);
-}
-
-// helper: safe int GB
-function bytes_to_int_gb($bytes)
-{
-    if (!is_numeric($bytes)) return 0;
-    return intval(floor($bytes / 1073741824)); // 1024^3
 }
 
 // helper: append row to CSV report if available

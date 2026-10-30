@@ -3,11 +3,11 @@ require_once __DIR__ . "/App/vars.php";
 require_once __DIR__ . "/App/Utils/apcu_tools.php";
 require_once __DIR__ . "/App/Utils/Logger.php";
 require_once __DIR__ . "/App/Utils/request_cache.php";
+require_once __DIR__ . "/App/Utils/pure.php";
 
 define('CONFIG_CACHE_KEY', 'botpanel_config'); define('CONFIG_TTL', 300);
 define('SCHEMA_CACHE_KEY', 'botpanel_tables_exist'); define('SCHEMA_TTL', 60);
 define('MEMBER_TTL', 60);
-function membership_key($kind, $chat, $user) { return 'apcu:' . $kind . ':' . $chat . ':' . $user; }
 
 date_default_timezone_set('Asia/Tehran');
 error_reporting(E_ALL ^ E_NOTICE);
@@ -147,41 +147,6 @@ function checkURL($url)
     $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     return $httpcode;
-}
-
-function Conversion($byte, $one = 'GB')
-{
-    if (isset($one)) {
-        if ($one == 'GB') {
-            $limit = round($byte / 1073741824, 3);
-            // $limit = floor($byte / 1048576);
-        } elseif ($one == 'MB') {
-            $limit = round($byte / 1048576, 3);
-            // $limit = floor($byte / 1024);
-        } elseif ($one == 'KB') {
-            $limit = round($byte / 1024, 3);
-            // $limit = floor($byte);
-        }
-    }
-    return $limit;
-}
-
-function convertToBytes($from)
-{
-    $units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
-    $number = substr($from, 0, -2);
-    $suffix = strtoupper(substr($from, -2));
-
-    if (is_numeric(substr($suffix, 0, 1))) {
-        return preg_replace('/[^\d]/', '', $from);
-    }
-
-    $exponent = array_flip($units)[$suffix] ?? null;
-    if ($exponent === null) {
-        return null;
-    }
-
-    return $number * (1024 ** $exponent);
 }
 
 function isJoin($from_id)
@@ -379,36 +344,6 @@ function checkNowPayment($payment_id)
     $response = curl_exec($curl);
     curl_close($curl);
     return $response;
-}
-
-function generateUUID()
-{
-    return sprintf(
-        '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-        mt_rand(0, 0xffff),
-        mt_rand(0, 0xffff),
-        mt_rand(0, 0xffff),
-        mt_rand(0, 0x0fff) | 0x4000,
-        mt_rand(0, 0x3fff) | 0x8000,
-        mt_rand(0, 0xffff),
-        mt_rand(0, 0xffff),
-        mt_rand(0, 0xffff)
-    );
-}
-
-function checkInbound($inbounds, $inbound)
-{
-    $inbounds = json_decode($inbounds, true);
-    $found_inbound = false;
-    foreach ($inbounds as $protocol) {
-        foreach ($protocol as $item) {
-            if (strtoupper($item['tag']) == strtoupper($inbound)) {
-                $found_inbound = true;
-                break;
-            }
-        }
-    }
-    return $found_inbound ? true : false;
 }
 
 # ----------------- [ <- keyboard -> ] ----------------- #

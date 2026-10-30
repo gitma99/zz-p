@@ -30,7 +30,10 @@ class Logger {
     public static function log($level, $message, array $context = array(), $includeTrace = null) {
         $self = self::inst();
         $name = is_int($level) ? (array_search($level, self::LEVELS, true) ?: 'INFO') : strtoupper($level);
-        $value = isset(self::LEVELS[$name]) ? self::LEVELS[$name] : 200;
+        if (!isset(self::LEVELS[$name])) {
+            throw new InvalidArgumentException("Logger: invalid log level '$level', expected: " . implode(', ', array_keys(self::LEVELS)));
+        }
+        $value = self::LEVELS[$name];
         $min = isset(self::LEVELS[$self->cfg->level]) ? self::LEVELS[$self->cfg->level] : 200;
         if ($value < $min) return;
         list($file, $line, $trace) = $self->caller($includeTrace !== null ? $includeTrace : ($value >= 400));

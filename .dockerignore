@@ -7,5 +7,7 @@ bot_config.json
 logs/
 data/
 temp/
+docker-compose.test.yml
+.env.test
 docker/nginx/init-letsencrypt.sh
 *.md

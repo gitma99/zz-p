@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -25,17 +27,15 @@ jobs:
           find . -name "*.php" -not -path "*/.git/*" -not -path "*/__TEMP__/*" -not -path "*/__LOCAL__/*" -print0 | xargs -0 -n 1 php -l
 
       - name: Run ShellCheck
-        run: |
-          shellcheck --severity=error install.sh update.sh docker-entrypoint.sh
-          shellcheck --severity=error tests/integration/explain-hot-queries.sh
+        run: shellcheck --severity=error install.sh update.sh docker-entrypoint.sh tests/integration/*.sh tests/unit/*.sh
 
       - name: Run Gitleaks (Secret Scan)
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  indexes:
-    name: Hot-path index check
+  tests:
+    name: Unit & Integration Tests
     runs-on: ubuntu-latest
     services:
       mysql:
@@ -56,10 +56,11 @@ jobs:
           php-version: '7.4'
           coverage: none
 
-      - name: Assert the hot queries use an index
+      - name: Run full test suite (unit + integration)
         env:
           MYSQL_HOST: 127.0.0.1
           MYSQL_PORT: 3306
           MYSQL_USER: root
           MYSQL_PASS: test
-        run: bash tests/integration/explain-hot-queries.sh
+          MYSQL_DB: zzpanel_explain_test
+        run: bash tests/integration/test-run.sh

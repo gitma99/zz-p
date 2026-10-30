@@ -37,6 +37,8 @@ WORKDIR /var/www/html/ZZPanelBot
 
 # Copy application code (excluding files in .dockerignore)
 COPY . /var/www/html/ZZPanelBot
+# Test files must not ship in the production image
+RUN rm -rf /var/www/html/ZZPanelBot/tests
 
 # Copy config templates and custom settings
 COPY docker/php/botpanel-perf.ini /etc/php/7.4/fpm/conf.d/99-botpanel-perf.ini

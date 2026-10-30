@@ -266,7 +266,7 @@ function check_cache_keys() {
     assert(strpos($src, "define('CONFIG_TTL', 300)") !== false);
     assert(strpos($src, "define('SCHEMA_TTL', 60)") !== false);
     assert(strpos($src, "define('MEMBER_TTL', 60)") !== false);
-    assert(strpos($src, 'function membership_key') !== false);
+    assert(strpos(file_get_contents(__DIR__ . '/../App/Utils/pure.php'), 'function membership_key') !== false);
     assert(strpos(file_get_contents(__DIR__ . '/../App/Utils/apcu_tools.php'), 'apcu_warn_once') !== false);
     echo "cache keys + TTL constants: OK\n";
 }

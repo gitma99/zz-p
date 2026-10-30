@@ -1,13 +1,8 @@
 <?php
 
-header('Content-type: application/json;');
+require_once __DIR__ . '/../App/Utils/pure.php';
 
-function convertPersianToEnglish($string) {
-    $persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
-    $english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-    $response = str_replace($persian, $english, $string);
-    return $response;
-}
+header('Content-type: application/json;');
 
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, 'https://api.bitpin.ir/v1/mkt/currencies/');

@@ -10,6 +10,7 @@ set_time_limit(0);
 error_reporting(E_ALL ^ E_NOTICE);
 
 $host = getenv('DB_HOST') ?: 'localhost';
+$port = (int)(getenv('DB_PORT') ?: 3306);
 $user = getenv('DB_USER');
 $pass = getenv('DB_PASS');
 $name = getenv('DB_NAME');
@@ -19,7 +20,7 @@ if (!$user || !$name) {
     exit(1);
 }
 
-$mysqli = new mysqli($host, $user, $pass, $name);
+$mysqli = new mysqli($host, $user, $pass, $name, $port);
 if ($mysqli->connect_error) {
     fwrite(STDERR, "ERROR: " . $mysqli->connect_error . "\n");
     exit(1);
