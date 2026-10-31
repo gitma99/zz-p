@@ -79,6 +79,19 @@ export_diagnose_report() {
     [ -n "$target_file" ] || target_file="/tmp/zzbot-diagnose-$(date +%s).log"
     local clean_log
     clean_log=$(printf '%s\n' "$DIAG_LOG_BUFFER" | sed -E "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2})?)?[mGK]//g")
+
+    local base_dir="${BASE_DIR:-/srv}"
+    local env_file="$base_dir/.env"
+    if [ -f "$env_file" ]; then
+        local sec
+        for sec_var in BOT_TOKEN DB_PASS MYSQL_ROOT_PASSWORD GITHUB_TOKEN; do
+            sec=$(grep -E "^[[:space:]]*${sec_var}=" "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | sed -E 's/^[[:space:]]*//; s/[[:space:]]*$//; s/^["'\''](.*)["'\'']$/\1/' || true)
+            if [ -n "$sec" ]; then
+                clean_log=$(mask_secret "$clean_log" "$sec")
+            fi
+        done
+    fi
+
     printf '%s\n' "$clean_log" > "$target_file"
     chmod 0600 "$target_file" 2>/dev/null || true
     echo "$target_file"
@@ -266,10 +279,10 @@ diagnose_db() {
     fi
 
     local db_name db_user db_pass root_pass
-    db_name=$(grep -E '^[[:space:]]*DB_NAME=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | tr -d ' "\r' || true)
+    db_name=$(grep -E '^[[:space:]]*DB_NAME=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | sed -E 's/^[[:space:]]*//; s/[[:space:]]*$//; s/^["'\''](.*)["'\'']$/\1/' || true)
     db_user=$(grep -E '^[[:space:]]*DB_USER=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | tr -d ' "\r' || true)
-    db_pass=$(grep -E '^[[:space:]]*DB_PASS=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | tr -d ' "\r' || true)
-    root_pass=$(grep -E '^[[:space:]]*MYSQL_ROOT_PASSWORD=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | tr -d ' "\r' || true)
+    db_pass=$(grep -E '^[[:space:]]*DB_PASS=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | sed -E 's/^[[:space:]]*//; s/[[:space:]]*$//; s/^["'\''](.*)["'\'']$/\1/' || true)
+    root_pass=$(grep -E '^[[:space:]]*MYSQL_ROOT_PASSWORD=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | sed -E 's/^[[:space:]]*//; s/[[:space:]]*$//; s/^["'\''](.*)["'\'']$/\1/' || true)
 
     if [ -z "$db_name" ] || [ -z "$db_user" ] || [ -z "$db_pass" ]; then
         DIAG_FAIL "Database configuration incomplete: DB_NAME, DB_USER, or DB_PASS is missing in .env."
@@ -277,9 +290,15 @@ diagnose_db() {
     fi
 
     # 1. MySQL ping
-    local ping_pass="${root_pass:-$db_pass}"
+    local ping_user="root"
+    local ping_pass="$root_pass"
+    if [ -z "$root_pass" ]; then
+        ping_user="$db_user"
+        ping_pass="$db_pass"
+    fi
+
     local ping_res
-    ping_res=$(docker exec zzpanel_mysql mysqladmin ping -h localhost -uroot -p"$ping_pass" 2>&1 || true)
+    ping_res=$(docker exec zzpanel_mysql mysqladmin ping -h localhost -u"$ping_user" -p"$ping_pass" 2>&1 || true)
     if echo "$ping_res" | grep -qi "alive"; then
         DIAG_PASS "MySQL daemon responded to ping (mysqld alive)."
     else
@@ -287,12 +306,12 @@ diagnose_db() {
         return 1
     fi
 
-    # 2. Authenticate application user
+    # 2. Authenticate application user (safely pass env vars)
     local auth_check
-    auth_check=$(docker exec zzpanel_app php -r "
-        \$m = @new mysqli('mysql', '$db_user', '$db_pass', '$db_name');
-        if (\$m->connect_error) { echo 'ERR: ' . \$m->connect_error; } else { echo 'DB_AUTH_OK'; }
-    " 2>/dev/null || echo "ERR: execution failed")
+    auth_check=$(docker exec -e DB_USER="$db_user" -e DB_PASS="$db_pass" -e DB_NAME="$db_name" zzpanel_app php -r '
+        $m = @new mysqli("mysql", getenv("DB_USER"), getenv("DB_PASS"), getenv("DB_NAME"));
+        if ($m->connect_error) { echo "ERR: " . $m->connect_error; } else { echo "DB_AUTH_OK"; }
+    ' 2>/dev/null || echo "ERR: execution failed")
 
     if [[ "$auth_check" == *"DB_AUTH_OK"* ]]; then
         DIAG_PASS "Database authentication succeeded for user '$db_user'."
@@ -302,7 +321,7 @@ diagnose_db() {
 
     # 3. Connection saturation check
     local conn_info
-    conn_info=$(docker exec zzpanel_mysql mysql -uroot -p"$ping_pass" -N -e "
+    conn_info=$(docker exec zzpanel_mysql mysql -u"$ping_user" -p"$ping_pass" -N -e "
         SHOW GLOBAL STATUS LIKE 'Threads_connected';
         SHOW GLOBAL VARIABLES LIKE 'max_connections';
     " 2>/dev/null || true)
@@ -321,7 +340,7 @@ diagnose_db() {
 
     # 4. Check schema migrations
     local applied_migrations
-    applied_migrations=$(docker exec zzpanel_mysql mysql -uroot -p"$ping_pass" -D "$db_name" -N -e "
+    applied_migrations=$(docker exec zzpanel_mysql mysql -u"$ping_user" -p"$ping_pass" -D "$db_name" -N -e "
         SELECT filename FROM schema_migrations;
     " 2>/dev/null || true)
 
@@ -462,11 +481,14 @@ diagnose_ssl() {
     # 3. Domain DNS resolution
     local resolved_ip=""
     if command -v getent &>/dev/null; then
-        resolved_ip=$(getent ahosts "$domain" 2>/dev/null | head -1 | awk '{print $1}' || true)
+        resolved_ip=$(getent ahostsv4 "$domain" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1 | awk '{print $1}' || true)
+        if [ -z "$resolved_ip" ]; then
+            resolved_ip=$(getent ahosts "$domain" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1 | awk '{print $1}' || true)
+        fi
     elif command -v dig &>/dev/null; then
-        resolved_ip=$(dig +short "$domain" 2>/dev/null | tail -1 || true)
+        resolved_ip=$(dig +short A "$domain" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | tail -1 || true)
     elif command -v nslookup &>/dev/null; then
-        resolved_ip=$(nslookup "$domain" 2>/dev/null | awk '/^Address: / {print $2}' | tail -1 || true)
+        resolved_ip=$(nslookup -type=A "$domain" 2>/dev/null | awk '/^Address: / {print $2}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | tail -1 || true)
     fi
 
     if [ -n "$resolved_ip" ]; then
@@ -593,15 +615,19 @@ except Exception:
         wh_last_err=$(echo "$webhook_json" | grep -o '"last_error_message"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d '"' -f 4 || true)
     fi
 
-    local expected_url="https://${domain}/ZZPanelBot/index.php"
-    if [ "$wh_url" = "$expected_url" ]; then
-        DIAG_PASS "Stage 4 (Webhook URL): Telegram webhook is correctly set to $wh_url."
-    elif [ -z "$wh_url" ]; then
-        DIAG_FAIL "Stage 4 (Webhook URL): No webhook URL is registered with Telegram!"
-        AUTO_FIX_CANDIDATES+=("webhook")
+    if [ -z "$domain" ]; then
+        DIAG_FAIL "Stage 4 (Webhook URL): DOMAIN is not configured in .env."
     else
-        DIAG_WARN "Stage 4 (Webhook URL): Webhook URL is '$wh_url', expected '$expected_url'."
-        AUTO_FIX_CANDIDATES+=("webhook")
+        local expected_url="https://${domain}/ZZPanelBot/index.php"
+        if [ "$wh_url" = "$expected_url" ]; then
+            DIAG_PASS "Stage 4 (Webhook URL): Telegram webhook is correctly set to $wh_url."
+        elif [ -z "$wh_url" ]; then
+            DIAG_FAIL "Stage 4 (Webhook URL): No webhook URL is registered with Telegram!"
+            AUTO_FIX_CANDIDATES+=("webhook")
+        else
+            DIAG_WARN "Stage 4 (Webhook URL): Webhook URL is '$wh_url', expected '$expected_url'."
+            AUTO_FIX_CANDIDATES+=("webhook")
+        fi
     fi
 
     if [ -n "$wh_pending" ] && [ "$wh_pending" -gt 50 ] 2>/dev/null; then
@@ -640,7 +666,12 @@ apply_auto_fixes() {
     echo "========================================="
 
     if [ "$interactive" = "true" ]; then
-        read -r -p "Do you want to apply safe auto-fixes now? (y/N): " reply
+        if [ ! -t 0 ]; then
+            INFO "Non-interactive environment detected; skipping interactive auto-fixes (run with --fix to apply)."
+            return 0
+        fi
+        local reply=""
+        read -r -p "Do you want to apply safe auto-fixes now? (y/N): " reply || reply="n"
         if [[ ! "$reply" =~ ^[Yy]$ ]]; then
             INFO "Auto-fixes skipped by user."
             return 0
@@ -667,7 +698,7 @@ apply_auto_fixes() {
                 if [ -n "$bot_token" ] && [ -n "$domain" ]; then
                     INFO "Re-registering Telegram webhook and clearing pending update backlog..."
                     local wh_url="https://${domain}/ZZPanelBot/index.php"
-                    curl -s -F "url=${wh_url}" "https://api.telegram.org/bot${bot_token}/setWebhook?drop_pending_updates=true" &>/dev/null || true
+                    curl -s -m 5 --connect-timeout 5 -F "url=${wh_url}" "https://api.telegram.org/bot${bot_token}/setWebhook?drop_pending_updates=true" &>/dev/null || true
                     INFO "Webhook re-registered with drop_pending_updates=true."
                 else
                     WARN "Cannot reset webhook: DOMAIN or BOT_TOKEN missing."
@@ -1515,6 +1546,10 @@ if [ $# -gt 0 ]; then
                 shift
             done
 
+            if [ "$target_cat" = "menu" ] && { [ "$auto_fix" = "true" ] || [ "$export_rep" = "true" ]; }; then
+                target_cat="all"
+            fi
+
             case "$target_cat" in
                 menu)
                     diagnose_menu
@@ -1524,34 +1559,18 @@ if [ $# -gt 0 ]; then
                     diagnose_all "$auto_fix" "$export_rep" || exit 1
                     exit 0
                     ;;
-                host)
+                host|containers|db|web|ssl|telegram)
                     init_diagnose_state
-                    diagnose_host || exit 1
-                    exit 0
-                    ;;
-                containers)
-                    init_diagnose_state
-                    diagnose_containers || exit 1
-                    exit 0
-                    ;;
-                db)
-                    init_diagnose_state
-                    diagnose_db || exit 1
-                    exit 0
-                    ;;
-                web)
-                    init_diagnose_state
-                    diagnose_web || exit 1
-                    exit 0
-                    ;;
-                ssl)
-                    init_diagnose_state
-                    diagnose_ssl || exit 1
-                    exit 0
-                    ;;
-                telegram)
-                    init_diagnose_state
-                    diagnose_telegram || exit 1
+                    "diagnose_${target_cat}" || true
+                    if [ "${#AUTO_FIX_CANDIDATES[@]}" -gt 0 ] && [ "$auto_fix" = "true" ]; then
+                        apply_auto_fixes false
+                    fi
+                    if [ "$export_rep" = "true" ]; then
+                        local saved_file
+                        saved_file=$(export_diagnose_report)
+                        INFO "Diagnostic report exported to: $saved_file"
+                    fi
+                    [ "$DIAG_HAS_FAIL" -eq 0 ] || exit 1
                     exit 0
                     ;;
                 *)

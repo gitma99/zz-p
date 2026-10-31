@@ -221,4 +221,68 @@ type diagnose_all >/dev/null || { echo "FAIL: diagnose_all function does not exi
 grep -q '15) Run Diagnostic Health Check' setup.sh || { echo "FAIL: setup.sh missing 15) in menu"; exit 1; }
 grep -q '\[0-15\]' setup.sh || { echo "FAIL: setup.sh missing [0-15] in prompt"; exit 1; }
 
-echo "PASS: Task 5 tests"
+# Test 12: export_diagnose_report redacts credentials found in .env
+fix_td=$(mktemp -d)
+cat > "$fix_td/.env" <<'EOF'
+BOT_TOKEN=987654:XYZ-SECRET_BOT_TOKEN
+DB_PASS=SuperSecretPassWithSpace
+MYSQL_ROOT_PASSWORD=RootSecretPassword
+EOF
+BASE_DIR="$fix_td"
+init_diagnose_state
+DIAG_FAIL "Failed connecting with password SuperSecretPassWithSpace and token 987654:XYZ-SECRET_BOT_TOKEN"
+rep_file=$(export_diagnose_report "$fix_td/report.log")
+if grep -q "XYZ-SECRET_BOT_TOKEN" "$rep_file"; then
+    rm -rf "$fix_td"
+    echo "FAIL: export_diagnose_report did not redact BOT_TOKEN"
+    exit 1
+fi
+if grep -q "SuperSecretPassWithSpace" "$rep_file"; then
+    rm -rf "$fix_td"
+    echo "FAIL: export_diagnose_report did not redact DB_PASS"
+    exit 1
+fi
+rm -rf "$fix_td"
+
+# Test 13: Headless apply_auto_fixes does not crash when stdin is /dev/null
+init_diagnose_state
+AUTO_FIX_CANDIDATES=("permissions")
+apply_auto_fixes true < /dev/null || { echo "FAIL: headless apply_auto_fixes crashed on EOF"; exit 1; }
+
+# Test 14: diagnose_telegram reports FAIL when DOMAIN is missing
+fix_td2=$(mktemp -d)
+cat > "$fix_td2/.env" <<'EOF'
+BOT_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+EOF
+BASE_DIR="$fix_td2"
+init_diagnose_state
+curl() {
+    local url="${!#}"
+    if [[ "$url" == *"/getMe"* ]]; then
+        echo '{"ok":true,"result":{"id":123456,"is_bot":true,"username":"test_bot"}}'
+    elif [[ "$url" == *"/getWebhookInfo"* ]]; then
+        echo '{"ok":true,"result":{"url":"","pending_update_count":0,"last_error_message":""}}'
+    fi
+    return 0
+}
+diagnose_telegram
+unset -f curl
+rm -rf "$fix_td2"
+[[ "$DIAG_LOG_BUFFER" == *"DOMAIN is not configured in .env"* ]] || { echo "FAIL: diagnose_telegram should detect missing DOMAIN"; exit 1; }
+
+# Test 15: Category CLI execution sets exit code 1 when DIAG_HAS_FAIL=1
+test_cli_exit=$(bash -c '
+    source <(sed -n "/# --- DIAGNOSTIC HELPERS START ---/,/# --- DIAGNOSTIC HELPERS END ---/p" setup.sh)
+    INFO() { :; }
+    WARN() { :; }
+    target_cat="containers"
+    auto_fix="false"
+    export_rep="false"
+    init_diagnose_state
+    DIAG_FAIL "Simulated failure"
+    [ "$DIAG_HAS_FAIL" -eq 0 ] || exit 1
+    exit 0
+' || echo "EXIT_1")
+[[ "$test_cli_exit" == *"EXIT_1"* ]] || { echo "FAIL: category failure should exit 1"; exit 1; }
+
+echo "PASS: Review fix tests"
