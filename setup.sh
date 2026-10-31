@@ -407,6 +407,217 @@ diagnose_web() {
         DIAG_WARN "PHP APCu extension is not loaded in zzpanel_app."
     fi
 }
+
+diagnose_ssl() {
+    INFO "Running Domain, SSL & Reverse Proxy Diagnostics..."
+
+    local base_dir="${BASE_DIR:-/srv}"
+    local env_file="$base_dir/.env"
+
+    if [ ! -f "$env_file" ]; then
+        DIAG_FAIL ".env file is missing at $env_file."
+        return 1
+    fi
+
+    local domain
+    domain=$(grep -E '^[[:space:]]*DOMAIN=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | tr -d ' "\r' || true)
+    if [ -z "$domain" ]; then
+        DIAG_FAIL "DOMAIN is not set in $env_file."
+        return 1
+    fi
+
+    # 1. Nginx config syntax check
+    local nginx_test
+    nginx_test=$(docker exec zzpanel_nginx nginx -t 2>&1 || true)
+    if echo "$nginx_test" | grep -qi "syntax is ok"; then
+        DIAG_PASS "Nginx configuration syntax is valid."
+    else
+        DIAG_FAIL "Nginx configuration syntax test failed: $nginx_test"
+    fi
+
+    # 2. SSL certificate check
+    local cert_file="$base_dir/data/certbot/conf/live/$domain/fullchain.pem"
+    if [ ! -f "$cert_file" ]; then
+        DIAG_WARN "No SSL certificate found at $cert_file. Run option (4) Initialize SSL."
+    else
+        local end_date_str
+        end_date_str=$(openssl x509 -enddate -noout -in "$cert_file" 2>/dev/null | cut -d '=' -f 2 || true)
+        if [ -n "$end_date_str" ]; then
+            local expiry_epoch current_epoch days_left
+            expiry_epoch=$(date -d "$end_date_str" +%s 2>/dev/null || date -j -f "%b %d %T %Y %Z" "$end_date_str" +%s 2>/dev/null || echo "0")
+            current_epoch=$(date +%s)
+            if [ "$expiry_epoch" -gt 0 ]; then
+                days_left=$(( (expiry_epoch - current_epoch) / 86400 ))
+                if [ "$days_left" -lt 0 ]; then
+                    DIAG_FAIL "SSL certificate for $domain is EXPIRED ($days_left days ago). Telegram will reject webhook!"
+                elif [ "$days_left" -lt 15 ]; then
+                    DIAG_WARN "SSL certificate for $domain expires soon ($days_left days remaining)."
+                else
+                    DIAG_PASS "SSL certificate for $domain is valid ($days_left days remaining)."
+                fi
+            fi
+        fi
+    fi
+
+    # 3. Domain DNS resolution
+    local resolved_ip=""
+    if command -v getent &>/dev/null; then
+        resolved_ip=$(getent ahosts "$domain" 2>/dev/null | head -1 | awk '{print $1}' || true)
+    elif command -v dig &>/dev/null; then
+        resolved_ip=$(dig +short "$domain" 2>/dev/null | tail -1 || true)
+    elif command -v nslookup &>/dev/null; then
+        resolved_ip=$(nslookup "$domain" 2>/dev/null | awk '/^Address: / {print $2}' | tail -1 || true)
+    fi
+
+    if [ -n "$resolved_ip" ]; then
+        local server_ip
+        server_ip=$(curl -s4 -m 5 https://api.ipify.org 2>/dev/null || curl -s4 -m 5 https://ifconfig.me 2>/dev/null || echo "")
+        if [ -n "$server_ip" ] && [ "$resolved_ip" != "$server_ip" ]; then
+            DIAG_WARN "Domain DNS mismatch: $domain resolves to $resolved_ip, but server public IP is $server_ip."
+        else
+            DIAG_PASS "Domain $domain resolves to $resolved_ip."
+        fi
+    else
+        DIAG_WARN "Could not resolve IP for domain $domain."
+    fi
+
+    # 4. Loopback HTTPS through Nginx
+    local https_code
+    https_code=$(curl -sk -m 5 -o /dev/null -w "%{http_code}" -H "Host: $domain" "https://127.0.0.1/ZZPanelBot/index.php" 2>/dev/null || echo "000")
+    if [ "$https_code" = "200" ]; then
+        DIAG_PASS "Reverse proxy HTTPS loopback test succeeded (HTTP 200)."
+    elif [ "$https_code" = "444" ]; then
+        DIAG_FAIL "Reverse proxy dropped connection with HTTP 444 (Host header mismatch or server_name misconfigured)."
+    elif [ "$https_code" = "502" ] || [ "$https_code" = "504" ]; then
+        DIAG_FAIL "Reverse proxy returned HTTP $https_code (Upstream app container unreachable or timed out)."
+    elif [ "$https_code" != "000" ]; then
+        DIAG_PASS "Reverse proxy answered HTTPS with status $https_code."
+    else
+        DIAG_WARN "Reverse proxy HTTPS loopback probe failed (port 443 unreachable locally)."
+    fi
+}
+
+diagnose_telegram() {
+    INFO "Running Telegram Network & Webhook Diagnostics..."
+
+    local base_dir="${BASE_DIR:-/srv}"
+    local env_file="$base_dir/.env"
+
+    if [ ! -f "$env_file" ]; then
+        DIAG_FAIL ".env file is missing at $env_file."
+        return 1
+    fi
+
+    local bot_token domain
+    bot_token=$(grep -E '^[[:space:]]*BOT_TOKEN=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | tr -d ' "\r' || true)
+    domain=$(grep -E '^[[:space:]]*DOMAIN=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | tr -d ' "\r' || true)
+
+    if [ -z "$bot_token" ]; then
+        DIAG_FAIL "BOT_TOKEN is not set in $env_file."
+        return 1
+    fi
+
+    # Stage 1: DNS resolution for api.telegram.org
+    local tg_ip=""
+    if command -v getent &>/dev/null; then
+        tg_ip=$(getent ahosts "api.telegram.org" 2>/dev/null | head -1 | awk '{print $1}' || true)
+    elif command -v dig &>/dev/null; then
+        tg_ip=$(dig +short "api.telegram.org" 2>/dev/null | tail -1 || true)
+    elif command -v nslookup &>/dev/null; then
+        tg_ip=$(nslookup "api.telegram.org" 2>/dev/null | awk '/^Address: / {print $2}' | tail -1 || true)
+    fi
+
+    if [ -z "$tg_ip" ]; then
+        DIAG_FAIL "Stage 1 (DNS): Cannot resolve api.telegram.org. Likely DNS poisoning or broken nameservers."
+        DIAG_NOTE "Troubleshooting: Change /etc/resolv.conf to 8.8.8.8 or 1.1.1.1."
+        return 1
+    else
+        DIAG_PASS "Stage 1 (DNS): api.telegram.org resolved to $tg_ip."
+    fi
+
+    # Stage 2: TCP/TLS egress handshake
+    if ! curl -s -m 5 --connect-timeout 5 -I "https://api.telegram.org" &>/dev/null; then
+        DIAG_FAIL "Stage 2 (TLS Egress): Cannot connect to api.telegram.org:443."
+        DIAG_NOTE "Likely firewall blocking or national censorship/DPI packet drop. Bot cannot function without Telegram egress."
+        return 1
+    else
+        DIAG_PASS "Stage 2 (TLS Egress): Successfully established TLS connection to api.telegram.org."
+    fi
+
+    # Stage 3: getMe token auth check
+    local get_me_json
+    get_me_json=$(curl -s -m 5 "https://api.telegram.org/bot${bot_token}/getMe" 2>/dev/null || true)
+    local is_ok="" bot_uname=""
+    if command -v python3 &>/dev/null; then
+        read -r is_ok bot_uname < <(python3 -c "
+import sys, json
+try:
+    d = json.loads(sys.argv[1])
+    print(f\"{d.get('ok', False)} {d.get('result', {}).get('username', '')}\")
+except Exception:
+    print('False ')
+" "$get_me_json" 2>/dev/null || echo "False ")
+    else
+        is_ok=$(echo "$get_me_json" | grep -o '"ok"[[:space:]]*:[[:space:]]*[a-zA-Z]*' | head -1 | awk '{print $2}' || echo "false")
+        bot_uname=$(echo "$get_me_json" | grep -o '"username"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d '"' -f 4 || true)
+    fi
+
+    if [ "$is_ok" = "True" ] || [ "$is_ok" = "true" ]; then
+        DIAG_PASS "Stage 3 (Auth): BOT_TOKEN is valid for bot @${bot_uname}."
+    else
+        local masked_tok
+        masked_tok=$(mask_secret "$bot_token" "$bot_token")
+        DIAG_FAIL "Stage 3 (Auth): BOT_TOKEN ($masked_tok) is invalid or rejected by Telegram."
+        return 1
+    fi
+
+    # Stage 4: getWebhookInfo status
+    local webhook_json
+    webhook_json=$(curl -s -m 5 "https://api.telegram.org/bot${bot_token}/getWebhookInfo" 2>/dev/null || true)
+    local wh_url="" wh_pending=0 wh_last_err=""
+    if command -v python3 &>/dev/null; then
+        IFS='|' read -r wh_url wh_pending wh_last_err < <(python3 -c "
+import sys, json
+try:
+    d = json.loads(sys.argv[1]).get('result', {})
+    url = d.get('url', '')
+    pending = str(d.get('pending_update_count', 0))
+    err = d.get('last_error_message', '').replace('\n', ' ')
+    print(f'{url}|{pending}|{err}')
+except Exception:
+    print('||')
+" "$webhook_json" 2>/dev/null || echo "||")
+    else
+        wh_url=$(echo "$webhook_json" | grep -o '"url"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d '"' -f 4 || true)
+        wh_pending=$(echo "$webhook_json" | grep -o '"pending_update_count"[[:space:]]*:[[:space:]]*[0-9]*' | head -1 | awk '{print $2}' || echo "0")
+        wh_last_err=$(echo "$webhook_json" | grep -o '"last_error_message"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d '"' -f 4 || true)
+    fi
+
+    local expected_url="https://${domain}/ZZPanelBot/index.php"
+    if [ "$wh_url" = "$expected_url" ]; then
+        DIAG_PASS "Stage 4 (Webhook URL): Telegram webhook is correctly set to $wh_url."
+    elif [ -z "$wh_url" ]; then
+        DIAG_FAIL "Stage 4 (Webhook URL): No webhook URL is registered with Telegram!"
+        AUTO_FIX_CANDIDATES+=("webhook")
+    else
+        DIAG_WARN "Stage 4 (Webhook URL): Webhook URL is '$wh_url', expected '$expected_url'."
+        AUTO_FIX_CANDIDATES+=("webhook")
+    fi
+
+    if [ -n "$wh_pending" ] && [ "$wh_pending" -gt 50 ] 2>/dev/null; then
+        DIAG_WARN "Stage 4 (Backlog): Telegram update queue is backed up ($wh_pending pending updates)."
+        AUTO_FIX_CANDIDATES+=("webhook")
+    else
+        DIAG_PASS "Stage 4 (Backlog): Pending update count is normal ($wh_pending updates)."
+    fi
+
+    if [ -n "$wh_last_err" ]; then
+        DIAG_WARN "Stage 4 (Delivery Error): Telegram reported error: '$wh_last_err'."
+        AUTO_FIX_CANDIDATES+=("webhook")
+    else
+        DIAG_PASS "Stage 4 (Delivery Error): No recent webhook delivery errors reported by Telegram."
+    fi
+}
 # --- DIAGNOSTIC HELPERS END ---
 
 # Ensure the script is run with root/sudo privileges

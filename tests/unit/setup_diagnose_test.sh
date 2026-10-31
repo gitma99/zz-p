@@ -124,7 +124,65 @@ chmod 555 "$test_td/temp" 2>/dev/null || true
 diagnose_web
 [[ "$DIAG_HAS_FAIL" -eq 1 ]] || { echo "FAIL: diagnose_web should detect 423 error"; exit 1; }
 chmod 777 "$test_td/temp" 2>/dev/null || true
-rm -rf "$test_td"
 unset -f docker
 
-echo "PASS: Task 3 tests"
+# Test 8: diagnose_ssl and diagnose_telegram with mocks
+cat >> "$test_td/.env" <<EOF
+DOMAIN=test.example.com
+BOT_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+EOF
+
+# Create dummy cert for test.example.com
+mkdir -p "$test_td/data/certbot/conf/live/test.example.com"
+openssl req -x509 -newkey rsa:2048 -keyout "$test_td/privkey.pem" \
+    -out "$test_td/data/certbot/conf/live/test.example.com/fullchain.pem" \
+    -days 30 -nodes -subj "/CN=test.example.com" 2>/dev/null || true
+
+docker() {
+    local cmd="${1:-}"
+    shift || true
+    if [ "$cmd" = "exec" ]; then
+        if [ "$1" = "zzpanel_nginx" ]; then
+            echo "nginx: configuration syntax is ok"
+            return 0
+        fi
+    fi
+    return 0
+}
+
+curl() {
+    local url="${!#}" # last argument
+    if [[ "$url" == *"api.telegram.org"* ]]; then
+        if [[ "$url" == *"/getMe"* ]]; then
+            echo '{"ok":true,"result":{"id":123456,"is_bot":true,"username":"test_bot"}}'
+            return 0
+        elif [[ "$url" == *"/getWebhookInfo"* ]]; then
+            echo '{"ok":true,"result":{"url":"https://test.example.com/ZZPanelBot/index.php","pending_update_count":120,"last_error_message":"Wrong response code: 502 Bad Gateway"}}'
+            return 0
+        elif [[ "$*" == *"-I"* ]]; then
+            # TLS probe
+            return 0
+        fi
+    elif [[ "$url" == *"127.0.0.1"* ]]; then
+        echo "200"
+        return 0
+    elif [[ "$url" == *"ipify.org"* ]]; then
+        echo "1.2.3.4"
+        return 0
+    fi
+    return 0
+}
+
+init_diagnose_state
+diagnose_ssl
+[[ "$DIAG_HAS_FAIL" -eq 0 ]] || { echo "FAIL: diagnose_ssl failed unexpectedly"; exit 1; }
+
+init_diagnose_state
+diagnose_telegram
+[[ "$DIAG_HAS_WARN" -eq 1 ]] || { echo "FAIL: diagnose_telegram should warn on high backlog / last_error"; exit 1; }
+[[ " ${AUTO_FIX_CANDIDATES[*]} " =~ " webhook " ]] || { echo "FAIL: webhook was not added to AUTO_FIX_CANDIDATES"; exit 1; }
+
+rm -rf "$test_td"
+unset -f docker curl
+
+echo "PASS: Task 4 tests"
