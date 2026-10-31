@@ -618,6 +618,163 @@ except Exception:
         DIAG_PASS "Stage 4 (Delivery Error): No recent webhook delivery errors reported by Telegram."
     fi
 }
+
+apply_auto_fixes() {
+    local interactive="${1:-true}"
+    local base_dir="${BASE_DIR:-/srv}"
+    local env_file="$base_dir/.env"
+
+    if [ "${#AUTO_FIX_CANDIDATES[@]}" -eq 0 ]; then
+        return 0
+    fi
+
+    local unique_candidates=()
+    for item in "${AUTO_FIX_CANDIDATES[@]}"; do
+        if [[ ! " ${unique_candidates[*]} " =~ " ${item} " ]]; then
+            unique_candidates+=("$item")
+        fi
+    done
+
+    echo -e "\n========================================="
+    INFO "Recoverable issue(s) detected: ${unique_candidates[*]}"
+    echo "========================================="
+
+    if [ "$interactive" = "true" ]; then
+        read -r -p "Do you want to apply safe auto-fixes now? (y/N): " reply
+        if [[ ! "$reply" =~ ^[Yy]$ ]]; then
+            INFO "Auto-fixes skipped by user."
+            return 0
+        fi
+    fi
+
+    local domain bot_token
+    domain=$(grep -E '^[[:space:]]*DOMAIN=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | tr -d ' "\r' || echo "${DOMAIN:-}")
+    bot_token=$(grep -E '^[[:space:]]*BOT_TOKEN=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | tr -d ' "\r' || echo "${BOT_TOKEN:-}")
+
+    for candidate in "${unique_candidates[@]}"; do
+        case "$candidate" in
+            permissions)
+                INFO "Fixing directory permissions on logs, data, and temp..."
+                chown -R www-data:www-data "$base_dir/logs" "$base_dir/data" "$base_dir/temp" 2>/dev/null || true
+                chmod -R 770 "$base_dir/logs" "$base_dir/temp" 2>/dev/null || true
+                if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^zzpanel_app$'; then
+                    docker exec zzpanel_app chown -R www-data:www-data /var/www/html/ZZPanelBot/logs /var/www/html/ZZPanelBot/temp 2>/dev/null || true
+                    docker exec zzpanel_app chmod -R 770 /var/www/html/ZZPanelBot/logs /var/www/html/ZZPanelBot/temp 2>/dev/null || true
+                fi
+                INFO "Permissions repaired."
+                ;;
+            webhook)
+                if [ -n "$bot_token" ] && [ -n "$domain" ]; then
+                    INFO "Re-registering Telegram webhook and clearing pending update backlog..."
+                    local wh_url="https://${domain}/ZZPanelBot/index.php"
+                    curl -s -F "url=${wh_url}" "https://api.telegram.org/bot${bot_token}/setWebhook?drop_pending_updates=true" &>/dev/null || true
+                    INFO "Webhook re-registered with drop_pending_updates=true."
+                else
+                    WARN "Cannot reset webhook: DOMAIN or BOT_TOKEN missing."
+                fi
+                ;;
+            *)
+                INFO "Restarting container/service: $candidate..."
+                if [ -f "$base_dir/docker-compose.yml" ]; then
+                    (cd "$base_dir" && "${DOCKER_COMPOSE_CMD[@]}" restart "$candidate" 2>/dev/null) || docker restart "zzpanel_${candidate}" 2>/dev/null || true
+                else
+                    docker restart "zzpanel_${candidate}" 2>/dev/null || true
+                fi
+                INFO "Restarted service $candidate."
+                ;;
+        esac
+    done
+}
+
+diagnose_all() {
+    local auto_fix="${1:-false}"
+    local export_report="${2:-false}"
+
+    init_diagnose_state
+    echo -e "\n========================================="
+    echo -e "       ZZPanel Health Check Suite        "
+    echo -e "========================================="
+
+    diagnose_host || true
+    echo ""
+    diagnose_containers || true
+    echo ""
+    diagnose_db || true
+    echo ""
+    diagnose_web || true
+    echo ""
+    diagnose_ssl || true
+    echo ""
+    diagnose_telegram || true
+
+    echo -e "\n========================================="
+    echo -e "           Diagnostics Summary           "
+    echo -e "========================================="
+    if [ "$DIAG_HAS_FAIL" -eq 1 ]; then
+        echo -e "  Overall Status: \e[31mFAIL\e[0m (Issues requiring attention detected)"
+    elif [ "$DIAG_HAS_WARN" -eq 1 ]; then
+        echo -e "  Overall Status: \e[33mWARN\e[0m (Non-critical warnings detected)"
+    else
+        echo -e "  Overall Status: \e[32mPASS\e[0m (All systems operational)"
+    fi
+    echo -e "========================================="
+
+    if [ "${#AUTO_FIX_CANDIDATES[@]}" -gt 0 ]; then
+        if [ "$auto_fix" = "true" ]; then
+            apply_auto_fixes false
+        else
+            apply_auto_fixes true
+        fi
+    fi
+
+    if [ "$export_report" = "true" ]; then
+        local saved_file
+        saved_file=$(export_diagnose_report)
+        INFO "Diagnostic report exported to: $saved_file"
+    fi
+
+    if [ "$DIAG_HAS_FAIL" -eq 1 ]; then
+        return 1
+    fi
+    return 0
+}
+
+diagnose_menu() {
+    while true; do
+        echo -e "\n========================================="
+        echo -e "       ZZPanel Diagnostics Menu         "
+        echo -e "========================================="
+        echo " 1) Run All Checks (Full Suite)"
+        echo " 2) Host & System Resources"
+        echo " 3) Docker Containers & Health"
+        echo " 4) Database & Schema Migrations"
+        echo " 5) Web Server & PHP-FPM Runtime"
+        echo " 6) Domain, SSL & Reverse Proxy"
+        echo " 7) Telegram Network & Webhook"
+        echo " 8) Export Diagnostic Report to File"
+        echo " 0) Back to Main Menu"
+        echo "========================================="
+        read -r -p "Enter choice [0-8]: " DIAG_CHOICE
+        echo "========================================="
+
+        case "$DIAG_CHOICE" in
+            1) diagnose_all false false || true ;;
+            2) init_diagnose_state; diagnose_host || true ;;
+            3) init_diagnose_state; diagnose_containers || true ;;
+            4) init_diagnose_state; diagnose_db || true ;;
+            5) init_diagnose_state; diagnose_web || true ;;
+            6) init_diagnose_state; diagnose_ssl || true ;;
+            7) init_diagnose_state; diagnose_telegram || true ;;
+            8)
+                local exp
+                exp=$(export_diagnose_report)
+                INFO "Diagnostic report exported to: $exp"
+                ;;
+            0) return 0 ;;
+            *) WARN "Invalid option. Please try again." ;;
+        esac
+    done
+}
 # --- DIAGNOSTIC HELPERS END ---
 
 # Ensure the script is run with root/sudo privileges
@@ -1298,9 +1455,10 @@ show_menu() {
         echo " 12) Restore Database & Files"
         echo " 13) View Live Logs"
         echo " 14) View Logs for Specific Service"
+        echo " 15) Run Diagnostic Health Check"
         echo " 0) Close"
         echo "========================================="
-        read -r -p "Enter choice [0-14]: " CHOICE
+        read -r -p "Enter choice [0-15]: " CHOICE
         echo "========================================="
 
         case "$CHOICE" in
@@ -1318,6 +1476,7 @@ show_menu() {
             12) restore_services || true ;;
             13) show_live_logs || true ;;
             14) show_live_logs_for_service || true ;;
+            15) diagnose_menu || true ;;
             0) INFO "Exiting. Goodbye!"; exit 0 ;;
             999) get_current_script_version ;;
             *) WARN "Invalid option. Please try again." ;;
@@ -1341,9 +1500,70 @@ if [ $# -gt 0 ]; then
             update_services "${1:-}" || exit 1
             exit 0
             ;;
+        diagnose)
+            target_cat="menu"
+            auto_fix="false"
+            export_rep="false"
+
+            while [ $# -gt 0 ]; do
+                case "$1" in
+                    --fix) auto_fix="true" ;;
+                    --export) export_rep="true" ;;
+                    all|host|containers|db|web|ssl|telegram) target_cat="$1" ;;
+                    *) target_cat="$1" ;;
+                esac
+                shift
+            done
+
+            case "$target_cat" in
+                menu)
+                    diagnose_menu
+                    exit 0
+                    ;;
+                all)
+                    diagnose_all "$auto_fix" "$export_rep" || exit 1
+                    exit 0
+                    ;;
+                host)
+                    init_diagnose_state
+                    diagnose_host || exit 1
+                    exit 0
+                    ;;
+                containers)
+                    init_diagnose_state
+                    diagnose_containers || exit 1
+                    exit 0
+                    ;;
+                db)
+                    init_diagnose_state
+                    diagnose_db || exit 1
+                    exit 0
+                    ;;
+                web)
+                    init_diagnose_state
+                    diagnose_web || exit 1
+                    exit 0
+                    ;;
+                ssl)
+                    init_diagnose_state
+                    diagnose_ssl || exit 1
+                    exit 0
+                    ;;
+                telegram)
+                    init_diagnose_state
+                    diagnose_telegram || exit 1
+                    exit 0
+                    ;;
+                *)
+                    WARN "Unknown diagnose category: $target_cat"
+                    echo "Usage: zzbot diagnose [all|host|containers|db|web|ssl|telegram] [--fix] [--export]"
+                    exit 1
+                    ;;
+            esac
+            ;;
         *)
             WARN "Unknown command: $cmd"
-            echo "Usage: zzbot [install [version] | update [version]]"
+            echo "Usage: zzbot [install [version] | update [version] | diagnose [category] [--fix] [--export]]"
             exit 1
             ;;
     esac

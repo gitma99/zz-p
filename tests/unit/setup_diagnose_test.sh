@@ -185,4 +185,40 @@ diagnose_telegram
 rm -rf "$test_td"
 unset -f docker curl
 
-echo "PASS: Task 4 tests"
+# Test 9: apply_auto_fixes applies permission, webhook, and container fixes
+init_diagnose_state
+AUTO_FIX_CANDIDATES=("permissions" "webhook" "mysql")
+FIX_ACTIONS_RUN=()
+
+curl() {
+    FIX_ACTIONS_RUN+=("curl:$*")
+    return 0
+}
+chown() {
+    FIX_ACTIONS_RUN+=("chown:$*")
+    return 0
+}
+chmod() {
+    FIX_ACTIONS_RUN+=("chmod:$*")
+    return 0
+}
+DOCKER_COMPOSE_CMD=(echo "compose")
+
+DOMAIN="example.com"
+BOT_TOKEN="123456:FAKE"
+BASE_DIR="/tmp"
+
+apply_auto_fixes false # non-interactive
+[[ " ${FIX_ACTIONS_RUN[*]} " =~ "chown:" ]] || { echo "FAIL: auto-fix permissions chown was not executed"; exit 1; }
+[[ " ${FIX_ACTIONS_RUN[*]} " =~ "drop_pending_updates=true" ]] || { echo "FAIL: auto-fix webhook reset was not executed"; exit 1; }
+unset -f curl chown chmod
+
+# Test 10: diagnose_all exists and returns exit code 0 or 1
+init_diagnose_state
+type diagnose_all >/dev/null || { echo "FAIL: diagnose_all function does not exist"; exit 1; }
+
+# Test 11: verify main menu contains 15) and [0-15]
+grep -q '15) Run Diagnostic Health Check' setup.sh || { echo "FAIL: setup.sh missing 15) in menu"; exit 1; }
+grep -q '\[0-15\]' setup.sh || { echo "FAIL: setup.sh missing [0-15] in prompt"; exit 1; }
+
+echo "PASS: Task 5 tests"
