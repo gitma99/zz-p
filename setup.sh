@@ -16,6 +16,75 @@ WARN() { echo -e "\e[33m[WARN]\e[0m $*"; }
 ERROR() { echo -e "\e[31m[ERROR]\e[0m $*" >&2; return 1; }
 FATAL() { ERROR "$*"; exit 1; }
 
+# --- DIAGNOSTIC HELPERS START ---
+DIAG_HAS_FAIL=0
+DIAG_HAS_WARN=0
+AUTO_FIX_CANDIDATES=()
+DIAG_LOG_BUFFER=""
+
+init_diagnose_state() {
+    DIAG_HAS_FAIL=0
+    DIAG_HAS_WARN=0
+    AUTO_FIX_CANDIDATES=()
+    DIAG_LOG_BUFFER=""
+}
+
+DIAG_PASS() {
+    local msg="$*"
+    echo -e "  \e[32m[PASS]\e[0m $msg"
+    DIAG_LOG_BUFFER+=$'[PASS] '"$msg"$'\n'
+}
+
+DIAG_WARN() {
+    local msg="$*"
+    DIAG_HAS_WARN=1
+    echo -e "  \e[33m[WARN]\e[0m $msg"
+    DIAG_LOG_BUFFER+=$'[WARN] '"$msg"$'\n'
+}
+
+DIAG_FAIL() {
+    local msg="$*"
+    DIAG_HAS_FAIL=1
+    echo -e "  \e[31m[FAIL]\e[0m $msg"
+    DIAG_LOG_BUFFER+=$'[FAIL] '"$msg"$'\n'
+}
+
+DIAG_NOTE() {
+    local msg="$*"
+    echo -e "  \e[36m[INFO]\e[0m $msg"
+    DIAG_LOG_BUFFER+=$'[INFO] '"$msg"$'\n'
+}
+
+mask_secret() {
+    local raw="${1:-}"
+    local secret="${2:-}"
+    if [ -z "$secret" ] || [ -z "$raw" ]; then
+        echo "$raw"
+        return 0
+    fi
+    local masked_replacement
+    if [[ "$secret" =~ ^([0-9]+):(.*)$ ]]; then
+        local bot_id="${BASH_REMATCH[1]}"
+        masked_replacement="${bot_id}:***REDACTED***"
+    elif [ "${#secret}" -gt 6 ]; then
+        masked_replacement="${secret:0:2}***${secret: -2}"
+    else
+        masked_replacement="***REDACTED***"
+    fi
+    echo "${raw//"$secret"/$masked_replacement}"
+}
+
+export_diagnose_report() {
+    local target_file="${1:-}"
+    [ -n "$target_file" ] || target_file="/tmp/zzbot-diagnose-$(date +%s).log"
+    local clean_log
+    clean_log=$(printf '%s\n' "$DIAG_LOG_BUFFER" | sed -E "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2})?)?[mGK]//g")
+    printf '%s\n' "$clean_log" > "$target_file"
+    chmod 0600 "$target_file" 2>/dev/null || true
+    echo "$target_file"
+}
+# --- DIAGNOSTIC HELPERS END ---
+
 # Ensure the script is run with root/sudo privileges
 check_root() {
     if [ "$EUID" -ne 0 ]; then
