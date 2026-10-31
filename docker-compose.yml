@@ -1,6 +1,6 @@
 services:
   app:
-    image: ghcr.io/gitma99/zzpanel-app:latest
+    image: ghcr.io/gitma99/zzpanel-app:${APP_VERSION:-latest}
     container_name: zzpanel_app
     restart: unless-stopped
     logging:

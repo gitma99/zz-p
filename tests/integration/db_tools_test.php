@@ -34,9 +34,16 @@ if (!preg_match('/^[A-Za-z0-9_]+$/', $db)) {
 
 // Ensure the test database exists before connecting to it. Each integration
 // test is responsible for its own DB lifecycle; CI only runs the test files.
-$link = new mysqli($host, $user, $pass, 'mysql', $port);
-if ($link->connect_error) {
-    fail("cannot connect to MySQL server: " . $link->connect_error);
+$link = null;
+for ($attempt = 1; $attempt <= 10; $attempt++) {
+    $link = @new mysqli($host, $user, $pass, 'mysql', $port);
+    if (!$link->connect_error) {
+        break;
+    }
+    sleep(1);
+}
+if (!$link || $link->connect_error) {
+    fail("cannot connect to MySQL server: " . ($link ? $link->connect_error : "connection failed"));
 }
 if (!$link->query("CREATE DATABASE IF NOT EXISTS $db")) {
     fail("cannot create database $db: " . $link->error);

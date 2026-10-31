@@ -23,8 +23,204 @@ check_root() {
     fi
 }
 
+github_curl() {
+    if [ -n "$GITHUB_TOKEN" ]; then
+        curl -H "Authorization: Bearer $GITHUB_TOKEN" "$@"
+    else
+        curl "$@"
+    fi
+}
+
+extract_asset_url_from_json() {
+    local json="${1:-}"
+    local zip_name="${2:-}"
+    [ -n "$json" ] || FATAL "extract_asset_url_from_json: json payload is required."
+    [ -n "$zip_name" ] || FATAL "extract_asset_url_from_json: asset name is required."
+
+    if command -v python3 &>/dev/null; then
+        printf '%s' "$json" | python3 -c "import json,sys; data=json.load(sys.stdin); print(next((a.get('browser_download_url','') for a in data.get('assets',[]) if '$zip_name' in a.get('name','')), ''))"
+    else
+        printf '%s' "$json" | grep -o "\"browser_download_url\"[[:space:]]*:[[:space:]]*\"[^\"]*$zip_name\"" | head -n 1 | cut -d '"' -f 4 || true
+    fi
+}
+
 get_current_script_version() {
     echo "$VERSION"
+}
+
+get_installed_app_version() {
+    # 1. Query container (running or stopped)
+    if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q '^zzpanel_app$'; then
+        if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^zzpanel_app$'; then
+            local live_ver
+            live_ver=$(docker exec zzpanel_app php -r 'error_reporting(0); @include_once "/var/www/html/ZZPanelBot/App/vars.php"; if (isset($APP_VERSION) && $APP_VERSION !== "") { echo $APP_VERSION; }' 2>/dev/null || true)
+            if [ -n "$live_ver" ]; then
+                echo "$live_ver"
+                return 0
+            fi
+        fi
+
+        # Image tag on running or stopped container (strip digest if present)
+        local image_tag
+        image_tag=$(docker inspect --format '{{.Config.Image}}' zzpanel_app 2>/dev/null | sed -E 's/@sha256:.*//' | awk -F ':' '{print $NF}' || true)
+        if [ -n "$image_tag" ] && [[ "$image_tag" != *"/"* ]]; then
+            echo "$image_tag"
+            return 0
+        fi
+    fi
+
+    # 2. Query host application file if present
+    if [ -f "$BASE_DIR/App/vars.php" ]; then
+        local file_ver
+        file_ver=$(grep -F '$APP_VERSION' "$BASE_DIR/App/vars.php" 2>/dev/null | head -n 1 | cut -d '=' -f 2 | tr -d ' ";\r\n' || true)
+        if [ -n "$file_ver" ]; then
+            echo "$file_ver"
+            return 0
+        fi
+    fi
+
+    # 3. Fallback to .env APP_VERSION
+    if [ -f "$BASE_DIR/.env" ]; then
+        local ver
+        ver=$(grep -E '^[[:space:]]*APP_VERSION=' "$BASE_DIR/.env" 2>/dev/null | tail -n 1 | cut -d '=' -f 2- | tr -d ' "\r' || true)
+        if [ -n "$ver" ]; then
+            echo "$ver"
+            return 0
+        fi
+    fi
+
+    echo "unknown"
+}
+
+set_env_app_version() {
+    local target_ver="${1:-}"
+    [ -n "$target_ver" ] || FATAL "set_env_app_version: target version is required."
+    local env_file="$BASE_DIR/.env"
+    [ -f "$env_file" ] || return 0
+
+    if grep -Eq '^[[:space:]]*APP_VERSION=' "$env_file"; then
+        sed -i -E "s/^[[:space:]]*APP_VERSION=.*/APP_VERSION=${target_ver}/" "$env_file"
+    else
+        echo "APP_VERSION=${target_ver}" >> "$env_file"
+    fi
+}
+
+normalize_version_tag() {
+    local raw="${1:-}"
+    raw=$(echo "$raw" | tr -d '[:space:]')
+    if [ -z "$raw" ] || [ "$raw" = "latest" ]; then
+        echo "latest"
+        return 0
+    fi
+    if [[ "$raw" =~ ^v[0-9] ]]; then
+        echo "$raw"
+    elif [[ "$raw" =~ ^[0-9] ]]; then
+        echo "v$raw"
+    else
+        echo "$raw"
+    fi
+}
+
+RESOLVED_DOWNLOAD_URL=""
+RESOLVED_APP_TAG=""
+
+resolve_release_package() {
+    local target_ver="${1:-}"
+    [ -n "$target_ver" ] || FATAL "resolve_release_package: target version is required."
+
+    local zip_name="zzpanel-docker-setup.zip"
+    local direct_url
+    RESOLVED_DOWNLOAD_URL=""
+    RESOLVED_APP_TAG=""
+
+    if [ "$target_ver" = "latest" ]; then
+        direct_url="https://github.com/gitma99/zz-p/releases/latest/download/${zip_name}"
+        if github_curl -fsSL -I "$direct_url" &>/dev/null; then
+            RESOLVED_DOWNLOAD_URL="$direct_url"
+            RESOLVED_APP_TAG="latest"
+            return 0
+        fi
+
+        # Fallback to GitHub API
+        local api_url="https://api.github.com/repos/gitma99/zz-p/releases/latest"
+        local api_json
+        api_json=$(github_curl -fsSL "$api_url" 2>/dev/null) || return 1
+        local api_download_url
+        api_download_url=$(extract_asset_url_from_json "$api_json" "$zip_name")
+        if [ -n "$api_download_url" ]; then
+            RESOLVED_DOWNLOAD_URL="$api_download_url"
+            RESOLVED_APP_TAG="latest"
+            return 0
+        fi
+    else
+        local alt_ver
+        if [[ "$target_ver" == v* ]]; then
+            alt_ver="${target_ver#v}"
+        else
+            alt_ver="v${target_ver}"
+        fi
+
+        # 1. Direct release asset probe across candidates (no rate-limit)
+        for candidate in "$target_ver" "$alt_ver"; do
+            direct_url="https://github.com/gitma99/zz-p/releases/download/${candidate}/${zip_name}"
+            if github_curl -fsSL -I "$direct_url" &>/dev/null; then
+                RESOLVED_DOWNLOAD_URL="$direct_url"
+                RESOLVED_APP_TAG="$candidate"
+                return 0
+            fi
+        done
+
+        # 2. Fallback to GitHub API by tag for both candidates
+        for candidate in "$target_ver" "$alt_ver"; do
+            local api_url="https://api.github.com/repos/gitma99/zz-p/releases/tags/${candidate}"
+            local api_json
+            api_json=$(github_curl -fsSL "$api_url" 2>/dev/null) || true
+            if [ -n "$api_json" ]; then
+                local api_download_url
+                api_download_url=$(extract_asset_url_from_json "$api_json" "$zip_name")
+                if [ -n "$api_download_url" ]; then
+                    RESOLVED_DOWNLOAD_URL="$api_download_url"
+                    RESOLVED_APP_TAG="$candidate"
+                    return 0
+                fi
+            fi
+        done
+    fi
+
+    return 1
+}
+
+confirm_downgrade_if_applicable() {
+    local target_ver="${1:-}"
+    [ -n "$target_ver" ] || FATAL "confirm_downgrade_if_applicable: target version is required."
+    local current_ver
+    current_ver=$(get_installed_app_version)
+
+    if [ "$current_ver" = "unknown" ] || [ "$current_ver" = "latest" ] || [ "$target_ver" = "latest" ]; then
+        return 0
+    fi
+
+    local current_clean="${current_ver#v}"
+    local target_clean="${target_ver#v}"
+    local is_downgrade="no"
+
+    local oldest
+    oldest=$(printf '%s\n%s\n' "$current_clean" "$target_clean" | sort -V 2>/dev/null | head -n 1 || echo "$current_clean")
+    if [ "$oldest" = "$target_clean" ] && [ "$current_clean" != "$target_clean" ]; then
+        is_downgrade="yes"
+    fi
+
+    if [ "$is_downgrade" = "yes" ]; then
+        WARN "You are targeting version $target_ver, which is older than currently installed $current_ver."
+        WARN "Database schemas may not be backward-compatible with older versions."
+        read -r -p "Are you sure you want to proceed with this downgrade? (y/N): " reply
+        if [[ ! "$reply" =~ ^[Yy]$ ]]; then
+            INFO "Operation canceled by user."
+            return 1
+        fi
+    fi
+
+    return 0
 }
 
 # Ensure basic utilities are installed
@@ -176,40 +372,56 @@ install_or_update_zzbot_script() {
     INFO "Setup script updated successfully."
 }
 
-download_and_extract_latest_release() {
-    INFO "Downloading latest release..."
-    local zip_name="zzpanel-docker-setup.zip"
-    local download_url="https://github.com/gitma99/zz-p/releases/latest/download/${zip_name}"
+download_and_extract_release() {
+    local download_url="${1:-}"
+    [ -n "$download_url" ] || FATAL "download_and_extract_release: download URL is required."
+
+    INFO "Downloading release package from $download_url..."
     local zip_file
     zip_file=$(mktemp /tmp/zzpanel-setup.XXXXXX.zip)
-    if ! curl -fsSL -o "$zip_file" "$download_url"; then
-        WARN "Direct download failed. Checking GitHub API..."
-        local api_url="https://api.github.com/repos/gitma99/zz-p/releases/latest"
-        local api_json
-        api_json=$(curl -fsSL "$api_url") || FATAL "GitHub API request failed."
-        local api_download_url=""
-        if command -v python3 &> /dev/null; then
-            api_download_url=$(printf '%s' "$api_json" | python3 -c "import json,sys; data=json.load(sys.stdin); print(next((a.get('browser_download_url','') for a in data.get('assets',[]) if '$zip_name' in a.get('name','')), ''))")
-        else
-            api_download_url=$(printf '%s' "$api_json" | grep -o "\"browser_download_url\"[[:space:]]*:[[:space:]]*\"[^\"]*$zip_name\"" | head -n 1 | cut -d '"' -f 4 || true)
-        fi
 
-        if [ -z "$api_download_url" ]; then
-            rm -f "$zip_file"
-            FATAL "Could not locate $zip_name in GitHub releases."
-        fi
-        curl -fsSL -o "$zip_file" "$api_download_url" || { rm -f "$zip_file"; FATAL "Download from GitHub API failed."; }
+    if ! github_curl -fsSL -o "$zip_file" "$download_url"; then
+        rm -f "$zip_file"
+        FATAL "Failed to download release archive from $download_url"
     fi
 
-    INFO "Extracting files to $BASE_DIR..."
+    INFO "Validating archive security..."
     validate_zip_paths "$zip_file"
-    unzip -o -q "$zip_file" -d "$BASE_DIR" || { rm -f "$zip_file"; FATAL "Failed to extract release archive."; }
+
+    INFO "Extracting files to $BASE_DIR..."
+    local stage_dir
+    stage_dir=$(mktemp -d /tmp/zzpanel-stage.XXXXXX)
+    unzip -o -q "$zip_file" -d "$stage_dir" || { rm -f "$zip_file"; rm -rf "$stage_dir"; FATAL "Failed to extract release archive."; }
     rm -f "$zip_file"
+    cp -a "$stage_dir"/. "$BASE_DIR"/
+    rm -rf "$stage_dir"
+    INFO "Release files extracted successfully."
 }
 
 # 1. Install ZZPanel
 install_zzbot() {
-    INFO "Installation Started..."
+    local target_ver="${1:-}"
+    if [ -z "$target_ver" ]; then
+        read -r -p "Enter version to install [default: latest]: " target_ver
+    fi
+    target_ver=$(normalize_version_tag "$target_ver")
+
+    INFO "Installation Started for version: $target_ver..."
+
+    check_and_install_tool "curl"
+
+    # Pre-flight resolution before any host mutation or script overwrites
+    INFO "Locating release package for version: $target_ver..."
+    if ! resolve_release_package "$target_ver"; then
+        FATAL "Could not resolve release package for version: $target_ver"
+    fi
+    local download_url="$RESOLVED_DOWNLOAD_URL"
+    local resolved_tag="$RESOLVED_APP_TAG"
+
+    if [ -f "$BASE_DIR/docker-compose.yml" ]; then
+        confirm_downgrade_if_applicable "$resolved_tag" || return 1
+        WARN "Existing install found at $BASE_DIR. Overwriting stack files; existing .env is kept."
+    fi
 
     check_prerequisites || return 1
     install_or_update_zzbot_script || return 1
@@ -217,14 +429,12 @@ install_zzbot() {
     INFO "Creating base directory at $BASE_DIR..."
     mkdir -p "$BASE_DIR" || FATAL "Cannot create $BASE_DIR."
     cd "$BASE_DIR" || FATAL "Cannot enter $BASE_DIR."
-    if [ -f "$BASE_DIR/docker-compose.yml" ]; then
-        WARN "Existing install found at $BASE_DIR. Overwriting stack files; existing .env is kept."
-    fi
 
     if [ -f .env ]; then
         backup_env_file .env || WARN "Could not back up existing .env — continuing without backup."
     fi
-    download_and_extract_latest_release || return 1
+
+    download_and_extract_release "$download_url" || return 1
 
     # Configure Environment
     if [ ! -f .env ]; then
@@ -236,11 +446,13 @@ install_zzbot() {
         fi
     fi
 
+    set_env_app_version "$resolved_tag"
+
     INFO "Opening .env for configuration..."
     nano .env
 
     # pull images to ensure they are available before starting
-    INFO "Pulling Docker images..."
+    INFO "Pulling Docker images for version: $resolved_tag..."
     if ! run_compose_with_login pull; then
         ERROR "Failed to pull Docker images. Please check your network connection and credentials." || return 1
     fi
@@ -254,7 +466,6 @@ install_zzbot() {
     else
         WARN "You must initialize SSL later by running 'zzbot' and selecting the SSL option or the bot won't work properly."
     fi
-
 
     INFO "Installation complete! You can now run this script anytime by typing 'zzbot' in the terminal."
 }
@@ -353,19 +564,39 @@ hard_restart_services() {
 update_services() {
     require_installed || return 1
 
+    local target_ver="${1:-}"
+    if [ -z "$target_ver" ]; then
+        local current_ver
+        current_ver=$(get_installed_app_version)
+        read -r -p "Enter target version to update/switch to (current: $current_ver) [default: latest]: " target_ver
+    fi
+    target_ver=$(normalize_version_tag "$target_ver")
+
+    # Pre-flight resolution before modifying host files or container state
+    INFO "Locating release package for version: $target_ver..."
+    if ! resolve_release_package "$target_ver"; then
+        FATAL "Could not resolve release download URL for version: $target_ver"
+    fi
+    local download_url="$RESOLVED_DOWNLOAD_URL"
+    local resolved_tag="$RESOLVED_APP_TAG"
+
+    confirm_downgrade_if_applicable "$resolved_tag" || return 1
+
     if [ -f .env ]; then
         backup_env_file .env || FATAL "Cannot back up .env before update — aborting to avoid overwriting your config."
     fi
-    download_and_extract_latest_release || return 1
-    INFO "Updating services..."
-    if run_compose_with_login pull; then
-        INFO "Pull completed successfully."
-    else
-        ERROR "Pull failed even after logging in. Please check your credentials and network connection." || return 1
+
+    download_and_extract_release "$download_url" || return 1
+    set_env_app_version "$resolved_tag"
+
+    INFO "Updating services with image version: $resolved_tag..."
+    if ! run_compose_with_login pull; then
+        FATAL "Pull failed even after logging in. Please check your credentials and network connection."
     fi
+    INFO "Pull completed successfully."
 
     if hard_restart_services; then
-        INFO "Update completed."
+        INFO "Update to $resolved_tag completed successfully."
     else
         ERROR "Update applied but hard restart failed; run Hard Restart (8) to finish."
     fi
@@ -443,8 +674,11 @@ show_live_logs_for_service() {
 # Main menu CLI loop
 show_menu() {
     while true; do
+        local app_ver
+        app_ver=$(get_installed_app_version)
         echo -e "\n========================================="
         echo -e "     ZZPanelBot Management ($VERSION)    "
+        echo -e "     Installed App Version: $app_ver     "
         echo -e "========================================="
         echo " 1) Install ZZPanel"
         echo " 2) Install / Update zzbot menu"
@@ -490,4 +724,25 @@ show_menu() {
 
 # Execution start
 check_root
+
+if [ $# -gt 0 ]; then
+    cmd="$1"
+    shift
+    case "$cmd" in
+        install)
+            install_zzbot "${1:-}" || exit 1
+            exit 0
+            ;;
+        update)
+            update_services "${1:-}" || exit 1
+            exit 0
+            ;;
+        *)
+            WARN "Unknown command: $cmd"
+            echo "Usage: zzbot [install [version] | update [version]]"
+            exit 1
+            ;;
+    esac
+fi
+
 show_menu
