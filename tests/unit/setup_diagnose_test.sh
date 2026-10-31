@@ -15,7 +15,7 @@ DIAG_FAIL "Fail test"
 [[ "$DIAG_HAS_FAIL" -eq 1 ]] || { echo "FAIL: DIAG_HAS_FAIL not set"; exit 1; }
 
 # Test 2: Secret masking
-masked=$(mask_secret "token 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11 in text" "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11")
+masked=$(mask_secret "token 123456:TEST_BOT_TOKEN_MOCK_XYZ in text" "123456:TEST_BOT_TOKEN_MOCK_XYZ")
 [[ "$masked" == *"123456:***"* ]] || { echo "FAIL: secret token was not properly masked"; exit 1; }
 
 # Test 3: Export report
@@ -129,7 +129,7 @@ unset -f docker
 # Test 8: diagnose_ssl and diagnose_telegram with mocks
 cat >> "$test_td/.env" <<EOF
 DOMAIN=test.example.com
-BOT_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+BOT_TOKEN=123456:TEST_BOT_TOKEN_MOCK_XYZ
 EOF
 
 # Create dummy cert for test.example.com
@@ -252,7 +252,7 @@ apply_auto_fixes true < /dev/null || { echo "FAIL: headless apply_auto_fixes cra
 # Test 14: diagnose_telegram reports FAIL when DOMAIN is missing
 fix_td2=$(mktemp -d)
 cat > "$fix_td2/.env" <<'EOF'
-BOT_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+BOT_TOKEN=123456:TEST_BOT_TOKEN_MOCK_XYZ
 EOF
 BASE_DIR="$fix_td2"
 init_diagnose_state

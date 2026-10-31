@@ -67,7 +67,7 @@ DIAG_FAIL "Fail test"
 [[ "$DIAG_HAS_FAIL" -eq 1 ]] || { echo "FAIL: DIAG_HAS_FAIL not set"; exit 1; }
 
 # Test 2: Secret masking
-masked=$(mask_secret "token 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11 in text" "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11")
+masked=$(mask_secret "token 123456:TEST_BOT_TOKEN_MOCK_XYZ in text" "123456:TEST_BOT_TOKEN_MOCK_XYZ")
 [[ "$masked" == *"123456:***"* ]] || { echo "FAIL: secret token was not properly masked"; exit 1; }
 
 echo "PASS: Task 1 tests"
