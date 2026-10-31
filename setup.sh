@@ -83,6 +83,176 @@ export_diagnose_report() {
     chmod 0600 "$target_file" 2>/dev/null || true
     echo "$target_file"
 }
+
+diagnose_host() {
+    INFO "Running Host & System Resources Diagnostics..."
+    
+    # 1. Disk space check
+    local root_free_mb srv_free_mb
+    root_free_mb=$(df -m / 2>/dev/null | awk 'NR==2 {print $4}' || echo "0")
+    if [ "$root_free_mb" -lt 1024 ]; then
+        DIAG_FAIL "Root filesystem (/) has only ${root_free_mb}MB free space (< 1GB required)."
+    elif [ "$root_free_mb" -lt 3072 ]; then
+        DIAG_WARN "Root filesystem (/) has ${root_free_mb}MB free space (< 3GB remaining)."
+    else
+        DIAG_PASS "Root filesystem (/) has ${root_free_mb}MB free space."
+    fi
+
+    local base_dir="${BASE_DIR:-/srv}"
+    if [ -d "$base_dir" ]; then
+        srv_free_mb=$(df -m "$base_dir" 2>/dev/null | awk 'NR==2 {print $4}' || echo "$root_free_mb")
+        if [ "$srv_free_mb" -ne "$root_free_mb" ]; then
+            if [ "$srv_free_mb" -lt 1024 ]; then
+                DIAG_FAIL "Base directory ($base_dir) has only ${srv_free_mb}MB free space."
+            elif [ "$srv_free_mb" -lt 3072 ]; then
+                DIAG_WARN "Base directory ($base_dir) has ${srv_free_mb}MB free space."
+            else
+                DIAG_PASS "Base directory ($base_dir) has ${srv_free_mb}MB free space."
+            fi
+        fi
+    fi
+
+    # 2. Inodes check
+    local root_inode_pct
+    root_inode_pct=$(df -i / 2>/dev/null | awk 'NR==2 {print $5}' | tr -d '%' || echo "0")
+    if [ "$root_inode_pct" -gt 90 ]; then
+        DIAG_WARN "Root filesystem inodes are ${root_inode_pct}% full (exhaustion risk)."
+    else
+        DIAG_PASS "Root filesystem inode usage is ${root_inode_pct}%."
+    fi
+
+    # 3. Available RAM
+    if command -v free &>/dev/null; then
+        local mem_avail_mb
+        mem_avail_mb=$(free -m 2>/dev/null | awk '/^Mem:/ {print ($7 != "" ? $7 : $4)}' || echo "1024")
+        if [ -n "$mem_avail_mb" ] && [ "$mem_avail_mb" -lt 256 ]; then
+            DIAG_WARN "Available memory is low: ${mem_avail_mb}MB (< 256MB remaining)."
+        else
+            DIAG_PASS "Available memory: ${mem_avail_mb}MB."
+        fi
+    fi
+
+    # 4. Ports 80 and 443 check
+    local p80_proc p443_proc
+    p80_proc=""
+    p443_proc=""
+    if command -v ss &>/dev/null; then
+        p80_proc=$(ss -tlpn '( sport = :80 )' 2>/dev/null | grep -v 'Local Address' || true)
+        p443_proc=$(ss -tlpn '( sport = :443 )' 2>/dev/null | grep -v 'Local Address' || true)
+    elif command -v netstat &>/dev/null; then
+        p80_proc=$(netstat -tlpn 2>/dev/null | grep ':80 ' || true)
+        p443_proc=$(netstat -tlpn 2>/dev/null | grep ':443 ' || true)
+    fi
+
+    for port_info in "80:$p80_proc" "443:$p443_proc"; do
+        local p="${port_info%%:*}"
+        local info="${port_info#*:}"
+        if [ -n "$info" ]; then
+            if echo "$info" | grep -Eqi "docker|dockerd"; then
+                DIAG_PASS "Port $p is bound by Docker."
+            else
+                DIAG_WARN "Port $p is occupied by a non-Docker process ($info)."
+            fi
+        else
+            DIAG_PASS "Port $p is available or bound."
+        fi
+    done
+}
+
+scrape_container_crash_logs() {
+    local container_name="${1:-}"
+    local max_lines="${2:-15}"
+    [ -n "$container_name" ] || return 0
+
+    DIAG_NOTE "Recent logs from $container_name (last $max_lines lines):"
+    local logs
+    logs=$(docker logs --tail "$max_lines" "$container_name" 2>&1 || true)
+    if [ -n "$logs" ]; then
+        while IFS= read -r line; do
+            [ -n "$line" ] && DIAG_NOTE "  [log] $line"
+        done <<< "$logs"
+    else
+        DIAG_NOTE "  (No log output recorded for $container_name)"
+    fi
+}
+
+diagnose_containers() {
+    INFO "Running Docker Containers Diagnostics..."
+
+    if ! docker info &>/dev/null; then
+        DIAG_FAIL "Docker daemon is not running or socket is inaccessible."
+        return 1
+    fi
+
+    local stack_services=(
+        "app:zzpanel_app"
+        "mysql:zzpanel_mysql"
+        "nginx:zzpanel_nginx"
+        "worker:zzpanel_worker"
+        "certbot:zzpanel_certbot"
+        "backup:zzpanel_backup"
+        "phpmyadmin:zzpanel_phpmyadmin"
+    )
+
+    for item in "${stack_services[@]}"; do
+        local sname="${item%%:*}"
+        local cname="${item#*:}"
+
+        local inspect_json
+        inspect_json=$(docker inspect "$cname" 2>/dev/null || true)
+        if [ -z "$inspect_json" ] || [ "$inspect_json" = "[]" ]; then
+            if [[ "$sname" =~ ^(phpmyadmin|backup)$ ]]; then
+                DIAG_WARN "Container $cname is not created."
+            else
+                DIAG_FAIL "Container $cname is missing / not created."
+                AUTO_FIX_CANDIDATES+=("$sname")
+            fi
+            continue
+        fi
+
+        local status oom_killed exit_code health_status
+        if command -v python3 &>/dev/null; then
+            read -r status oom_killed exit_code health_status < <(python3 -c "
+import sys, json
+try:
+    raw = json.loads(sys.argv[1])
+    data = raw[0]['State'] if isinstance(raw, list) else (raw.get('State', raw) if isinstance(raw, dict) else {})
+    status = data.get('Status', 'unknown')
+    oom = 'true' if data.get('OOMKilled', False) else 'false'
+    exit_c = str(data.get('ExitCode', 0))
+    health = data.get('Health', {}).get('Status', '') if isinstance(data.get('Health'), dict) else ''
+    print(f'{status} {oom} {exit_c} {health}')
+except Exception:
+    print('unknown false 0 ')
+" "$inspect_json" 2>/dev/null || echo "unknown false 0 ")
+        else
+            status=$(echo "$inspect_json" | grep -o '"Status"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d '"' -f 4 || echo "unknown")
+            oom_killed=$(echo "$inspect_json" | grep -o '"OOMKilled"[[:space:]]*:[[:space:]]*[a-zA-Z]*' | head -1 | awk '{print $2}' || echo "false")
+            exit_code=$(echo "$inspect_json" | grep -o '"ExitCode"[[:space:]]*:[[:space:]]*[0-9]*' | head -1 | awk '{print $2}' || echo "0")
+            health_status=$(echo "$inspect_json" | grep -o '"Health"[[:space:]]*:[[:space:]]*{[^}]*}' | grep -o '"Status"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d '"' -f 4 || true)
+        fi
+
+        if [ "$status" = "running" ]; then
+            if [ -n "$health_status" ] && [ "$health_status" != "healthy" ]; then
+                DIAG_FAIL "Container $cname is running but UNHEALTHY (health: $health_status)."
+                scrape_container_crash_logs "$cname" 15
+                AUTO_FIX_CANDIDATES+=("$sname")
+            else
+                local h_label=""
+                [ -n "$health_status" ] && h_label=" (healthy)"
+                DIAG_PASS "Container $cname is running${h_label}."
+            fi
+        else
+            if [ "$oom_killed" = "true" ]; then
+                DIAG_FAIL "Container $cname CRASHED due to Out-Of-Memory (OOMKilled=true, ExitCode=$exit_code)."
+            else
+                DIAG_FAIL "Container $cname is NOT running (Status=$status, ExitCode=$exit_code)."
+            fi
+            scrape_container_crash_logs "$cname" 15
+            AUTO_FIX_CANDIDATES+=("$sname")
+        fi
+    done
+}
 # --- DIAGNOSTIC HELPERS END ---
 
 # Ensure the script is run with root/sudo privileges

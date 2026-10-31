@@ -2,6 +2,7 @@
 set -euo pipefail
 
 # Test harness for setup.sh diagnostic suite
+INFO() { echo "[INFO] $*"; }
 source <(sed -n '/# --- DIAGNOSTIC HELPERS START ---/,/# --- DIAGNOSTIC HELPERS END ---/p' setup.sh)
 
 # Test 1: Status tracking
@@ -24,4 +25,39 @@ export_diagnose_report "$tmp_exp" >/dev/null
 grep -q "\[PASS\] Pass test" "$tmp_exp" || { echo "FAIL: exported file missing pass text"; exit 1; }
 rm -f "$tmp_exp"
 
-echo "PASS: Task 1 tests"
+# Test 4: diagnose_host function exists and runs
+init_diagnose_state
+diagnose_host
+
+# Test 5: diagnose_containers with mocked docker
+docker() {
+    local cmd="${1:-}"
+    shift || true
+    if [ "$cmd" = "info" ]; then
+        return 0
+    elif [ "$cmd" = "inspect" ]; then
+        local cname="${!#}" # last arg
+        if [ "$cname" = "zzpanel_app" ]; then
+            echo '{"Status":"running","Health":{"Status":"healthy"},"OOMKilled":false,"ExitCode":0}'
+        elif [ "$cname" = "zzpanel_mysql" ]; then
+            echo '{"Status":"exited","Health":{"Status":""},"OOMKilled":true,"ExitCode":137}'
+        else
+            echo '{"Status":"running","Health":{"Status":"healthy"},"OOMKilled":false,"ExitCode":0}'
+        fi
+        return 0
+    elif [ "$cmd" = "logs" ]; then
+        echo "Crash log line 1"
+        echo "Crash log line 2"
+        return 0
+    fi
+    return 1
+}
+
+init_diagnose_state
+diagnose_containers
+[[ "$DIAG_HAS_FAIL" -eq 1 ]] || { echo "FAIL: diagnose_containers should detect exited OOM container"; exit 1; }
+# Verify zzpanel_mysql was added to AUTO_FIX_CANDIDATES
+[[ " ${AUTO_FIX_CANDIDATES[*]} " =~ " mysql " ]] || { echo "FAIL: mysql was not added to AUTO_FIX_CANDIDATES"; exit 1; }
+unset -f docker
+
+echo "PASS: Task 2 tests"
