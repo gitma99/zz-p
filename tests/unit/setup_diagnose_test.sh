@@ -60,4 +60,71 @@ diagnose_containers
 [[ " ${AUTO_FIX_CANDIDATES[*]} " =~ " mysql " ]] || { echo "FAIL: mysql was not added to AUTO_FIX_CANDIDATES"; exit 1; }
 unset -f docker
 
-echo "PASS: Task 2 tests"
+# Test 6: diagnose_db with mock docker exec
+test_td=$(mktemp -d)
+mkdir -p "$test_td/sql/migrations"
+touch "$test_td/sql/migrations/20261025-001-init-schema.sql"
+touch "$test_td/sql/migrations/20261025-002-hot-path-indexes.sql"
+cat > "$test_td/.env" <<EOF
+DB_NAME=zzpanel
+DB_USER=zzuser
+DB_PASS=zzpass
+MYSQL_ROOT_PASSWORD=rootpass
+EOF
+
+BASE_DIR="$test_td"
+
+docker() {
+    local cmd="${1:-}"
+    shift || true
+    if [ "$cmd" = "exec" ]; then
+        local cname="${1:-}"
+        shift || true
+        if [ "$cname" = "zzpanel_mysql" ]; then
+            # mysqladmin ping or mysql query
+            if [[ "$*" == *"mysqladmin ping"* ]]; then
+                echo "mysqld is alive"
+                return 0
+            elif [[ "$*" == *"Threads_connected"* ]]; then
+                echo -e "Threads_connected\t10\nmax_connections\t150"
+                return 0
+            elif [[ "$*" == *"schema_migrations"* ]]; then
+                # only 001 applied
+                echo "20261025-001-init-schema.sql"
+                return 0
+            fi
+        elif [ "$cname" = "zzpanel_app" ]; then
+            if [[ "$*" == *"mysqli"* ]]; then
+                echo "DB_AUTH_OK"
+                return 0
+            elif [[ "$*" == *"apache2ctl"* ]]; then
+                return 0
+            elif [[ "$*" == *"php7.4-fpm status"* ]]; then
+                return 0
+            elif [[ "$*" == *"http://localhost/ZZPanelBot/index.php"* ]]; then
+                echo "423"
+                return 0
+            elif [[ "$*" == *"extension_loaded"* ]]; then
+                echo "yes"
+                return 0
+            fi
+        fi
+    fi
+    return 0
+}
+
+init_diagnose_state
+diagnose_db
+[[ "$DIAG_HAS_WARN" -eq 1 ]] || { echo "FAIL: diagnose_db should detect unapplied migrations"; exit 1; }
+
+# Test 7: diagnose_web detects 423 lock and permissions
+init_diagnose_state
+mkdir -p "$test_td/logs/app" "$test_td/temp"
+chmod 555 "$test_td/temp" 2>/dev/null || true
+diagnose_web
+[[ "$DIAG_HAS_FAIL" -eq 1 ]] || { echo "FAIL: diagnose_web should detect 423 error"; exit 1; }
+chmod 777 "$test_td/temp" 2>/dev/null || true
+rm -rf "$test_td"
+unset -f docker
+
+echo "PASS: Task 3 tests"

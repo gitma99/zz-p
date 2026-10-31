@@ -253,6 +253,160 @@ except Exception:
         fi
     done
 }
+
+diagnose_db() {
+    INFO "Running Database & Schema Migrations Diagnostics..."
+
+    local base_dir="${BASE_DIR:-/srv}"
+    local env_file="$base_dir/.env"
+
+    if [ ! -f "$env_file" ]; then
+        DIAG_FAIL ".env file is missing at $env_file."
+        return 1
+    fi
+
+    local db_name db_user db_pass root_pass
+    db_name=$(grep -E '^[[:space:]]*DB_NAME=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | tr -d ' "\r' || true)
+    db_user=$(grep -E '^[[:space:]]*DB_USER=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | tr -d ' "\r' || true)
+    db_pass=$(grep -E '^[[:space:]]*DB_PASS=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | tr -d ' "\r' || true)
+    root_pass=$(grep -E '^[[:space:]]*MYSQL_ROOT_PASSWORD=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | tr -d ' "\r' || true)
+
+    if [ -z "$db_name" ] || [ -z "$db_user" ] || [ -z "$db_pass" ]; then
+        DIAG_FAIL "Database configuration incomplete: DB_NAME, DB_USER, or DB_PASS is missing in .env."
+        return 1
+    fi
+
+    # 1. MySQL ping
+    local ping_pass="${root_pass:-$db_pass}"
+    local ping_res
+    ping_res=$(docker exec zzpanel_mysql mysqladmin ping -h localhost -uroot -p"$ping_pass" 2>&1 || true)
+    if echo "$ping_res" | grep -qi "alive"; then
+        DIAG_PASS "MySQL daemon responded to ping (mysqld alive)."
+    else
+        DIAG_FAIL "MySQL daemon ping failed: $ping_res"
+        return 1
+    fi
+
+    # 2. Authenticate application user
+    local auth_check
+    auth_check=$(docker exec zzpanel_app php -r "
+        \$m = @new mysqli('mysql', '$db_user', '$db_pass', '$db_name');
+        if (\$m->connect_error) { echo 'ERR: ' . \$m->connect_error; } else { echo 'DB_AUTH_OK'; }
+    " 2>/dev/null || echo "ERR: execution failed")
+
+    if [[ "$auth_check" == *"DB_AUTH_OK"* ]]; then
+        DIAG_PASS "Database authentication succeeded for user '$db_user'."
+    else
+        DIAG_FAIL "Database authentication failed: $auth_check"
+    fi
+
+    # 3. Connection saturation check
+    local conn_info
+    conn_info=$(docker exec zzpanel_mysql mysql -uroot -p"$ping_pass" -N -e "
+        SHOW GLOBAL STATUS LIKE 'Threads_connected';
+        SHOW GLOBAL VARIABLES LIKE 'max_connections';
+    " 2>/dev/null || true)
+
+    local active_conn max_conn
+    active_conn=$(echo "$conn_info" | awk '/Threads_connected/ {print $2}')
+    max_conn=$(echo "$conn_info" | awk '/max_connections/ {print $2}')
+    if [ -n "$active_conn" ] && [ -n "$max_conn" ] && [ "$max_conn" -gt 0 ] 2>/dev/null; then
+        local pct=$(( active_conn * 100 / max_conn ))
+        if [ "$pct" -gt 85 ]; then
+            DIAG_WARN "Database connection pool saturated: $active_conn / $max_conn active ($pct%)."
+        else
+            DIAG_PASS "Database connection pool healthy: $active_conn / $max_conn active ($pct%)."
+        fi
+    fi
+
+    # 4. Check schema migrations
+    local applied_migrations
+    applied_migrations=$(docker exec zzpanel_mysql mysql -uroot -p"$ping_pass" -D "$db_name" -N -e "
+        SELECT filename FROM schema_migrations;
+    " 2>/dev/null || true)
+
+    local mig_dir="$base_dir/sql/migrations"
+    if [ -d "$mig_dir" ]; then
+        local unapplied=()
+        for mig_file in "$mig_dir"/*.sql; do
+            [ -f "$mig_file" ] || continue
+            local fname
+            fname=$(basename "$mig_file")
+            if ! echo "$applied_migrations" | grep -Fqx "$fname"; then
+                unapplied+=("$fname")
+            fi
+        done
+        if [ "${#unapplied[@]}" -gt 0 ]; then
+            DIAG_WARN "Unapplied database migrations detected (${#unapplied[@]} pending: ${unapplied[*]})."
+        else
+            DIAG_PASS "Database schema migrations are up to date."
+        fi
+    fi
+}
+
+diagnose_web() {
+    INFO "Running Web Server & PHP-FPM Runtime Diagnostics..."
+
+    local base_dir="${BASE_DIR:-/srv}"
+
+    # 1. Apache2 check
+    if docker exec zzpanel_app apache2ctl -S &>/dev/null; then
+        DIAG_PASS "Apache2 web server is running in zzpanel_app."
+    else
+        DIAG_FAIL "Apache2 is not running or syntax error in zzpanel_app."
+    fi
+
+    # 2. PHP-FPM check
+    if docker exec zzpanel_app service php7.4-fpm status &>/dev/null; then
+        DIAG_PASS "PHP7.4-FPM service is active in zzpanel_app."
+    else
+        DIAG_FAIL "PHP7.4-FPM service is inactive or crashed in zzpanel_app."
+    fi
+
+    # 3. HTTP loopback test
+    local http_code
+    http_code=$(docker exec zzpanel_app curl -s -o /dev/null -w "%{http_code}" http://localhost/ZZPanelBot/index.php 2>/dev/null || echo "000")
+    if [ "$http_code" = "200" ]; then
+        DIAG_PASS "Internal HTTP endpoint responded with HTTP 200 OK."
+    elif [ "$http_code" = "423" ]; then
+        DIAG_FAIL "Internal HTTP returned 423 Locked (Database connection failure in config.php)."
+        scrape_container_crash_logs "zzpanel_app" 15
+    elif [ "$http_code" = "500" ]; then
+        DIAG_FAIL "Internal HTTP returned 500 Internal Server Error (PHP crash/fatal error)."
+        scrape_container_crash_logs "zzpanel_app" 15
+    else
+        DIAG_WARN "Internal HTTP endpoint returned unexpected status: $http_code."
+    fi
+
+    # 4. Directory permissions check
+    local perm_ok=1
+    for d in "$base_dir/logs" "$base_dir/temp"; do
+        if [ -d "$d" ]; then
+            if [ ! -w "$d" ]; then
+                perm_ok=0
+                DIAG_FAIL "Host directory $d is not writable."
+            fi
+        fi
+    done
+
+    local container_perm_check
+    container_perm_check=$(docker exec zzpanel_app su -s /bin/sh www-data -c "touch /var/www/html/ZZPanelBot/logs/.diag_test && rm -f /var/www/html/ZZPanelBot/logs/.diag_test && echo 'OK'" 2>/dev/null || echo "FAIL")
+    if [ "$container_perm_check" != "OK" ] || [ "$perm_ok" -eq 0 ]; then
+        DIAG_FAIL "Application logs or temp directories not writable by www-data."
+        AUTO_FIX_CANDIDATES+=("permissions")
+    else
+        DIAG_PASS "Application directory permissions are valid (writable by www-data)."
+    fi
+
+    # 5. APCu cache check
+    local apcu_loaded
+    apcu_loaded=$(docker exec zzpanel_app php -r "echo extension_loaded('apcu') ? 'yes' : 'no';" 2>/dev/null || echo "no")
+    if [ "$apcu_loaded" = "yes" ]; then
+        DIAG_PASS "PHP APCu in-memory cache extension is loaded."
+    else
+        DIAG_WARN "PHP APCu extension is not loaded in zzpanel_app."
+    fi
+}
 # --- DIAGNOSTIC HELPERS END ---
 
 # Ensure the script is run with root/sudo privileges
