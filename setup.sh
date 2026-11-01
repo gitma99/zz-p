@@ -74,6 +74,31 @@ mask_secret() {
     echo "${raw//"$secret"/$masked_replacement}"
 }
 
+get_env_var() {
+    local key="${1:-}"
+    local env_file="${2:-${BASE_DIR:-/srv}/.env}"
+    [ -n "$key" ] || return 0
+    [ -f "$env_file" ] || return 0
+    grep -E "^[[:space:]]*${key}[[:space:]]*=" "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | sed -E 's/^[[:space:]]*//; s/[[:space:]]*$//; s/^["'\''](.*)["'\'']$/\1/' || true
+}
+
+resolve_ipv4_host() {
+    local target="${1:-}"
+    [ -n "$target" ] || return 0
+    local resolved=""
+    if command -v getent &>/dev/null; then
+        resolved=$(getent ahostsv4 "$target" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1 | awk '{print $1}' || true)
+        if [ -z "$resolved" ]; then
+            resolved=$(getent ahosts "$target" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1 | awk '{print $1}' || true)
+        fi
+    elif command -v dig &>/dev/null; then
+        resolved=$(dig +short A "$target" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | tail -1 || true)
+    elif command -v nslookup &>/dev/null; then
+        resolved=$(nslookup -type=A "$target" 2>/dev/null | awk '/^Address: / {print $2}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | tail -1 || true)
+    fi
+    echo "$resolved"
+}
+
 export_diagnose_report() {
     local target_file="${1:-}"
     [ -n "$target_file" ] || target_file="/tmp/zzbot-diagnose-$(date +%s).log"
@@ -85,7 +110,7 @@ export_diagnose_report() {
     if [ -f "$env_file" ]; then
         local sec
         for sec_var in BOT_TOKEN DB_PASS MYSQL_ROOT_PASSWORD GITHUB_TOKEN; do
-            sec=$(grep -E "^[[:space:]]*${sec_var}=" "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | sed -E 's/^[[:space:]]*//; s/[[:space:]]*$//; s/^["'\''](.*)["'\'']$/\1/' || true)
+            sec=$(get_env_var "$sec_var" "$env_file")
             if [ -n "$sec" ]; then
                 clean_log=$(mask_secret "$clean_log" "$sec")
             fi
@@ -134,7 +159,7 @@ diagnose_host() {
         DIAG_PASS "Root filesystem inode usage is ${root_inode_pct}%."
     fi
 
-    # 3. Available RAM
+    # 3. Available RAM & Swap
     if command -v free &>/dev/null; then
         local mem_avail_mb
         mem_avail_mb=$(free -m 2>/dev/null | awk '/^Mem:/ {print ($7 != "" ? $7 : $4)}' || echo "1024")
@@ -142,6 +167,19 @@ diagnose_host() {
             DIAG_WARN "Available memory is low: ${mem_avail_mb}MB (< 256MB remaining)."
         else
             DIAG_PASS "Available memory: ${mem_avail_mb}MB."
+        fi
+
+        local swap_total swap_free
+        swap_total=$(free -m 2>/dev/null | awk '/^Swap:/ {print $2}' || echo "0")
+        swap_free=$(free -m 2>/dev/null | awk '/^Swap:/ {print $4}' || echo "0")
+        if [ -n "$swap_total" ] && [ "$swap_total" -gt 0 ] 2>/dev/null; then
+            if [ -n "$swap_free" ] && [ "$swap_free" -lt 64 ] 2>/dev/null; then
+                DIAG_WARN "Available swap is low: ${swap_free}MB / ${swap_total}MB free."
+            else
+                DIAG_PASS "Available swap: ${swap_free}MB / ${swap_total}MB free."
+            fi
+        else
+            DIAG_NOTE "Swap is not configured (0MB)."
         fi
     fi
 
@@ -175,7 +213,9 @@ diagnose_host() {
 scrape_container_crash_logs() {
     local container_name="${1:-}"
     local max_lines="${2:-15}"
-    [ -n "$container_name" ] || return 0
+    if [ -z "$container_name" ]; then
+        ERROR "scrape_container_crash_logs: container_name is required." || return 1
+    fi
 
     DIAG_NOTE "Recent logs from $container_name (last $max_lines lines):"
     local logs
@@ -218,7 +258,6 @@ diagnose_containers() {
                 DIAG_WARN "Container $cname is not created."
             else
                 DIAG_FAIL "Container $cname is missing / not created."
-                AUTO_FIX_CANDIDATES+=("$sname")
             fi
             continue
         fi
@@ -279,14 +318,13 @@ diagnose_db() {
     fi
 
     local db_name db_user db_pass root_pass
-    db_name=$(grep -E '^[[:space:]]*DB_NAME=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | sed -E 's/^[[:space:]]*//; s/[[:space:]]*$//; s/^["'\''](.*)["'\'']$/\1/' || true)
-    db_user=$(grep -E '^[[:space:]]*DB_USER=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | tr -d ' "\r' || true)
-    db_pass=$(grep -E '^[[:space:]]*DB_PASS=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | sed -E 's/^[[:space:]]*//; s/[[:space:]]*$//; s/^["'\''](.*)["'\'']$/\1/' || true)
-    root_pass=$(grep -E '^[[:space:]]*MYSQL_ROOT_PASSWORD=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | sed -E 's/^[[:space:]]*//; s/[[:space:]]*$//; s/^["'\''](.*)["'\'']$/\1/' || true)
+    db_name=$(get_env_var "DB_NAME" "$env_file")
+    db_user=$(get_env_var "DB_USER" "$env_file")
+    db_pass=$(get_env_var "DB_PASS" "$env_file")
+    root_pass=$(get_env_var "MYSQL_ROOT_PASSWORD" "$env_file")
 
     if [ -z "$db_name" ] || [ -z "$db_user" ] || [ -z "$db_pass" ]; then
         DIAG_FAIL "Database configuration incomplete: DB_NAME, DB_USER, or DB_PASS is missing in .env."
-        return 1
     fi
 
     # 1. MySQL ping
@@ -303,20 +341,21 @@ diagnose_db() {
         DIAG_PASS "MySQL daemon responded to ping (mysqld alive)."
     else
         DIAG_FAIL "MySQL daemon ping failed: $ping_res"
-        return 1
     fi
 
     # 2. Authenticate application user (safely pass env vars)
-    local auth_check
-    auth_check=$(docker exec -e DB_USER="$db_user" -e DB_PASS="$db_pass" -e DB_NAME="$db_name" zzpanel_app php -r '
-        $m = @new mysqli("mysql", getenv("DB_USER"), getenv("DB_PASS"), getenv("DB_NAME"));
-        if ($m->connect_error) { echo "ERR: " . $m->connect_error; } else { echo "DB_AUTH_OK"; }
-    ' 2>/dev/null || echo "ERR: execution failed")
+    if [ -n "$db_name" ] && [ -n "$db_user" ] && [ -n "$db_pass" ]; then
+        local auth_check
+        auth_check=$(docker exec -e DB_USER="$db_user" -e DB_PASS="$db_pass" -e DB_NAME="$db_name" zzpanel_app php -r '
+            $m = @new mysqli("mysql", getenv("DB_USER"), getenv("DB_PASS"), getenv("DB_NAME"));
+            if ($m->connect_error) { echo "ERR: " . $m->connect_error; } else { echo "DB_AUTH_OK"; }
+        ' 2>/dev/null || echo "ERR: execution failed")
 
-    if [[ "$auth_check" == *"DB_AUTH_OK"* ]]; then
-        DIAG_PASS "Database authentication succeeded for user '$db_user'."
-    else
-        DIAG_FAIL "Database authentication failed: $auth_check"
+        if [[ "$auth_check" == *"DB_AUTH_OK"* ]]; then
+            DIAG_PASS "Database authentication succeeded for user '$db_user'."
+        else
+            DIAG_FAIL "Database authentication failed: $auth_check"
+        fi
     fi
 
     # 3. Connection saturation check
@@ -339,26 +378,28 @@ diagnose_db() {
     fi
 
     # 4. Check schema migrations
-    local applied_migrations
-    applied_migrations=$(docker exec zzpanel_mysql mysql -u"$ping_user" -p"$ping_pass" -D "$db_name" -N -e "
-        SELECT filename FROM schema_migrations;
-    " 2>/dev/null || true)
+    if [ -n "$db_name" ]; then
+        local applied_migrations
+        applied_migrations=$(docker exec zzpanel_mysql mysql -u"$ping_user" -p"$ping_pass" -D "$db_name" -N -e "
+            SELECT filename FROM schema_migrations;
+        " 2>/dev/null || true)
 
-    local mig_dir="$base_dir/sql/migrations"
-    if [ -d "$mig_dir" ]; then
-        local unapplied=()
-        for mig_file in "$mig_dir"/*.sql; do
-            [ -f "$mig_file" ] || continue
-            local fname
-            fname=$(basename "$mig_file")
-            if ! echo "$applied_migrations" | grep -Fqx "$fname"; then
-                unapplied+=("$fname")
+        local mig_dir="$base_dir/sql/migrations"
+        if [ -d "$mig_dir" ]; then
+            local unapplied=()
+            for mig_file in "$mig_dir"/*.sql; do
+                [ -f "$mig_file" ] || continue
+                local fname
+                fname=$(basename "$mig_file")
+                if ! echo "$applied_migrations" | grep -Fqx "$fname"; then
+                    unapplied+=("$fname")
+                fi
+            done
+            if [ "${#unapplied[@]}" -gt 0 ]; then
+                DIAG_WARN "Unapplied database migrations detected (${#unapplied[@]} pending: ${unapplied[*]})."
+            else
+                DIAG_PASS "Database schema migrations are up to date."
             fi
-        done
-        if [ "${#unapplied[@]}" -gt 0 ]; then
-            DIAG_WARN "Unapplied database migrations detected (${#unapplied[@]} pending: ${unapplied[*]})."
-        else
-            DIAG_PASS "Database schema migrations are up to date."
         fi
     fi
 }
@@ -384,7 +425,7 @@ diagnose_web() {
 
     # 3. HTTP loopback test
     local http_code
-    http_code=$(docker exec zzpanel_app curl -s -o /dev/null -w "%{http_code}" http://localhost/ZZPanelBot/index.php 2>/dev/null || echo "000")
+    http_code=$(docker exec zzpanel_app curl -s -m 5 --connect-timeout 5 -o /dev/null -w "%{http_code}" http://localhost/ZZPanelBot/index.php 2>/dev/null || echo "000")
     if [ "$http_code" = "200" ]; then
         DIAG_PASS "Internal HTTP endpoint responded with HTTP 200 OK."
     elif [ "$http_code" = "423" ]; then
@@ -425,6 +466,20 @@ diagnose_web() {
     else
         DIAG_WARN "PHP APCu extension is not loaded in zzpanel_app."
     fi
+
+    # 6. Inline application error log tail
+    local app_err_log=""
+    if [ -d "$base_dir/logs" ]; then
+        app_err_log=$(find "$base_dir/logs" -maxdepth 2 -type f \( -name "*error*.log" -o -name "*.log" \) 2>/dev/null | head -1 || true)
+    fi
+    if [ -n "$app_err_log" ] && [ -s "$app_err_log" ]; then
+        DIAG_NOTE "Recent application error logs ($(basename "$app_err_log"), last 15 lines):"
+        while IFS= read -r line; do
+            [ -n "$line" ] && DIAG_NOTE "  [app-log] $line"
+        done < <(tail -n 15 "$app_err_log" 2>/dev/null || true)
+    else
+        DIAG_PASS "No application error logs detected in $base_dir/logs."
+    fi
 }
 
 diagnose_ssl() {
@@ -433,18 +488,6 @@ diagnose_ssl() {
     local base_dir="${BASE_DIR:-/srv}"
     local env_file="$base_dir/.env"
 
-    if [ ! -f "$env_file" ]; then
-        DIAG_FAIL ".env file is missing at $env_file."
-        return 1
-    fi
-
-    local domain
-    domain=$(grep -E '^[[:space:]]*DOMAIN=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | tr -d ' "\r' || true)
-    if [ -z "$domain" ]; then
-        DIAG_FAIL "DOMAIN is not set in $env_file."
-        return 1
-    fi
-
     # 1. Nginx config syntax check
     local nginx_test
     nginx_test=$(docker exec zzpanel_nginx nginx -t 2>&1 || true)
@@ -452,6 +495,18 @@ diagnose_ssl() {
         DIAG_PASS "Nginx configuration syntax is valid."
     else
         DIAG_FAIL "Nginx configuration syntax test failed: $nginx_test"
+    fi
+
+    if [ ! -f "$env_file" ]; then
+        DIAG_FAIL ".env file is missing at $env_file."
+        return 1
+    fi
+
+    local domain
+    domain=$(get_env_var "DOMAIN" "$env_file")
+    if [ -z "$domain" ]; then
+        DIAG_FAIL "DOMAIN is not set in $env_file."
+        return 0
     fi
 
     # 2. SSL certificate check
@@ -479,21 +534,12 @@ diagnose_ssl() {
     fi
 
     # 3. Domain DNS resolution
-    local resolved_ip=""
-    if command -v getent &>/dev/null; then
-        resolved_ip=$(getent ahostsv4 "$domain" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1 | awk '{print $1}' || true)
-        if [ -z "$resolved_ip" ]; then
-            resolved_ip=$(getent ahosts "$domain" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1 | awk '{print $1}' || true)
-        fi
-    elif command -v dig &>/dev/null; then
-        resolved_ip=$(dig +short A "$domain" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | tail -1 || true)
-    elif command -v nslookup &>/dev/null; then
-        resolved_ip=$(nslookup -type=A "$domain" 2>/dev/null | awk '/^Address: / {print $2}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | tail -1 || true)
-    fi
+    local resolved_ip
+    resolved_ip=$(resolve_ipv4_host "$domain")
 
     if [ -n "$resolved_ip" ]; then
         local server_ip
-        server_ip=$(curl -s4 -m 5 https://api.ipify.org 2>/dev/null || curl -s4 -m 5 https://ifconfig.me 2>/dev/null || echo "")
+        server_ip=$(curl -s4 -m 5 --connect-timeout 5 https://api.ipify.org 2>/dev/null || curl -s4 -m 5 --connect-timeout 5 https://ifconfig.me 2>/dev/null || echo "")
         if [ -n "$server_ip" ] && [ "$resolved_ip" != "$server_ip" ]; then
             DIAG_WARN "Domain DNS mismatch: $domain resolves to $resolved_ip, but server public IP is $server_ip."
         else
@@ -505,7 +551,7 @@ diagnose_ssl() {
 
     # 4. Loopback HTTPS through Nginx
     local https_code
-    https_code=$(curl -sk -m 5 -o /dev/null -w "%{http_code}" -H "Host: $domain" "https://127.0.0.1/ZZPanelBot/index.php" 2>/dev/null || echo "000")
+    https_code=$(curl -sk -m 5 --connect-timeout 5 -o /dev/null -w "%{http_code}" -H "Host: $domain" "https://127.0.0.1/ZZPanelBot/index.php" 2>/dev/null || echo "000")
     if [ "$https_code" = "200" ]; then
         DIAG_PASS "Reverse proxy HTTPS loopback test succeeded (HTTP 200)."
     elif [ "$https_code" = "444" ]; then
@@ -531,8 +577,8 @@ diagnose_telegram() {
     fi
 
     local bot_token domain
-    bot_token=$(grep -E '^[[:space:]]*BOT_TOKEN=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | tr -d ' "\r' || true)
-    domain=$(grep -E '^[[:space:]]*DOMAIN=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | tr -d ' "\r' || true)
+    bot_token=$(get_env_var "BOT_TOKEN" "$env_file")
+    domain=$(get_env_var "DOMAIN" "$env_file")
 
     if [ -z "$bot_token" ]; then
         DIAG_FAIL "BOT_TOKEN is not set in $env_file."
@@ -540,19 +586,17 @@ diagnose_telegram() {
     fi
 
     # Stage 1: DNS resolution for api.telegram.org
-    local tg_ip=""
-    if command -v getent &>/dev/null; then
-        tg_ip=$(getent ahosts "api.telegram.org" 2>/dev/null | head -1 | awk '{print $1}' || true)
-    elif command -v dig &>/dev/null; then
-        tg_ip=$(dig +short "api.telegram.org" 2>/dev/null | tail -1 || true)
-    elif command -v nslookup &>/dev/null; then
-        tg_ip=$(nslookup "api.telegram.org" 2>/dev/null | awk '/^Address: / {print $2}' | tail -1 || true)
+    local tg_ip
+    tg_ip=$(resolve_ipv4_host "api.telegram.org")
+    if [ -z "$tg_ip" ]; then
+        if command -v getent &>/dev/null; then
+            tg_ip=$(getent ahosts "api.telegram.org" 2>/dev/null | head -1 | awk '{print $1}' || true)
+        fi
     fi
 
     if [ -z "$tg_ip" ]; then
         DIAG_FAIL "Stage 1 (DNS): Cannot resolve api.telegram.org. Likely DNS poisoning or broken nameservers."
         DIAG_NOTE "Troubleshooting: Change /etc/resolv.conf to 8.8.8.8 or 1.1.1.1."
-        return 1
     else
         DIAG_PASS "Stage 1 (DNS): api.telegram.org resolved to $tg_ip."
     fi
@@ -561,14 +605,13 @@ diagnose_telegram() {
     if ! curl -s -m 5 --connect-timeout 5 -I "https://api.telegram.org" &>/dev/null; then
         DIAG_FAIL "Stage 2 (TLS Egress): Cannot connect to api.telegram.org:443."
         DIAG_NOTE "Likely firewall blocking or national censorship/DPI packet drop. Bot cannot function without Telegram egress."
-        return 1
     else
         DIAG_PASS "Stage 2 (TLS Egress): Successfully established TLS connection to api.telegram.org."
     fi
 
     # Stage 3: getMe token auth check
     local get_me_json
-    get_me_json=$(curl -s -m 5 "https://api.telegram.org/bot${bot_token}/getMe" 2>/dev/null || true)
+    get_me_json=$(curl -s -m 5 --connect-timeout 5 "https://api.telegram.org/bot${bot_token}/getMe" 2>/dev/null || true)
     local is_ok="" bot_uname=""
     if command -v python3 &>/dev/null; then
         read -r is_ok bot_uname < <(python3 -c "
@@ -590,29 +633,30 @@ except Exception:
         local masked_tok
         masked_tok=$(mask_secret "$bot_token" "$bot_token")
         DIAG_FAIL "Stage 3 (Auth): BOT_TOKEN ($masked_tok) is invalid or rejected by Telegram."
-        return 1
     fi
 
     # Stage 4: getWebhookInfo status
     local webhook_json
-    webhook_json=$(curl -s -m 5 "https://api.telegram.org/bot${bot_token}/getWebhookInfo" 2>/dev/null || true)
-    local wh_url="" wh_pending=0 wh_last_err=""
+    webhook_json=$(curl -s -m 5 --connect-timeout 5 "https://api.telegram.org/bot${bot_token}/getWebhookInfo" 2>/dev/null || true)
+    local wh_url="" wh_pending=0 wh_last_err="" wh_last_err_date=""
     if command -v python3 &>/dev/null; then
-        IFS='|' read -r wh_url wh_pending wh_last_err < <(python3 -c "
+        IFS='|' read -r wh_url wh_pending wh_last_err wh_last_err_date < <(python3 -c "
 import sys, json
 try:
     d = json.loads(sys.argv[1]).get('result', {})
     url = d.get('url', '')
     pending = str(d.get('pending_update_count', 0))
     err = d.get('last_error_message', '').replace('\n', ' ')
-    print(f'{url}|{pending}|{err}')
+    err_date = str(d.get('last_error_date', ''))
+    print(f'{url}|{pending}|{err}|{err_date}')
 except Exception:
-    print('||')
-" "$webhook_json" 2>/dev/null || echo "||")
+    print('|||')
+" "$webhook_json" 2>/dev/null || echo "|||")
     else
         wh_url=$(echo "$webhook_json" | grep -o '"url"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d '"' -f 4 || true)
         wh_pending=$(echo "$webhook_json" | grep -o '"pending_update_count"[[:space:]]*:[[:space:]]*[0-9]*' | head -1 | awk '{print $2}' || echo "0")
         wh_last_err=$(echo "$webhook_json" | grep -o '"last_error_message"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d '"' -f 4 || true)
+        wh_last_err_date=$(echo "$webhook_json" | grep -o '"last_error_date"[[:space:]]*:[[:space:]]*[0-9]*' | head -1 | awk '{print $2}' || true)
     fi
 
     if [ -z "$domain" ]; then
@@ -638,7 +682,11 @@ except Exception:
     fi
 
     if [ -n "$wh_last_err" ]; then
-        DIAG_WARN "Stage 4 (Delivery Error): Telegram reported error: '$wh_last_err'."
+        local err_date_str=""
+        if [ -n "$wh_last_err_date" ] && [ "$wh_last_err_date" -gt 0 ] 2>/dev/null; then
+            err_date_str=" at $(date -d @"$wh_last_err_date" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date -r "$wh_last_err_date" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$wh_last_err_date")"
+        fi
+        DIAG_WARN "Stage 4 (Delivery Error): Telegram reported error: '$wh_last_err'${err_date_str}."
         AUTO_FIX_CANDIDATES+=("webhook")
     else
         DIAG_PASS "Stage 4 (Delivery Error): No recent webhook delivery errors reported by Telegram."
@@ -679,14 +727,16 @@ apply_auto_fixes() {
     fi
 
     local domain bot_token
-    domain=$(grep -E '^[[:space:]]*DOMAIN=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | tr -d ' "\r' || echo "${DOMAIN:-}")
-    bot_token=$(grep -E '^[[:space:]]*BOT_TOKEN=' "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | tr -d ' "\r' || echo "${BOT_TOKEN:-}")
+    domain=$(get_env_var "DOMAIN" "$env_file")
+    [ -n "$domain" ] || domain="${DOMAIN:-}"
+    bot_token=$(get_env_var "BOT_TOKEN" "$env_file")
+    [ -n "$bot_token" ] || bot_token="${BOT_TOKEN:-}"
 
     for candidate in "${unique_candidates[@]}"; do
         case "$candidate" in
             permissions)
-                INFO "Fixing directory permissions on logs, data, and temp..."
-                chown -R www-data:www-data "$base_dir/logs" "$base_dir/data" "$base_dir/temp" 2>/dev/null || true
+                INFO "Fixing directory permissions on logs and temp..."
+                chown -R www-data:www-data "$base_dir/logs" "$base_dir/temp" 2>/dev/null || true
                 chmod -R 770 "$base_dir/logs" "$base_dir/temp" 2>/dev/null || true
                 if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^zzpanel_app$'; then
                     docker exec zzpanel_app chown -R www-data:www-data /var/www/html/ZZPanelBot/logs /var/www/html/ZZPanelBot/temp 2>/dev/null || true
@@ -790,12 +840,12 @@ diagnose_menu() {
 
         case "$DIAG_CHOICE" in
             1) diagnose_all false false || true ;;
-            2) init_diagnose_state; diagnose_host || true ;;
-            3) init_diagnose_state; diagnose_containers || true ;;
-            4) init_diagnose_state; diagnose_db || true ;;
-            5) init_diagnose_state; diagnose_web || true ;;
-            6) init_diagnose_state; diagnose_ssl || true ;;
-            7) init_diagnose_state; diagnose_telegram || true ;;
+            2) init_diagnose_state; diagnose_host || true; [ "${#AUTO_FIX_CANDIDATES[@]}" -eq 0 ] || apply_auto_fixes true ;;
+            3) init_diagnose_state; diagnose_containers || true; [ "${#AUTO_FIX_CANDIDATES[@]}" -eq 0 ] || apply_auto_fixes true ;;
+            4) init_diagnose_state; diagnose_db || true; [ "${#AUTO_FIX_CANDIDATES[@]}" -eq 0 ] || apply_auto_fixes true ;;
+            5) init_diagnose_state; diagnose_web || true; [ "${#AUTO_FIX_CANDIDATES[@]}" -eq 0 ] || apply_auto_fixes true ;;
+            6) init_diagnose_state; diagnose_ssl || true; [ "${#AUTO_FIX_CANDIDATES[@]}" -eq 0 ] || apply_auto_fixes true ;;
+            7) init_diagnose_state; diagnose_telegram || true; [ "${#AUTO_FIX_CANDIDATES[@]}" -eq 0 ] || apply_auto_fixes true ;;
             8)
                 local exp
                 exp=$(export_diagnose_report)

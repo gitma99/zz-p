@@ -3,6 +3,8 @@ set -euo pipefail
 
 # Test harness for setup.sh diagnostic suite
 INFO() { echo "[INFO] $*"; }
+WARN() { echo "[WARN] $*"; }
+ERROR() { echo "[ERROR] $*" >&2; return 1; }
 source <(sed -n '/# --- DIAGNOSTIC HELPERS START ---/,/# --- DIAGNOSTIC HELPERS END ---/p' setup.sh)
 
 # Test 1: Status tracking
@@ -157,7 +159,7 @@ curl() {
             echo '{"ok":true,"result":{"id":123456,"is_bot":true,"username":"test_bot"}}'
             return 0
         elif [[ "$url" == *"/getWebhookInfo"* ]]; then
-            echo '{"ok":true,"result":{"url":"https://test.example.com/ZZPanelBot/index.php","pending_update_count":120,"last_error_message":"Wrong response code: 502 Bad Gateway"}}'
+            echo '{"ok":true,"result":{"url":"https://test.example.com/ZZPanelBot/index.php","pending_update_count":120,"last_error_message":"Wrong response code: 502 Bad Gateway","last_error_date":1700000000}}'
             return 0
         elif [[ "$*" == *"-I"* ]]; then
             # TLS probe
@@ -284,5 +286,42 @@ test_cli_exit=$(bash -c '
     exit 0
 ' || echo "EXIT_1")
 [[ "$test_cli_exit" == *"EXIT_1"* ]] || { echo "FAIL: category failure should exit 1"; exit 1; }
+
+# Test 16: scrape_container_crash_logs fails fast on empty container name
+set +e
+scrape_container_crash_logs "" 2>/dev/null
+scrape_rc=$?
+set -e
+[[ "$scrape_rc" -ne 0 ]] || { echo "FAIL: scrape_container_crash_logs should fail fast when container_name is empty"; exit 1; }
+
+# Test 17: get_env_var helper parses keys correctly
+env_tmp=$(mktemp)
+cat > "$env_tmp" <<'EOF'
+FOO="bar_value"
+SPACED =  'spaced_val'  
+EMPTY=
+EOF
+[[ "$(get_env_var "FOO" "$env_tmp")" == "bar_value" ]] || { echo "FAIL: get_env_var FOO"; exit 1; }
+[[ "$(get_env_var "SPACED" "$env_tmp")" == "spaced_val" ]] || { echo "FAIL: get_env_var SPACED"; exit 1; }
+[[ "$(get_env_var "EMPTY" "$env_tmp")" == "" ]] || { echo "FAIL: get_env_var EMPTY"; exit 1; }
+rm -f "$env_tmp"
+
+# Test 18: Missing container is not added to AUTO_FIX_CANDIDATES
+docker() {
+    local cmd="${1:-}"
+    shift || true
+    if [ "$cmd" = "info" ]; then
+        return 0
+    elif [ "$cmd" = "inspect" ]; then
+        # All containers missing
+        echo "[]"
+        return 0
+    fi
+    return 1
+}
+init_diagnose_state
+diagnose_containers
+[[ "${#AUTO_FIX_CANDIDATES[@]}" -eq 0 ]] || { echo "FAIL: missing containers must not be added to AUTO_FIX_CANDIDATES"; exit 1; }
+unset -f docker
 
 echo "PASS: Review fix tests"
