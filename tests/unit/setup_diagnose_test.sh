@@ -324,4 +324,20 @@ diagnose_containers
 [[ "${#AUTO_FIX_CANDIDATES[@]}" -eq 0 ]] || { echo "FAIL: missing containers must not be added to AUTO_FIX_CANDIDATES"; exit 1; }
 unset -f docker
 
+# Test 19: zzbot diagnose category with --export does not crash with local scope error
+test_cat_export=$(bash -c '
+    # Mock environment
+    export BASE_DIR=$(mktemp -d)
+    cat > "$BASE_DIR/.env" <<EOF
+DOMAIN=test.example.com
+BOT_TOKEN=123456:TEST_BOT_TOKEN_MOCK_XYZ
+EOF
+    # Run setup.sh diagnose ssl --export
+    bash setup.sh diagnose ssl --export 2>&1
+    rc=$?
+    rm -rf "$BASE_DIR"
+    exit $rc
+' || echo "EXPORT_FAIL")
+[[ "$test_cat_export" != *"can only be used in a function"* ]] || { echo "FAIL: local scope error on category export"; exit 1; }
+
 echo "PASS: Review fix tests"

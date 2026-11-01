@@ -159,6 +159,18 @@ diagnose_host() {
         DIAG_PASS "Root filesystem inode usage is ${root_inode_pct}%."
     fi
 
+    if [ -d "$base_dir" ]; then
+        local srv_inode_pct
+        srv_inode_pct=$(df -i "$base_dir" 2>/dev/null | awk 'NR==2 {print $5}' | tr -d '%' || echo "$root_inode_pct")
+        if [ "$srv_inode_pct" -ne "$root_inode_pct" ]; then
+            if [ "$srv_inode_pct" -gt 90 ]; then
+                DIAG_WARN "Base directory ($base_dir) inodes are ${srv_inode_pct}% full."
+            else
+                DIAG_PASS "Base directory ($base_dir) inode usage is ${srv_inode_pct}%."
+            fi
+        fi
+    fi
+
     # 3. Available RAM & Swap
     if command -v free &>/dev/null; then
         local mem_avail_mb
@@ -193,6 +205,9 @@ diagnose_host() {
     elif command -v netstat &>/dev/null; then
         p80_proc=$(netstat -tlpn 2>/dev/null | grep ':80 ' || true)
         p443_proc=$(netstat -tlpn 2>/dev/null | grep ':443 ' || true)
+    elif command -v lsof &>/dev/null; then
+        p80_proc=$(lsof -iTCP:80 -sTCP:LISTEN -n -P 2>/dev/null || true)
+        p443_proc=$(lsof -iTCP:443 -sTCP:LISTEN -n -P 2>/dev/null || true)
     fi
 
     for port_info in "80:$p80_proc" "443:$p443_proc"; do
@@ -441,16 +456,17 @@ diagnose_web() {
     # 4. Directory permissions check
     local perm_ok=1
     for d in "$base_dir/logs" "$base_dir/temp"; do
-        if [ -d "$d" ]; then
-            if [ ! -w "$d" ]; then
-                perm_ok=0
-                DIAG_FAIL "Host directory $d is not writable."
-            fi
+        if [ ! -d "$d" ]; then
+            perm_ok=0
+            DIAG_FAIL "Host directory $d does not exist."
+        elif [ ! -w "$d" ]; then
+            perm_ok=0
+            DIAG_FAIL "Host directory $d is not writable."
         fi
     done
 
     local container_perm_check
-    container_perm_check=$(docker exec zzpanel_app su -s /bin/sh www-data -c "touch /var/www/html/ZZPanelBot/logs/.diag_test && rm -f /var/www/html/ZZPanelBot/logs/.diag_test && echo 'OK'" 2>/dev/null || echo "FAIL")
+    container_perm_check=$(docker exec zzpanel_app su -s /bin/sh www-data -c "touch /var/www/html/ZZPanelBot/logs/.diag_test /var/www/html/ZZPanelBot/temp/.diag_test && rm -f /var/www/html/ZZPanelBot/logs/.diag_test /var/www/html/ZZPanelBot/temp/.diag_test && echo 'OK'" 2>/dev/null || echo "FAIL")
     if [ "$container_perm_check" != "OK" ] || [ "$perm_ok" -eq 0 ]; then
         DIAG_FAIL "Application logs or temp directories not writable by www-data."
         AUTO_FIX_CANDIDATES+=("permissions")
@@ -571,18 +587,12 @@ diagnose_telegram() {
     local base_dir="${BASE_DIR:-/srv}"
     local env_file="$base_dir/.env"
 
-    if [ ! -f "$env_file" ]; then
+    local bot_token="" domain=""
+    if [ -f "$env_file" ]; then
+        bot_token=$(get_env_var "BOT_TOKEN" "$env_file")
+        domain=$(get_env_var "DOMAIN" "$env_file")
+    else
         DIAG_FAIL ".env file is missing at $env_file."
-        return 1
-    fi
-
-    local bot_token domain
-    bot_token=$(get_env_var "BOT_TOKEN" "$env_file")
-    domain=$(get_env_var "DOMAIN" "$env_file")
-
-    if [ -z "$bot_token" ]; then
-        DIAG_FAIL "BOT_TOKEN is not set in $env_file."
-        return 1
     fi
 
     # Stage 1: DNS resolution for api.telegram.org
@@ -610,11 +620,14 @@ diagnose_telegram() {
     fi
 
     # Stage 3: getMe token auth check
-    local get_me_json
-    get_me_json=$(curl -s -m 5 --connect-timeout 5 "https://api.telegram.org/bot${bot_token}/getMe" 2>/dev/null || true)
-    local is_ok="" bot_uname=""
-    if command -v python3 &>/dev/null; then
-        read -r is_ok bot_uname < <(python3 -c "
+    if [ -z "$bot_token" ]; then
+        DIAG_FAIL "Stage 3 (Auth): BOT_TOKEN is not configured in .env."
+    else
+        local get_me_json
+        get_me_json=$(curl -s -m 5 --connect-timeout 5 "https://api.telegram.org/bot${bot_token}/getMe" 2>/dev/null || true)
+        local is_ok="" bot_uname=""
+        if command -v python3 &>/dev/null; then
+            read -r is_ok bot_uname < <(python3 -c "
 import sys, json
 try:
     d = json.loads(sys.argv[1])
@@ -622,25 +635,29 @@ try:
 except Exception:
     print('False ')
 " "$get_me_json" 2>/dev/null || echo "False ")
-    else
-        is_ok=$(echo "$get_me_json" | grep -o '"ok"[[:space:]]*:[[:space:]]*[a-zA-Z]*' | head -1 | awk '{print $2}' || echo "false")
-        bot_uname=$(echo "$get_me_json" | grep -o '"username"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d '"' -f 4 || true)
-    fi
+        else
+            is_ok=$(echo "$get_me_json" | grep -o '"ok"[[:space:]]*:[[:space:]]*[a-zA-Z]*' | head -1 | awk '{print $2}' || echo "false")
+            bot_uname=$(echo "$get_me_json" | grep -o '"username"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d '"' -f 4 || true)
+        fi
 
-    if [ "$is_ok" = "True" ] || [ "$is_ok" = "true" ]; then
-        DIAG_PASS "Stage 3 (Auth): BOT_TOKEN is valid for bot @${bot_uname}."
-    else
-        local masked_tok
-        masked_tok=$(mask_secret "$bot_token" "$bot_token")
-        DIAG_FAIL "Stage 3 (Auth): BOT_TOKEN ($masked_tok) is invalid or rejected by Telegram."
+        if [ "$is_ok" = "True" ] || [ "$is_ok" = "true" ]; then
+            DIAG_PASS "Stage 3 (Auth): BOT_TOKEN is valid for bot @${bot_uname}."
+        else
+            local masked_tok
+            masked_tok=$(mask_secret "$bot_token" "$bot_token")
+            DIAG_FAIL "Stage 3 (Auth): BOT_TOKEN ($masked_tok) is invalid or rejected by Telegram."
+        fi
     fi
 
     # Stage 4: getWebhookInfo status
-    local webhook_json
-    webhook_json=$(curl -s -m 5 --connect-timeout 5 "https://api.telegram.org/bot${bot_token}/getWebhookInfo" 2>/dev/null || true)
-    local wh_url="" wh_pending=0 wh_last_err="" wh_last_err_date=""
-    if command -v python3 &>/dev/null; then
-        IFS='|' read -r wh_url wh_pending wh_last_err wh_last_err_date < <(python3 -c "
+    if [ -z "$bot_token" ]; then
+        DIAG_FAIL "Stage 4 (Webhook URL): BOT_TOKEN is missing; cannot inspect webhook status."
+    else
+        local webhook_json
+        webhook_json=$(curl -s -m 5 --connect-timeout 5 "https://api.telegram.org/bot${bot_token}/getWebhookInfo" 2>/dev/null || true)
+        local wh_url="" wh_pending=0 wh_last_err="" wh_last_err_date=""
+        if command -v python3 &>/dev/null; then
+            IFS='|' read -r wh_url wh_pending wh_last_err wh_last_err_date < <(python3 -c "
 import sys, json
 try:
     d = json.loads(sys.argv[1]).get('result', {})
@@ -652,44 +669,45 @@ try:
 except Exception:
     print('|||')
 " "$webhook_json" 2>/dev/null || echo "|||")
-    else
-        wh_url=$(echo "$webhook_json" | grep -o '"url"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d '"' -f 4 || true)
-        wh_pending=$(echo "$webhook_json" | grep -o '"pending_update_count"[[:space:]]*:[[:space:]]*[0-9]*' | head -1 | awk '{print $2}' || echo "0")
-        wh_last_err=$(echo "$webhook_json" | grep -o '"last_error_message"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d '"' -f 4 || true)
-        wh_last_err_date=$(echo "$webhook_json" | grep -o '"last_error_date"[[:space:]]*:[[:space:]]*[0-9]*' | head -1 | awk '{print $2}' || true)
-    fi
+        else
+            wh_url=$(echo "$webhook_json" | grep -o '"url"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d '"' -f 4 || true)
+            wh_pending=$(echo "$webhook_json" | grep -o '"pending_update_count"[[:space:]]*:[[:space:]]*[0-9]*' | head -1 | awk '{print $2}' || echo "0")
+            wh_last_err=$(echo "$webhook_json" | grep -o '"last_error_message"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | cut -d '"' -f 4 || true)
+            wh_last_err_date=$(echo "$webhook_json" | grep -o '"last_error_date"[[:space:]]*:[[:space:]]*[0-9]*' | head -1 | awk '{print $2}' || true)
+        fi
 
-    if [ -z "$domain" ]; then
-        DIAG_FAIL "Stage 4 (Webhook URL): DOMAIN is not configured in .env."
-    else
-        local expected_url="https://${domain}/ZZPanelBot/index.php"
-        if [ "$wh_url" = "$expected_url" ]; then
-            DIAG_PASS "Stage 4 (Webhook URL): Telegram webhook is correctly set to $wh_url."
-        elif [ -z "$wh_url" ]; then
-            DIAG_FAIL "Stage 4 (Webhook URL): No webhook URL is registered with Telegram!"
+        if [ -z "$domain" ]; then
+            DIAG_FAIL "Stage 4 (Webhook URL): DOMAIN is not configured in .env."
+        else
+            local expected_url="https://${domain}/ZZPanelBot/index.php"
+            if [ "$wh_url" = "$expected_url" ]; then
+                DIAG_PASS "Stage 4 (Webhook URL): Telegram webhook is correctly set to $wh_url."
+            elif [ -z "$wh_url" ]; then
+                DIAG_FAIL "Stage 4 (Webhook URL): No webhook URL is registered with Telegram!"
+                AUTO_FIX_CANDIDATES+=("webhook")
+            else
+                DIAG_WARN "Stage 4 (Webhook URL): Webhook URL is '$wh_url', expected '$expected_url'."
+                AUTO_FIX_CANDIDATES+=("webhook")
+            fi
+        fi
+
+        if [ -n "$wh_pending" ] && [ "$wh_pending" -gt 50 ] 2>/dev/null; then
+            DIAG_WARN "Stage 4 (Backlog): Telegram update queue is backed up ($wh_pending pending updates)."
             AUTO_FIX_CANDIDATES+=("webhook")
         else
-            DIAG_WARN "Stage 4 (Webhook URL): Webhook URL is '$wh_url', expected '$expected_url'."
+            DIAG_PASS "Stage 4 (Backlog): Pending update count is normal ($wh_pending updates)."
+        fi
+
+        if [ -n "$wh_last_err" ]; then
+            local err_date_str=""
+            if [ -n "$wh_last_err_date" ] && [ "$wh_last_err_date" -gt 0 ] 2>/dev/null; then
+                err_date_str=" at $(date -d @"$wh_last_err_date" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date -r "$wh_last_err_date" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$wh_last_err_date")"
+            fi
+            DIAG_WARN "Stage 4 (Delivery Error): Telegram reported error: '$wh_last_err'${err_date_str}."
             AUTO_FIX_CANDIDATES+=("webhook")
+        else
+            DIAG_PASS "Stage 4 (Delivery Error): No recent webhook delivery errors reported by Telegram."
         fi
-    fi
-
-    if [ -n "$wh_pending" ] && [ "$wh_pending" -gt 50 ] 2>/dev/null; then
-        DIAG_WARN "Stage 4 (Backlog): Telegram update queue is backed up ($wh_pending pending updates)."
-        AUTO_FIX_CANDIDATES+=("webhook")
-    else
-        DIAG_PASS "Stage 4 (Backlog): Pending update count is normal ($wh_pending updates)."
-    fi
-
-    if [ -n "$wh_last_err" ]; then
-        local err_date_str=""
-        if [ -n "$wh_last_err_date" ] && [ "$wh_last_err_date" -gt 0 ] 2>/dev/null; then
-            err_date_str=" at $(date -d @"$wh_last_err_date" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date -r "$wh_last_err_date" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$wh_last_err_date")"
-        fi
-        DIAG_WARN "Stage 4 (Delivery Error): Telegram reported error: '$wh_last_err'${err_date_str}."
-        AUTO_FIX_CANDIDATES+=("webhook")
-    else
-        DIAG_PASS "Stage 4 (Delivery Error): No recent webhook delivery errors reported by Telegram."
     fi
 }
 
@@ -1616,7 +1634,6 @@ if [ $# -gt 0 ]; then
                         apply_auto_fixes false
                     fi
                     if [ "$export_rep" = "true" ]; then
-                        local saved_file
                         saved_file=$(export_diagnose_report)
                         INFO "Diagnostic report exported to: $saved_file"
                     fi
