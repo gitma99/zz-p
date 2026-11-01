@@ -71,7 +71,23 @@ mask_secret() {
     else
         masked_replacement="***REDACTED***"
     fi
-    echo "${raw//"$secret"/$masked_replacement}"
+    awk -v r="$raw" -v s="$secret" -v repl="$masked_replacement" '
+        BEGIN {
+            idx = index(r, s)
+            if (idx == 0) {
+                printf "%s", r
+                exit
+            }
+            res = ""
+            while (idx > 0) {
+                res = res substr(r, 1, idx - 1) repl
+                r = substr(r, idx + length(s))
+                idx = index(r, s)
+            }
+            res = res r
+            printf "%s", res
+        }
+    '
 }
 
 get_env_var() {
@@ -422,7 +438,7 @@ diagnose_web() {
     local base_dir="${BASE_DIR:-/srv}"
 
     # 1. Apache2 check
-    if docker exec zzpanel_app apache2ctl -S &>/dev/null; then
+    if docker exec zzpanel_app apachectl status &>/dev/null || docker exec zzpanel_app service apache2 status &>/dev/null || docker exec zzpanel_app apache2ctl -S &>/dev/null; then
         DIAG_PASS "Apache2 web server is running in zzpanel_app."
     else
         DIAG_FAIL "Apache2 is not running or syntax error in zzpanel_app."
@@ -839,7 +855,10 @@ diagnose_all() {
 
 run_interactive_diagnose_category() {
     local cat="${1:-}"
-    [ -n "$cat" ] || return 1
+    case "$cat" in
+        host|containers|db|web|ssl|telegram) ;;
+        *) ERROR "run_interactive_diagnose_category: invalid category '$cat'" || return 1 ;;
+    esac
     init_diagnose_state
     "diagnose_${cat}" || true
     if [ "${#AUTO_FIX_CANDIDATES[@]}" -gt 0 ]; then

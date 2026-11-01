@@ -375,4 +375,17 @@ diagnose_ssl
 rm -rf "$ssl_td"
 unset -f docker curl
 
+# Test 23: Secret masking with glob characters (*, ?, [)
+secret_glob="P*ss?w[o]rd"
+masked_glob=$(mask_secret "My secret is P*ss?w[o]rd in this log" "$secret_glob")
+[[ "$masked_glob" == *"My secret is P*ss?w[o]rd in this log"* ]] && { echo "FAIL: secret with glob was not masked"; exit 1; }
+[[ "$masked_glob" == *"***"* ]] || { echo "FAIL: secret with glob replacement missing"; exit 1; }
+
+# Test 24: run_interactive_diagnose_category fails fast on invalid category
+set +e
+run_interactive_diagnose_category "invalid_cat" 2>/dev/null
+inv_cat_rc=$?
+set -e
+[[ "$inv_cat_rc" -ne 0 ]] || { echo "FAIL: run_interactive_diagnose_category must fail on invalid category"; exit 1; }
+
 echo "PASS: Review fix tests"
