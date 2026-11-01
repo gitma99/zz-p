@@ -181,7 +181,7 @@ diagnose_ssl
 
 init_diagnose_state
 diagnose_telegram
-[[ "$DIAG_HAS_WARN" -eq 1 ]] || { echo "FAIL: diagnose_telegram should warn on high backlog / last_error"; exit 1; }
+[[ "$DIAG_HAS_FAIL" -eq 1 ]] || { echo "FAIL: diagnose_telegram should fail on last_error"; exit 1; }
 [[ " ${AUTO_FIX_CANDIDATES[*]} " =~ " webhook " ]] || { echo "FAIL: webhook was not added to AUTO_FIX_CANDIDATES"; exit 1; }
 
 rm -rf "$test_td"
@@ -339,5 +339,40 @@ EOF
     exit $rc
 ' || echo "EXPORT_FAIL")
 [[ "$test_cat_export" != *"can only be used in a function"* ]] || { echo "FAIL: local scope error on category export"; exit 1; }
+
+# Test 20: get_env_var and resolve_ipv4_host fail fast on empty argument
+set +e
+get_env_var "" 2>/dev/null
+gev_rc=$?
+resolve_ipv4_host "" 2>/dev/null
+rih_rc=$?
+set -e
+[[ "$gev_rc" -ne 0 ]] || { echo "FAIL: get_env_var should fail fast on empty key"; exit 1; }
+[[ "$rih_rc" -ne 0 ]] || { echo "FAIL: resolve_ipv4_host should fail fast on empty target"; exit 1; }
+
+# Test 21: Submenu prompt uses [0-7]
+grep -q 'Enter choice \[0-7\]:' setup.sh || { echo "FAIL: setup.sh submenu should prompt [0-7]"; exit 1; }
+
+# Test 22: HTTPS loopback returning 500 sets DIAG_HAS_FAIL=1
+ssl_td=$(mktemp -d)
+cat > "$ssl_td/.env" <<EOF
+DOMAIN=test.example.com
+EOF
+BASE_DIR="$ssl_td"
+docker() { echo "nginx: configuration syntax is ok"; return 0; }
+curl() {
+    local url="${!#}"
+    if [[ "$url" == *"127.0.0.1"* ]]; then
+        echo "500"
+    else
+        echo "1.2.3.4"
+    fi
+    return 0
+}
+init_diagnose_state
+diagnose_ssl
+[[ "$DIAG_HAS_FAIL" -eq 1 ]] || { echo "FAIL: diagnose_ssl should mark HTTP 500 as failure"; exit 1; }
+rm -rf "$ssl_td"
+unset -f docker curl
 
 echo "PASS: Review fix tests"

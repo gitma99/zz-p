@@ -77,14 +77,18 @@ mask_secret() {
 get_env_var() {
     local key="${1:-}"
     local env_file="${2:-${BASE_DIR:-/srv}/.env}"
-    [ -n "$key" ] || return 0
+    if [ -z "$key" ]; then
+        ERROR "get_env_var: key is required." || return 1
+    fi
     [ -f "$env_file" ] || return 0
     grep -E "^[[:space:]]*${key}[[:space:]]*=" "$env_file" 2>/dev/null | tail -1 | cut -d '=' -f 2- | sed -E 's/^[[:space:]]*//; s/[[:space:]]*$//; s/^["'\''](.*)["'\'']$/\1/' || true
 }
 
 resolve_ipv4_host() {
     local target="${1:-}"
-    [ -n "$target" ] || return 0
+    if [ -z "$target" ]; then
+        ERROR "resolve_ipv4_host: target host is required." || return 1
+    fi
     local resolved=""
     if command -v getent &>/dev/null; then
         resolved=$(getent ahostsv4 "$target" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1 | awk '{print $1}' || true)
@@ -109,7 +113,7 @@ export_diagnose_report() {
     local env_file="$base_dir/.env"
     if [ -f "$env_file" ]; then
         local sec
-        for sec_var in BOT_TOKEN DB_PASS MYSQL_ROOT_PASSWORD GITHUB_TOKEN; do
+        for sec_var in BOT_TOKEN DB_PASS MYSQL_ROOT_PASSWORD; do
             sec=$(get_env_var "$sec_var" "$env_file")
             if [ -n "$sec" ]; then
                 clean_log=$(mask_secret "$clean_log" "$sec")
@@ -125,50 +129,43 @@ export_diagnose_report() {
 diagnose_host() {
     INFO "Running Host & System Resources Diagnostics..."
     
-    # 1. Disk space check
-    local root_free_mb srv_free_mb
-    root_free_mb=$(df -m / 2>/dev/null | awk 'NR==2 {print $4}' || echo "0")
-    if [ "$root_free_mb" -lt 1024 ]; then
-        DIAG_FAIL "Root filesystem (/) has only ${root_free_mb}MB free space (< 1GB required)."
-    elif [ "$root_free_mb" -lt 3072 ]; then
-        DIAG_WARN "Root filesystem (/) has ${root_free_mb}MB free space (< 3GB remaining)."
-    else
-        DIAG_PASS "Root filesystem (/) has ${root_free_mb}MB free space."
-    fi
+    check_disk_path() {
+        local path="$1"
+        local label="$2"
+        local free_mb
+        free_mb=$(df -m "$path" 2>/dev/null | awk 'NR==2 {print $4}' || echo "0")
+        if [ "$free_mb" -lt 1024 ]; then
+            DIAG_FAIL "$label ($path) has only ${free_mb}MB free space (< 1GB required)."
+        elif [ "$free_mb" -lt 3072 ]; then
+            DIAG_WARN "$label ($path) has ${free_mb}MB free space (< 3GB remaining)."
+        else
+            DIAG_PASS "$label ($path) has ${free_mb}MB free space."
+        fi
+    }
 
+    check_inode_path() {
+        local path="$1"
+        local label="$2"
+        local inode_pct
+        inode_pct=$(df -i "$path" 2>/dev/null | awk 'NR==2 {print $5}' | tr -d '%' || echo "0")
+        if [ "$inode_pct" -gt 90 ]; then
+            DIAG_WARN "$label ($path) inodes are ${inode_pct}% full (exhaustion risk)."
+        else
+            DIAG_PASS "$label ($path) inode usage is ${inode_pct}%."
+        fi
+    }
+
+    # 1. Disk space check
+    check_disk_path "/" "Root filesystem"
     local base_dir="${BASE_DIR:-/srv}"
     if [ -d "$base_dir" ]; then
-        srv_free_mb=$(df -m "$base_dir" 2>/dev/null | awk 'NR==2 {print $4}' || echo "$root_free_mb")
-        if [ "$srv_free_mb" -ne "$root_free_mb" ]; then
-            if [ "$srv_free_mb" -lt 1024 ]; then
-                DIAG_FAIL "Base directory ($base_dir) has only ${srv_free_mb}MB free space."
-            elif [ "$srv_free_mb" -lt 3072 ]; then
-                DIAG_WARN "Base directory ($base_dir) has ${srv_free_mb}MB free space."
-            else
-                DIAG_PASS "Base directory ($base_dir) has ${srv_free_mb}MB free space."
-            fi
-        fi
+        check_disk_path "$base_dir" "Base directory"
     fi
 
     # 2. Inodes check
-    local root_inode_pct
-    root_inode_pct=$(df -i / 2>/dev/null | awk 'NR==2 {print $5}' | tr -d '%' || echo "0")
-    if [ "$root_inode_pct" -gt 90 ]; then
-        DIAG_WARN "Root filesystem inodes are ${root_inode_pct}% full (exhaustion risk)."
-    else
-        DIAG_PASS "Root filesystem inode usage is ${root_inode_pct}%."
-    fi
-
+    check_inode_path "/" "Root filesystem"
     if [ -d "$base_dir" ]; then
-        local srv_inode_pct
-        srv_inode_pct=$(df -i "$base_dir" 2>/dev/null | awk 'NR==2 {print $5}' | tr -d '%' || echo "$root_inode_pct")
-        if [ "$srv_inode_pct" -ne "$root_inode_pct" ]; then
-            if [ "$srv_inode_pct" -gt 90 ]; then
-                DIAG_WARN "Base directory ($base_dir) inodes are ${srv_inode_pct}% full."
-            else
-                DIAG_PASS "Base directory ($base_dir) inode usage is ${srv_inode_pct}%."
-            fi
-        fi
+        check_inode_path "$base_dir" "Base directory"
     fi
 
     # 3. Available RAM & Swap
@@ -572,12 +569,12 @@ diagnose_ssl() {
         DIAG_PASS "Reverse proxy HTTPS loopback test succeeded (HTTP 200)."
     elif [ "$https_code" = "444" ]; then
         DIAG_FAIL "Reverse proxy dropped connection with HTTP 444 (Host header mismatch or server_name misconfigured)."
-    elif [ "$https_code" = "502" ] || [ "$https_code" = "504" ]; then
-        DIAG_FAIL "Reverse proxy returned HTTP $https_code (Upstream app container unreachable or timed out)."
-    elif [ "$https_code" != "000" ]; then
-        DIAG_PASS "Reverse proxy answered HTTPS with status $https_code."
-    else
+    elif [ "$https_code" = "500" ] || [ "$https_code" = "502" ] || [ "$https_code" = "503" ] || [ "$https_code" = "504" ]; then
+        DIAG_FAIL "Reverse proxy returned HTTP $https_code (Upstream app container failure or timed out)."
+    elif [ "$https_code" = "000" ]; then
         DIAG_WARN "Reverse proxy HTTPS loopback probe failed (port 443 unreachable locally)."
+    else
+        DIAG_WARN "Reverse proxy answered HTTPS with status $https_code."
     fi
 }
 
@@ -703,7 +700,7 @@ except Exception:
             if [ -n "$wh_last_err_date" ] && [ "$wh_last_err_date" -gt 0 ] 2>/dev/null; then
                 err_date_str=" at $(date -d @"$wh_last_err_date" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date -r "$wh_last_err_date" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$wh_last_err_date")"
             fi
-            DIAG_WARN "Stage 4 (Delivery Error): Telegram reported error: '$wh_last_err'${err_date_str}."
+            DIAG_FAIL "Stage 4 (Delivery Error): Telegram reported error: '$wh_last_err'${err_date_str}."
             AUTO_FIX_CANDIDATES+=("webhook")
         else
             DIAG_PASS "Stage 4 (Delivery Error): No recent webhook delivery errors reported by Telegram."
@@ -754,9 +751,11 @@ apply_auto_fixes() {
         case "$candidate" in
             permissions)
                 INFO "Fixing directory permissions on logs and temp..."
+                mkdir -p "$base_dir/logs" "$base_dir/temp" 2>/dev/null || true
                 chown -R www-data:www-data "$base_dir/logs" "$base_dir/temp" 2>/dev/null || true
                 chmod -R 770 "$base_dir/logs" "$base_dir/temp" 2>/dev/null || true
                 if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^zzpanel_app$'; then
+                    docker exec zzpanel_app mkdir -p /var/www/html/ZZPanelBot/logs /var/www/html/ZZPanelBot/temp 2>/dev/null || true
                     docker exec zzpanel_app chown -R www-data:www-data /var/www/html/ZZPanelBot/logs /var/www/html/ZZPanelBot/temp 2>/dev/null || true
                     docker exec zzpanel_app chmod -R 770 /var/www/html/ZZPanelBot/logs /var/www/html/ZZPanelBot/temp 2>/dev/null || true
                 fi
@@ -838,6 +837,16 @@ diagnose_all() {
     return 0
 }
 
+run_interactive_diagnose_category() {
+    local cat="${1:-}"
+    [ -n "$cat" ] || return 1
+    init_diagnose_state
+    "diagnose_${cat}" || true
+    if [ "${#AUTO_FIX_CANDIDATES[@]}" -gt 0 ]; then
+        apply_auto_fixes true
+    fi
+}
+
 diagnose_menu() {
     while true; do
         echo -e "\n========================================="
@@ -850,25 +859,19 @@ diagnose_menu() {
         echo " 5) Web Server & PHP-FPM Runtime"
         echo " 6) Domain, SSL & Reverse Proxy"
         echo " 7) Telegram Network & Webhook"
-        echo " 8) Export Diagnostic Report to File"
         echo " 0) Back to Main Menu"
         echo "========================================="
-        read -r -p "Enter choice [0-8]: " DIAG_CHOICE
+        read -r -p "Enter choice [0-7]: " DIAG_CHOICE
         echo "========================================="
 
         case "$DIAG_CHOICE" in
             1) diagnose_all false false || true ;;
-            2) init_diagnose_state; diagnose_host || true; [ "${#AUTO_FIX_CANDIDATES[@]}" -eq 0 ] || apply_auto_fixes true ;;
-            3) init_diagnose_state; diagnose_containers || true; [ "${#AUTO_FIX_CANDIDATES[@]}" -eq 0 ] || apply_auto_fixes true ;;
-            4) init_diagnose_state; diagnose_db || true; [ "${#AUTO_FIX_CANDIDATES[@]}" -eq 0 ] || apply_auto_fixes true ;;
-            5) init_diagnose_state; diagnose_web || true; [ "${#AUTO_FIX_CANDIDATES[@]}" -eq 0 ] || apply_auto_fixes true ;;
-            6) init_diagnose_state; diagnose_ssl || true; [ "${#AUTO_FIX_CANDIDATES[@]}" -eq 0 ] || apply_auto_fixes true ;;
-            7) init_diagnose_state; diagnose_telegram || true; [ "${#AUTO_FIX_CANDIDATES[@]}" -eq 0 ] || apply_auto_fixes true ;;
-            8)
-                local exp
-                exp=$(export_diagnose_report)
-                INFO "Diagnostic report exported to: $exp"
-                ;;
+            2) run_interactive_diagnose_category host ;;
+            3) run_interactive_diagnose_category containers ;;
+            4) run_interactive_diagnose_category db ;;
+            5) run_interactive_diagnose_category web ;;
+            6) run_interactive_diagnose_category ssl ;;
+            7) run_interactive_diagnose_category telegram ;;
             0) return 0 ;;
             *) WARN "Invalid option. Please try again." ;;
         esac
