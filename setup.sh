@@ -16,14 +16,34 @@ WARN() { echo -e "\e[33m[WARN]\e[0m $*"; }
 ERROR() { echo -e "\e[31m[ERROR]\e[0m $*" >&2; return 1; }
 FATAL() { ERROR "$*"; exit 1; }
 
+# Fail-fast arity assertion helpers
+assert_argc() {
+    local expected="$1"
+    local actual="$2"
+    if [ "$actual" -ne "$expected" ]; then
+        FATAL "${FUNCNAME[1]}: expected $expected argument(s), got $actual"
+    fi
+}
+
+assert_argc_range() {
+    local min="$1"
+    local max="$2"
+    local actual="$3"
+    if [ "$actual" -lt "$min" ] || [ "$actual" -gt "$max" ]; then
+        FATAL "${FUNCNAME[1]}: expected between $min and $max argument(s), got $actual"
+    fi
+}
+
 # Ensure the script is run with root/sudo privileges
 check_root() {
+    assert_argc 0 "$#"
     if [ "$EUID" -ne 0 ]; then
         FATAL "This script requires root or sudo privileges. Please run as root or with sudo."
     fi
 }
 
 github_curl() {
+    [ "$#" -ge 1 ] || FATAL "github_curl: at least 1 argument required."
     if [ -n "$GITHUB_TOKEN" ]; then
         curl -H "Authorization: Bearer $GITHUB_TOKEN" "$@"
     else
@@ -32,6 +52,7 @@ github_curl() {
 }
 
 extract_asset_url_from_json() {
+    assert_argc 2 "$#"
     local json="${1:-}"
     local zip_name="${2:-}"
     [ -n "$json" ] || FATAL "extract_asset_url_from_json: json payload is required."
@@ -45,10 +66,12 @@ extract_asset_url_from_json() {
 }
 
 get_current_script_version() {
+    assert_argc 0 "$#"
     echo "$VERSION"
 }
 
 get_installed_app_version() {
+    assert_argc 0 "$#"
     # 1. Query container (running or stopped)
     if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q '^zzpanel_app$'; then
         if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^zzpanel_app$'; then
@@ -93,6 +116,7 @@ get_installed_app_version() {
 }
 
 set_env_app_version() {
+    assert_argc 1 "$#"
     local target_ver="${1:-}"
     [ -n "$target_ver" ] || FATAL "set_env_app_version: target version is required."
     local env_file="$BASE_DIR/.env"
@@ -106,6 +130,7 @@ set_env_app_version() {
 }
 
 normalize_version_tag() {
+    assert_argc_range 0 1 "$#"
     local raw="${1:-}"
     raw=$(echo "$raw" | tr -d '[:space:]')
     if [ -z "$raw" ] || [ "$raw" = "latest" ]; then
@@ -125,6 +150,7 @@ RESOLVED_DOWNLOAD_URL=""
 RESOLVED_APP_TAG=""
 
 resolve_release_package() {
+    assert_argc 1 "$#"
     local target_ver="${1:-}"
     [ -n "$target_ver" ] || FATAL "resolve_release_package: target version is required."
 
@@ -191,6 +217,7 @@ resolve_release_package() {
 }
 
 confirm_downgrade_if_applicable() {
+    assert_argc 1 "$#"
     local target_ver="${1:-}"
     [ -n "$target_ver" ] || FATAL "confirm_downgrade_if_applicable: target version is required."
     local current_ver
@@ -225,7 +252,9 @@ confirm_downgrade_if_applicable() {
 
 # Ensure basic utilities are installed
 check_and_install_tool() {
-    local tool=$1
+    assert_argc 1 "$#"
+    local tool="${1:-}"
+    [ -n "$tool" ] || FATAL "check_and_install_tool: tool name is required."
     if ! command -v "$tool" &> /dev/null; then
         WARN "$tool is not installed."
         if command -v apt-get &> /dev/null; then
@@ -239,6 +268,7 @@ check_and_install_tool() {
 }
 
 check_prerequisites() {
+    assert_argc 0 "$#"
     INFO "Checking prerequisites..."
     check_and_install_tool "curl"
     check_and_install_tool "unzip"
@@ -284,6 +314,7 @@ EOF
 }
 
 login_to_ghcr() {
+    assert_argc 0 "$#"
     if [ -z "$GITHUB_TOKEN" ]; then
         read -s -r -p "Enter your GitHub token: " GITHUB_TOKEN
         echo
@@ -294,6 +325,7 @@ login_to_ghcr() {
 }
 
 run_compose_with_login() {
+    [ "$#" -ge 1 ] || FATAL "run_compose_with_login: at least 1 argument required."
     local output_file
     local exit_code=0
 
@@ -324,7 +356,10 @@ run_compose_with_login() {
 }
 
 backup_env_file() {
-    local src="$1" dst
+    assert_argc 1 "$#"
+    local src="${1:-}" dst
+    [ -n "$src" ] || FATAL "backup_env_file: source file is required."
+    [ -f "$src" ] || FATAL "backup_env_file: source file '$src' not found."
     dst=$(mktemp /tmp/zzpanel-env-backup.XXXXXX) || return 1
     install -m 600 "$src" "$dst" || { rm -f "$dst"; return 1; }
     prune_env_backups || true
@@ -333,11 +368,15 @@ backup_env_file() {
 
 # Drop old .env backups, keep newest 3
 prune_env_backups() {
+    assert_argc 0 "$#"
     ls -1t /tmp/zzpanel-env-backup.* 2>/dev/null | tail -n +4 | xargs -r rm -f
 }
 
 validate_zip_paths() {
-    local zip_file="$1"
+    assert_argc 1 "$#"
+    local zip_file="${1:-}"
+    [ -n "$zip_file" ] || FATAL "validate_zip_paths: zip file is required."
+    [ -f "$zip_file" ] || FATAL "validate_zip_paths: zip file '$zip_file' not found."
     # zip-slip guard: reject entries that escape $BASE_DIR (absolute or ..) or are
     # symlinks/devices (a symlink entry can redirect later entries anywhere on disk)
     python3 - "$zip_file" <<'PY' || FATAL "Unsafe entry in release archive — aborting."
@@ -360,6 +399,7 @@ PY
 }
 
 install_or_update_zzbot_script() {
+    assert_argc 0 "$#"
     INFO "Install/Updating setup script to the latest version..."
     local tmp_file
     tmp_file=$(mktemp /tmp/zzbot.XXXXXX)
@@ -373,6 +413,7 @@ install_or_update_zzbot_script() {
 }
 
 download_and_extract_release() {
+    assert_argc 1 "$#"
     local download_url="${1:-}"
     [ -n "$download_url" ] || FATAL "download_and_extract_release: download URL is required."
 
@@ -400,6 +441,7 @@ download_and_extract_release() {
 
 # 1. Install ZZPanel
 install_zzbot() {
+    assert_argc_range 0 1 "$#"
     local target_ver="${1:-}"
     if [ -z "$target_ver" ]; then
         read -r -p "Enter version to install [default: latest]: " target_ver
@@ -472,6 +514,7 @@ install_zzbot() {
 
 # Ensure base directory exists for subsequent commands
 ensure_installed() {
+    assert_argc 0 "$#"
     if [ ! -d "$BASE_DIR" ] || [ ! -f "$BASE_DIR/docker-compose.yml" ]; then
         ERROR "ZZPanel is not installed yet. Please run option (1) Install first." || return 1
     fi
@@ -479,12 +522,14 @@ ensure_installed() {
 
 # Common prelude for installed-stack commands
 require_installed() {
+    assert_argc 0 "$#"
     ensure_installed || return 1
     ensure_nginx_init_down
     cd "$BASE_DIR" || return 1
 }
 
 ensure_nginx_init_down() {
+    assert_argc 0 "$#"
     if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q '^zzpanel_nginx_init$'; then
         INFO "Stopping and removing existing Nginx init container..."
         docker stop zzpanel_nginx_init 2>/dev/null || true
@@ -494,6 +539,7 @@ ensure_nginx_init_down() {
 
 # Edit .env file
 edit_env() {
+    assert_argc 0 "$#"
     ensure_installed || return 1
     cd "$BASE_DIR" || return 1
     if [ -f .env ]; then
@@ -505,6 +551,7 @@ edit_env() {
 
 # 3. SSL Initializer
 init_ssl() {
+    assert_argc 0 "$#"
     require_installed || return 1
     local ssl_script="docker/nginx/init-letsencrypt.sh"
     if [ -f "$ssl_script" ]; then
@@ -518,6 +565,7 @@ init_ssl() {
 
 # 4. Start
 start_services() {
+    assert_argc 0 "$#"
     require_installed || return 1
     INFO "Starting services..."
     if run_compose_with_login up -d; then
@@ -529,6 +577,7 @@ start_services() {
 
 # 5. Stop
 stop_services() {
+    assert_argc 0 "$#"
     require_installed || return 1
     INFO "Stopping services..."
     if "${DOCKER_COMPOSE_CMD[@]}" down; then
@@ -540,6 +589,7 @@ stop_services() {
 
 # 6. Soft Restart (docker compose restart)
 soft_restart_services() {
+    assert_argc 0 "$#"
     require_installed || return 1
     INFO "Soft restarting services (docker compose restart)..."
     if "${DOCKER_COMPOSE_CMD[@]}" restart; then
@@ -551,6 +601,7 @@ soft_restart_services() {
 
 # 7. Hard Restart (down + up)
 hard_restart_services() {
+    assert_argc 0 "$#"
     require_installed || return 1
     INFO "Hard restarting services (down + up)..."
     if run_compose_with_login down && run_compose_with_login up -d; then
@@ -562,6 +613,7 @@ hard_restart_services() {
 
 # 7. Update
 update_services() {
+    assert_argc_range 0 1 "$#"
     require_installed || return 1
 
     local target_ver="${1:-}"
@@ -604,6 +656,7 @@ update_services() {
 
 # 8. Uninstall
 uninstall_zzbot() {
+    assert_argc 0 "$#"
     local response
     read -r -p "Are you sure you want to completely uninstall ZZPanel and remove all data? (y/N): " response
     if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
@@ -629,6 +682,7 @@ uninstall_zzbot() {
 
 # 9. Backup
 backup_services() {
+    assert_argc 0 "$#"
     require_installed || return 1
     local backup_script="./docker/scripts/docker_backup.sh"
     if [ -f "$backup_script" ]; then
@@ -641,6 +695,7 @@ backup_services() {
 
 # 10. Restore
 restore_services() {
+    assert_argc 0 "$#"
     require_installed || return 1
     local backup_script="./docker/scripts/docker_backup.sh"
     if [ -f "$backup_script" ]; then
@@ -654,6 +709,7 @@ restore_services() {
 
 # 11. View Live Logs
 show_live_logs() {
+    assert_argc 0 "$#"
     require_installed || return 1
     INFO "Showing live logs (Press Ctrl+C to exit)..."
     "${DOCKER_COMPOSE_CMD[@]}" logs -f
@@ -661,18 +717,17 @@ show_live_logs() {
 
 # it gets one arg for service name and shows live logs for that service
 show_live_logs_for_service() {
+    assert_argc 1 "$#"
+    local service_name="${1:-}"
+    [ -n "$service_name" ] || FATAL "show_live_logs_for_service: service name cannot be empty."
     require_installed || return 1
-    local service_name
-    read -r -p "Enter the service name to view logs (e.g., nginx, mysql, phpmyadmin): " service_name
-    if [ -z "$service_name" ]; then
-        ERROR "Service name cannot be empty." || return 1
-    fi
     INFO "Showing live logs for $service_name (Press Ctrl+C to exit)..."
     "${DOCKER_COMPOSE_CMD[@]}" logs -f -- "$service_name"
 }
 
 # Main menu CLI loop
 show_menu() {
+    assert_argc 0 "$#"
     while true; do
         local app_ver
         app_ver=$(get_installed_app_version)
@@ -713,7 +768,14 @@ show_menu() {
             11) backup_services || true ;;
             12) restore_services || true ;;
             13) show_live_logs || true ;;
-            14) show_live_logs_for_service || true ;;
+            14)
+                read -r -p "Enter the service name to view logs (e.g., nginx, mysql, phpmyadmin): " service_name
+                if [ -n "$service_name" ]; then
+                    show_live_logs_for_service "$service_name" || true
+                else
+                    WARN "Service name cannot be empty."
+                fi
+                ;;
             0) INFO "Exiting. Goodbye!"; exit 0 ;;
             999) get_current_script_version ;;
             *) WARN "Invalid option. Please try again." ;;

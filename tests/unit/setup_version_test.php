@@ -71,18 +71,41 @@ FATAL() { echo "[FATAL] \$*" >&2; exit 1; }
 INFO() { :; }
 WARN() { :; }
 
-# Source target functions from setup.sh
+# Source target functions and assertion helpers from setup.sh
+source <(sed -n '/^assert_argc()/,/^}/p' setup.sh)
+source <(sed -n '/^assert_argc_range()/,/^}/p' setup.sh)
 source <(sed -n '/^extract_asset_url_from_json()/,/^}/p' setup.sh)
 source <(sed -n '/^normalize_version_tag()/,/^}/p' setup.sh)
 source <(sed -n '/^set_env_app_version()/,/^}/p' setup.sh)
 source <(sed -n '/^get_installed_app_version()/,/^}/p' setup.sh)
 source <(sed -n '/^confirm_downgrade_if_applicable()/,/^}/p' setup.sh)
+source <(sed -n '/^backup_env_file()/,/^}/p' setup.sh)
+source <(sed -n '/^validate_zip_paths()/,/^}/p' setup.sh)
+source <(sed -n '/^show_live_logs_for_service()/,/^}/p' setup.sh)
+source <(sed -n '/^check_and_install_tool()/,/^}/p' setup.sh)
 
-# Fail fast on empty preconditions
+# Fail fast on wrong arity
+if ( get_installed_app_version "unexpected_arg" ) 2>/dev/null; then exit 1; fi
+if ( set_env_app_version ) 2>/dev/null; then exit 1; fi
+if ( set_env_app_version "v1.0" "extra" ) 2>/dev/null; then exit 1; fi
+if ( extract_asset_url_from_json "only_one" ) 2>/dev/null; then exit 1; fi
+if ( extract_asset_url_from_json "one" "two" "three" ) 2>/dev/null; then exit 1; fi
+if ( show_live_logs_for_service ) 2>/dev/null; then exit 1; fi
+if ( show_live_logs_for_service "nginx" "extra" ) 2>/dev/null; then exit 1; fi
+if ( backup_env_file ) 2>/dev/null; then exit 1; fi
+if ( backup_env_file "a" "b" ) 2>/dev/null; then exit 1; fi
+if ( validate_zip_paths ) 2>/dev/null; then exit 1; fi
+if ( check_and_install_tool ) 2>/dev/null; then exit 1; fi
+
+# Fail fast on empty or invalid preconditions
 if ( set_env_app_version "" ) 2>/dev/null; then exit 1; fi
 if ( extract_asset_url_from_json "" "test" ) 2>/dev/null; then exit 1; fi
 if ( extract_asset_url_from_json "test" "" ) 2>/dev/null; then exit 1; fi
 if ( confirm_downgrade_if_applicable "" ) 2>/dev/null; then exit 1; fi
+if ( show_live_logs_for_service "" ) 2>/dev/null; then exit 1; fi
+if ( backup_env_file "\$td/nonexistent" ) 2>/dev/null; then exit 1; fi
+if ( validate_zip_paths "\$td/nonexistent.zip" ) 2>/dev/null; then exit 1; fi
+if ( check_and_install_tool "" ) 2>/dev/null; then exit 1; fi
 
 # Normalization
 [ "\$(normalize_version_tag "")" = "latest" ]
