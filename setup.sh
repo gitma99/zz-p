@@ -1416,19 +1416,19 @@ select_service() {
     fi
 
     while true; do
-        echo -e "\n========================================="
-        echo -e "      $prompt"
-        echo -e "========================================="
+        echo -e "\n=========================================" >&2
+        echo -e "      $prompt" >&2
+        echo -e "=========================================" >&2
         local i=1
         for svc in "${services[@]}"; do
-            printf " %d) %s\n" "$i" "$svc"
+            printf " %d) %s\n" "$i" "$svc" >&2
             ((i++))
         done
-        printf " %d) All Services\n" "$i"
-        printf " 0) Back\n"
-        echo "========================================="
+        printf " %d) All Services\n" "$i" >&2
+        printf " 0) Back\n" >&2
+        echo "=========================================" >&2
         read -r -p "Enter choice [0-$i]: " choice
-        echo "========================================="
+        echo "=========================================" >&2
 
         if [[ "$choice" =~ ^[0-9]+$ ]]; then
             if [ "$choice" -ge 1 ] && [ "$choice" -le "${#services[@]}" ]; then
