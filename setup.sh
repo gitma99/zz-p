@@ -8,7 +8,7 @@ BASE_DIR="/srv"
 DOCKER_COMPOSE_CMD=(docker compose)
 GITHUB_USERNAME="gitma99"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
-VERSION="3.1.0"
+VERSION="3.2.0"
 
 # Output coloring helper functions
 INFO() { echo -e "\e[32m[INFO]\e[0m $*"; }
@@ -1398,37 +1398,87 @@ init_ssl() {
     fi
 }
 
+# Get service names from docker-compose.yml dynamically
+get_compose_services() {
+    "${DOCKER_COMPOSE_CMD[@]}" config --services 2>/dev/null
+}
+
+# Generic service action menu (stop|start|restart)
+service_action_menu() {
+    local action="$1"
+    local action_past
+    case "$action" in
+        stop) action_past="Stopping" ;;
+        start) action_past="Starting" ;;
+        restart) action_past="Restarting" ;;
+        *) ERROR "Invalid action: $action"; return 1 ;;
+    esac
+
+    local services
+    mapfile -t services < <(get_compose_services)
+
+    if [ ${#services[@]} -eq 0 ]; then
+        ERROR "No services found in docker-compose.yml"
+        return 1
+    fi
+
+    while true; do
+        echo -e "\n========================================="
+        echo -e "      ${action_past} ZZPanelBot Services"
+        echo -e "========================================="
+        local i=1
+        for svc in "${services[@]}"; do
+            printf " %d) %s\n" "$i" "$svc"
+            ((i++))
+        done
+        printf " %d) All Services\n" "$i"
+        printf " %d) Back to Main Menu\n" "$((i+1))"
+        echo "========================================="
+        read -r -p "Enter choice [1-$((i+1))]: " choice
+        echo "========================================="
+
+        if [[ "$choice" =~ ^[0-9]+$ ]]; then
+            if [ "$choice" -ge 1 ] && [ "$choice" -le "${#services[@]}" ]; then
+                local svc="${services[choice-1]}"
+                INFO "${action_past} service: $svc..."
+                if "${DOCKER_COMPOSE_CMD[@]}" "$action" "$svc"; then
+                    INFO "Service $svc ${action_past,,}ed."
+                else
+                    ERROR "Failed to $action service $svc."
+                fi
+                return 0
+            elif [ "$choice" -eq "$(( ${#services[@]} + 1 ))" ]; then
+                INFO "${action_past} all services..."
+                if "${DOCKER_COMPOSE_CMD[@]}" "$action"; then
+                    INFO "All services ${action_past,,}ed."
+                else
+                    ERROR "Failed to $action all services."
+                fi
+                return 0
+            elif [ "$choice" -eq "$(( ${#services[@]} + 2 ))" ]; then
+                return 0
+            fi
+        fi
+        WARN "Invalid option. Please try again."
+    done
+}
+
 # 4. Start
 start_services() {
     require_installed || return 1
-    INFO "Starting services..."
-    if run_compose_with_login up -d; then
-        INFO "Services started."
-    else
-        ERROR "Failed to start services. Check logs with option (13)." || return 1
-    fi
+    service_action_menu "start"
 }
 
 # 5. Stop
 stop_services() {
     require_installed || return 1
-    INFO "Stopping services..."
-    if "${DOCKER_COMPOSE_CMD[@]}" down; then
-        INFO "Services stopped."
-    else
-        ERROR "Failed to stop services. Check running containers with: docker ps" || return 1
-    fi
+    service_action_menu "stop"
 }
 
 # 6. Soft Restart (docker compose restart)
 soft_restart_services() {
     require_installed || return 1
-    INFO "Soft restarting services (docker compose restart)..."
-    if "${DOCKER_COMPOSE_CMD[@]}" restart; then
-        INFO "Services soft-restarted."
-    else
-        ERROR "Soft restart failed. Check logs with option (13)." || return 1
-    fi
+    service_action_menu "restart"
 }
 
 # 7. Hard Restart (down + up)
@@ -1562,42 +1612,47 @@ show_menu() {
         echo -e "     ZZPanelBot Management ($VERSION)    "
         echo -e "     Installed App Version: $app_ver     "
         echo -e "========================================="
-        echo " 1) Install ZZPanel"
-        echo " 2) Install / Update zzbot menu"
-        echo " 3) Edit .env"
-        echo " 4) Initialize SSL (Let's Encrypt)"
-        echo " 5) Start ZZPanelBot Services"
-        echo " 6) Stop ZZPanelBot Services"
-        echo " 7) Soft Restart ZZPanelBot Services"
-        echo " 8) Hard Restart ZZPanelBot Services"
-        echo " 9) Update ZZPanelBot Services"
-        echo " 10) Uninstall ZZPanel"
-        echo " 11) Backup Database & Files"
-        echo " 12) Restore Database & Files"
-        echo " 13) View Live Logs"
-        echo " 14) View Logs for Specific Service"
-        echo " 15) Run Diagnostic Health Check"
-        echo " 0) Close"
+        echo -e "\n=== Service Control ==="
+        echo "  1) Start Services"
+        echo "  2) Stop Services"
+        echo "  3) Restart Services"
+        echo "  4) Hard Restart (recreate all)"
+        echo -e "\n=== Configuration ==="
+        echo "  5) Edit .env"
+        echo "  6) Initialize SSL (Let's Encrypt)"
+        echo "  7) Update ZZPanelBot"
+        echo -e "\n=== Maintenance ==="
+        echo "  8) Backup Database & Files"
+        echo "  9) Restore Database & Files"
+        echo -e "\n=== Diagnostics ==="
+        echo " 10) View Live Logs (all)"
+        echo " 11) View Logs (specific service)"
+        echo " 12) Run Health Check"
+        echo -e "\n=== System ==="
+        echo " 13) Install ZZPanel"
+        echo " 14) Update zzbot Menu"
+        echo " 15) Uninstall ZZPanel"
+        echo "  0) Exit"
         echo "========================================="
         read -r -p "Enter choice [0-15]: " CHOICE
         echo "========================================="
 
         case "$CHOICE" in
-            1) install_zzbot || true ;;
-            2) install_or_update_zzbot_script || true ;;
-            3) edit_env || true ;;
-            4) init_ssl || true ;;
-            5) start_services || true ;;
-            6) stop_services || true ;;
-            7) soft_restart_services || true ;;
-            8) hard_restart_services || true ;;
-            9) update_services || true ;;
-            10) uninstall_zzbot ;;
-            11) backup_services || true ;;
-            12) restore_services || true ;;
-            13) show_live_logs || true ;;
-            14) show_live_logs_for_service || true ;;
-            15) diagnose_menu || true ;;
+            1) start_services || true ;;
+            2) stop_services || true ;;
+            3) soft_restart_services || true ;;
+            4) hard_restart_services || true ;;
+            5) edit_env || true ;;
+            6) init_ssl || true ;;
+            7) update_services || true ;;
+            8) backup_services || true ;;
+            9) restore_services || true ;;
+            10) show_live_logs || true ;;
+            11) show_live_logs_for_service || true ;;
+            12) diagnose_menu || true ;;
+            13) install_zzbot || true ;;
+            14) install_or_update_zzbot_script || true ;;
+            15) uninstall_zzbot ;;
             0) INFO "Exiting. Goodbye!"; exit 0 ;;
             999) get_current_script_version ;;
             *) WARN "Invalid option. Please try again." ;;
