@@ -1432,9 +1432,9 @@ service_action_menu() {
             ((i++))
         done
         printf " %d) All Services\n" "$i"
-        printf " %d) Back to Main Menu\n" "$((i+1))"
+        printf " 0) Back to Main Menu\n"
         echo "========================================="
-        read -r -p "Enter choice [1-$((i+1))]: " choice
+        read -r -p "Enter choice [0-$i]: " choice
         echo "========================================="
 
         if [[ "$choice" =~ ^[0-9]+$ ]]; then
@@ -1455,7 +1455,7 @@ service_action_menu() {
                     ERROR "Failed to $action all services."
                 fi
                 return 0
-            elif [ "$choice" -eq "$(( ${#services[@]} + 2 ))" ]; then
+            elif [ "$choice" -eq 0 ]; then
                 return 0
             fi
         fi
