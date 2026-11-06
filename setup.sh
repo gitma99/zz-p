@@ -1405,9 +1405,9 @@ get_compose_services() {
 }
 
 # Print numbered service list to stderr (reusable for any menu)
+# Usage: list_services "service1 service2 ..."  (array passed as args)
 list_services() {
-    local services
-    mapfile -t services < <(get_compose_services)
+    local services=("$@")
     [ ${#services[@]} -eq 0 ] && return 1
 
     local i=1
@@ -1439,7 +1439,7 @@ select_service() {
         echo -e "\n=========================================" >&2
         echo -e "      $prompt" >&2
         echo -e "=========================================" >&2
-        list_services
+        list_services "${services[@]}"
         echo "=========================================" >&2
         read -r -p "Enter choice [0-${#services[@]}]: " choice
         echo "=========================================" >&2
