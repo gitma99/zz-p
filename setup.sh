@@ -8,7 +8,7 @@ BASE_DIR="/srv"
 DOCKER_COMPOSE_CMD=(docker compose)
 GITHUB_USERNAME="gitma99"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
-VERSION="3.2.1"
+VERSION="3.2.2"
 
 # Output coloring helper functions
 INFO() { echo -e "\e[32m[INFO]\e[0m $*"; }
@@ -1620,16 +1620,16 @@ show_menu() {
         echo -e "\n=== Configuration ==="
         echo "  5) Edit .env"
         echo "  6) Initialize SSL (Let's Encrypt)"
-        echo "  7) Update ZZPanelBot"
         echo -e "\n=== Maintenance ==="
-        echo "  8) Backup Database & Files"
-        echo "  9) Restore Database & Files"
+        echo "  7) Backup Database & Files"
+        echo "  8) Restore Database & Files"
         echo -e "\n=== Diagnostics ==="
-        echo " 10) View Live Logs (all)"
-        echo " 11) View Logs (specific service)"
-        echo " 12) Run Health Check"
+        echo "  9) View Live Logs (all)"
+        echo " 10) View Logs (specific service)"
+        echo " 11) Run Health Check"
         echo -e "\n=== System ==="
-        echo " 13) Install ZZPanel"
+        echo " 12) Install ZZPanel"
+        echo " 13) Update ZZPanelBot"
         echo " 14) Update zzbot Menu"
         echo " 15) Uninstall ZZPanel"
         echo "  0) Exit"
@@ -1644,13 +1644,13 @@ show_menu() {
             4) hard_restart_services || true ;;
             5) edit_env || true ;;
             6) init_ssl || true ;;
-            7) update_services || true ;;
-            8) backup_services || true ;;
-            9) restore_services || true ;;
-            10) show_live_logs || true ;;
-            11) show_live_logs_for_service || true ;;
-            12) diagnose_menu || true ;;
-            13) install_zzbot || true ;;
+            7) backup_services || true ;;
+            8) restore_services || true ;;
+            9) show_live_logs || true ;;
+            10) show_live_logs_for_service || true ;;
+            11) diagnose_menu || true ;;
+            12) install_zzbot || true ;;
+            13) update_services || true ;;
             14) install_or_update_zzbot_script || true ;;
             15) uninstall_zzbot ;;
             0) INFO "Exiting. Goodbye!"; exit 0 ;;
