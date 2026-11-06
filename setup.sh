@@ -8,7 +8,7 @@ BASE_DIR="/srv"
 DOCKER_COMPOSE_CMD=(docker compose)
 GITHUB_USERNAME="gitma99"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
-VERSION="3.2.2"
+VERSION="3.2.3"
 
 # Output coloring helper functions
 INFO() { echo -e "\e[32m[INFO]\e[0m $*"; }
@@ -1251,7 +1251,8 @@ install_or_update_zzbot_script() {
     fi
     chmod 0755 "$tmp_file"
     mv "$tmp_file" /usr/local/bin/zzbot
-    INFO "Setup script updated successfully."
+    INFO "Setup script updated successfully. Reloading..."
+    exec /usr/local/bin/zzbot
 }
 
 download_and_extract_release() {
