@@ -18,3 +18,5 @@ c9617f5dff42bf0bfd3e05da03b3d39d975ea2d7:update.sh:github-pat:7
 c9617f5dff42bf0bfd3e05da03b3d39d975ea2d7:zanbor.sh:github-pat:7
 d8da78b3b00a33177ea8e6d55c5bcdea25808b08:README.md:github-pat:86
 d8da78b3b00a33177ea8e6d55c5bcdea25808b08:README.md:github-pat:97
+2f15e38910ea1aade488525b194c048f515e0bb2:tests/unit/setup_diagnose_test.sh:generic-api-key:17
+8ab845bbe93d5e91f4da9cedc84014d41e8218f4:docs/superpowers/plans/2026-10-31-setup-diagnose-menu.md:generic-api-key:70

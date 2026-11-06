@@ -7,10 +7,14 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 pass=0
 fail=0
 
-for test_file in "$dir"/*_test.php; do
+for test_file in "$dir"/*_test.php "$dir"/*_test.sh; do
     [ -e "$test_file" ] || continue
     name="$(basename "$test_file")"
-    out="$(php "$test_file" 2>&1)"
+    if [[ "$test_file" == *.sh ]]; then
+        out="$(bash "$test_file" 2>&1)"
+    else
+        out="$(php "$test_file" 2>&1)"
+    fi
     rc=$?
     if [ $rc -eq 0 ]; then
         pass=$((pass + 1))
