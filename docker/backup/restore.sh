@@ -40,38 +40,48 @@ if [ ! -f "$BACKUP_ZIP" ]; then
 	exit 1
 fi
 
-log "INFO" "Starting restore process from ${BACKUP_ZIP}..."
+log "INFO" "Starting restore from ${BACKUP_ZIP}"
 
 # Create temporary extraction folder
 EXTRACT_DIR="/tmp/restore_extract_$(date +%s)"
 mkdir -p "$EXTRACT_DIR"
+log "DEBUG" "Created extraction dir: ${EXTRACT_DIR}"
 
 # Extract zip
+log "INFO" "Extracting backup archive"
 unzip -q "$BACKUP_ZIP" -d "$EXTRACT_DIR"
 
-# Find SQL file. It could be in root/zz-p-sql.sql or flat in the zip
+# Find SQL file
 SQL_FILE=""
 if [ -f "$EXTRACT_DIR/root/zz-p-sql.sql" ]; then
 	SQL_FILE="$EXTRACT_DIR/root/zz-p-sql.sql"
 elif [ -f "$EXTRACT_DIR/zz-p-sql.sql" ]; then
 	SQL_FILE="$EXTRACT_DIR/zz-p-sql.sql"
 else
-	# Look for any .sql file
 	SQL_FILE=$(find "$EXTRACT_DIR" -name "*.sql" -print -quit)
 fi
 
 if [ -z "$SQL_FILE" ] || [ ! -f "$SQL_FILE" ]; then
 	rm -rf "$EXTRACT_DIR"
-	handle_error "No SQL backup file found in the zip archive!" "$LINENO"
+	handle_error "No SQL backup file found in archive" "$LINENO"
 fi
+log "INFO" "Found SQL file: ${SQL_FILE}"
 
-log "INFO" "Importing database dump into ${DB_NAME} on host ${DB_HOST}..."
-
-# Pipe dump into database
+# Import database
+log "INFO" "Importing database into ${DB_NAME} on ${DB_HOST}"
+start=$(date +%s)
 mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$SQL_FILE"
+log "INFO" "Database import completed in $(( $(date +%s) - start ))s"
 
-# Clean up
+# Run migrations
+log "INFO" "Running versioned schema migrations"
+start=$(date +%s)
+cd /var/www/html/ZZPanelBot && php tools/run-migrations.php
+log "INFO" "Migrations completed in $(( $(date +%s) - start ))s"
+
+# Cleanup
 rm -rf "$EXTRACT_DIR"
+log "DEBUG" "Cleaned up extraction dir"
 
-log "INFO" "Database restore completed successfully!"
-log "INFO" "NOTE: If you also changed bot configuration environment variables, please run 'docker compose down && docker compose up -d' to apply them to the app container."
+log "INFO" "Restore completed successfully"
+log "INFO" "NOTE: If you changed bot config env vars, run 'docker compose down && docker compose up -d'"
