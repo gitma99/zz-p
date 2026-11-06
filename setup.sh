@@ -8,7 +8,7 @@ BASE_DIR="/srv"
 DOCKER_COMPOSE_CMD=(docker compose)
 GITHUB_USERNAME="gitma99"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
-VERSION="3.2.4"
+VERSION="3.2.5"
 
 # Output coloring helper functions
 INFO() { echo -e "\e[32m[INFO]\e[0m $*"; }
@@ -1404,6 +1404,47 @@ get_compose_services() {
     "${DOCKER_COMPOSE_CMD[@]}" config --services 2>/dev/null
 }
 
+# Generic service selector: prints selected service name, "all", or returns 1 for Back
+select_service() {
+    local prompt="${1:-Select service}"
+    local services
+    mapfile -t services < <(get_compose_services)
+
+    if [ ${#services[@]} -eq 0 ]; then
+        ERROR "No services found in docker-compose.yml"
+        return 1
+    fi
+
+    while true; do
+        echo -e "\n========================================="
+        echo -e "      $prompt"
+        echo -e "========================================="
+        local i=1
+        for svc in "${services[@]}"; do
+            printf " %d) %s\n" "$i" "$svc"
+            ((i++))
+        done
+        printf " %d) All Services\n" "$i"
+        printf " 0) Back\n"
+        echo "========================================="
+        read -r -p "Enter choice [0-$i]: " choice
+        echo "========================================="
+
+        if [[ "$choice" =~ ^[0-9]+$ ]]; then
+            if [ "$choice" -ge 1 ] && [ "$choice" -le "${#services[@]}" ]; then
+                echo "${services[choice-1]}"
+                return 0
+            elif [ "$choice" -eq "$(( ${#services[@]} + 1 ))" ]; then
+                echo "all"
+                return 0
+            elif [ "$choice" -eq 0 ]; then
+                return 1
+            fi
+        fi
+        WARN "Invalid option. Please try again."
+    done
+}
+
 # Generic service action menu (stop|start|restart)
 service_action_menu() {
     local action="$1"
@@ -1416,53 +1457,24 @@ service_action_menu() {
         *) ERROR "Invalid action: $action"; return 1 ;;
     esac
 
-    local services
-    mapfile -t services < <(get_compose_services)
+    local svc
+    svc=$(select_service "${action_past} ZZPanelBot Services") || return 0
 
-    if [ ${#services[@]} -eq 0 ]; then
-        ERROR "No services found in docker-compose.yml"
-        return 1
-    fi
-
-    while true; do
-        echo -e "\n========================================="
-        echo -e "      ${action_past} ZZPanelBot Services"
-        echo -e "========================================="
-        local i=1
-        for svc in "${services[@]}"; do
-            printf " %d) %s\n" "$i" "$svc"
-            ((i++))
-        done
-        printf " %d) All Services\n" "$i"
-        printf " 0) Back to Main Menu\n"
-        echo "========================================="
-        read -r -p "Enter choice [0-$i]: " choice
-        echo "========================================="
-
-        if [[ "$choice" =~ ^[0-9]+$ ]]; then
-            if [ "$choice" -ge 1 ] && [ "$choice" -le "${#services[@]}" ]; then
-                local svc="${services[choice-1]}"
-                INFO "${action_past} service: $svc..."
-                if "${DOCKER_COMPOSE_CMD[@]}" ${compose_action} "$svc"; then
-                    INFO "Service $svc ${action_past,,}ed."
-                else
-                    ERROR "Failed to $action service $svc."
-                fi
-                return 0
-            elif [ "$choice" -eq "$(( ${#services[@]} + 1 ))" ]; then
-                INFO "${action_past} all services..."
-                if "${DOCKER_COMPOSE_CMD[@]}" ${compose_action}; then
-                    INFO "All services ${action_past,,}ed."
-                else
-                    ERROR "Failed to $action all services."
-                fi
-                return 0
-            elif [ "$choice" -eq 0 ]; then
-                return 0
-            fi
+    if [ "$svc" = "all" ]; then
+        INFO "${action_past} all services..."
+        if "${DOCKER_COMPOSE_CMD[@]}" ${compose_action}; then
+            INFO "All services ${action_past,,}ed."
+        else
+            ERROR "Failed to $action all services."
         fi
-        WARN "Invalid option. Please try again."
-    done
+    else
+        INFO "${action_past} service: $svc..."
+        if "${DOCKER_COMPOSE_CMD[@]}" ${compose_action} "$svc"; then
+            INFO "Service $svc ${action_past,,}ed."
+        else
+            ERROR "Failed to $action service $svc."
+        fi
+    fi
 }
 
 # 4. Start
@@ -1593,16 +1605,19 @@ show_live_logs() {
     "${DOCKER_COMPOSE_CMD[@]}" logs -f
 }
 
-# it gets one arg for service name and shows live logs for that service
+# View live logs for a selected service
 show_live_logs_for_service() {
     require_installed || return 1
-    local service_name
-    read -r -p "Enter the service name to view logs (e.g., nginx, mysql, phpmyadmin): " service_name
-    if [ -z "$service_name" ]; then
-        ERROR "Service name cannot be empty." || return 1
+    local svc
+    svc=$(select_service "View Live Logs") || return 0
+
+    if [ "$svc" = "all" ]; then
+        INFO "Showing live logs for all services (Press Ctrl+C to exit)..."
+        "${DOCKER_COMPOSE_CMD[@]}" logs -f
+    else
+        INFO "Showing live logs for $svc (Press Ctrl+C to exit)..."
+        "${DOCKER_COMPOSE_CMD[@]}" logs -f -- "$svc"
     fi
-    INFO "Showing live logs for $service_name (Press Ctrl+C to exit)..."
-    "${DOCKER_COMPOSE_CMD[@]}" logs -f -- "$service_name"
 }
 
 # Main menu CLI loop
