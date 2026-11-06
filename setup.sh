@@ -8,7 +8,7 @@ BASE_DIR="/srv"
 DOCKER_COMPOSE_CMD=(docker compose)
 GITHUB_USERNAME="gitma99"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
-VERSION="3.2.3"
+VERSION="3.2.4"
 
 # Output coloring helper functions
 INFO() { echo -e "\e[32m[INFO]\e[0m $*"; }
@@ -1408,10 +1408,11 @@ get_compose_services() {
 service_action_menu() {
     local action="$1"
     local action_past
+    local compose_action
     case "$action" in
-        stop) action_past="Stopping" ;;
-        start) action_past="Starting" ;;
-        restart) action_past="Restarting" ;;
+        stop) action_past="Stopping"; compose_action="stop" ;;
+        start) action_past="Starting"; compose_action="up -d" ;;
+        restart) action_past="Restarting"; compose_action="restart" ;;
         *) ERROR "Invalid action: $action"; return 1 ;;
     esac
 
@@ -1442,7 +1443,7 @@ service_action_menu() {
             if [ "$choice" -ge 1 ] && [ "$choice" -le "${#services[@]}" ]; then
                 local svc="${services[choice-1]}"
                 INFO "${action_past} service: $svc..."
-                if "${DOCKER_COMPOSE_CMD[@]}" "$action" "$svc"; then
+                if "${DOCKER_COMPOSE_CMD[@]}" ${compose_action} "$svc"; then
                     INFO "Service $svc ${action_past,,}ed."
                 else
                     ERROR "Failed to $action service $svc."
@@ -1450,7 +1451,7 @@ service_action_menu() {
                 return 0
             elif [ "$choice" -eq "$(( ${#services[@]} + 1 ))" ]; then
                 INFO "${action_past} all services..."
-                if "${DOCKER_COMPOSE_CMD[@]}" "$action"; then
+                if "${DOCKER_COMPOSE_CMD[@]}" ${compose_action}; then
                     INFO "All services ${action_past,,}ed."
                 else
                     ERROR "Failed to $action all services."
