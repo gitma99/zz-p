@@ -8,7 +8,7 @@ BASE_DIR="/srv"
 DOCKER_COMPOSE_CMD=(docker compose)
 GITHUB_USERNAME="gitma99"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
-VERSION="3.2.5"
+VERSION="3.2.6"
 
 # Output coloring helper functions
 INFO() { echo -e "\e[32m[INFO]\e[0m $*"; }
@@ -1404,7 +1404,25 @@ get_compose_services() {
     "${DOCKER_COMPOSE_CMD[@]}" config --services 2>/dev/null
 }
 
-# Generic service selector: prints selected service name, "all", or returns 1 for Back
+# Print numbered service list to stderr (reusable for any menu)
+list_services() {
+    local services
+    mapfile -t services < <(get_compose_services)
+    [ ${#services[@]} -eq 0 ] && return 1
+
+    local i=1
+    for svc in "${services[@]}"; do
+        printf " %d) %s\n" "$i" "$svc" >&2
+        ((i++))
+    done
+    printf " %d) All Services\n" "$i" >&2
+    printf " 0) Back\n" >&2
+}
+
+# Global set by select_service()
+SELECTED_SERVICE=""
+
+# Generic service selector: sets SELECTED_SERVICE to service name, "all", or empty for Back
 select_service() {
     local prompt="${1:-Select service}"
     local services
@@ -1415,29 +1433,26 @@ select_service() {
         return 1
     fi
 
+    SELECTED_SERVICE=""
+
     while true; do
         echo -e "\n=========================================" >&2
         echo -e "      $prompt" >&2
         echo -e "=========================================" >&2
-        local i=1
-        for svc in "${services[@]}"; do
-            printf " %d) %s\n" "$i" "$svc" >&2
-            ((i++))
-        done
-        printf " %d) All Services\n" "$i" >&2
-        printf " 0) Back\n" >&2
+        list_services
         echo "=========================================" >&2
-        read -r -p "Enter choice [0-$i]: " choice
+        read -r -p "Enter choice [0-${#services[@]}]: " choice
         echo "=========================================" >&2
 
         if [[ "$choice" =~ ^[0-9]+$ ]]; then
             if [ "$choice" -ge 1 ] && [ "$choice" -le "${#services[@]}" ]; then
-                echo "${services[choice-1]}"
+                SELECTED_SERVICE="${services[choice-1]}"
                 return 0
             elif [ "$choice" -eq "$(( ${#services[@]} + 1 ))" ]; then
-                echo "all"
+                SELECTED_SERVICE="all"
                 return 0
             elif [ "$choice" -eq 0 ]; then
+                SELECTED_SERVICE=""
                 return 1
             fi
         fi
@@ -1457,10 +1472,9 @@ service_action_menu() {
         *) ERROR "Invalid action: $action"; return 1 ;;
     esac
 
-    local svc
-    svc=$(select_service "${action_past} ZZPanelBot Services") || return 0
+    select_service "${action_past} ZZPanelBot Services" || return 0
 
-    if [ "$svc" = "all" ]; then
+    if [ "$SELECTED_SERVICE" = "all" ]; then
         INFO "${action_past} all services..."
         if "${DOCKER_COMPOSE_CMD[@]}" ${compose_action}; then
             INFO "All services ${action_past,,}ed."
@@ -1468,11 +1482,11 @@ service_action_menu() {
             ERROR "Failed to $action all services."
         fi
     else
-        INFO "${action_past} service: $svc..."
-        if "${DOCKER_COMPOSE_CMD[@]}" ${compose_action} "$svc"; then
-            INFO "Service $svc ${action_past,,}ed."
+        INFO "${action_past} service: $SELECTED_SERVICE..."
+        if "${DOCKER_COMPOSE_CMD[@]}" ${compose_action} "$SELECTED_SERVICE"; then
+            INFO "Service $SELECTED_SERVICE ${action_past,,}ed."
         else
-            ERROR "Failed to $action service $svc."
+            ERROR "Failed to $action service $SELECTED_SERVICE."
         fi
     fi
 }
@@ -1608,15 +1622,14 @@ show_live_logs() {
 # View live logs for a selected service
 show_live_logs_for_service() {
     require_installed || return 1
-    local svc
-    svc=$(select_service "View Live Logs") || return 0
+    select_service "View Live Logs" || return 0
 
-    if [ "$svc" = "all" ]; then
+    if [ "$SELECTED_SERVICE" = "all" ]; then
         INFO "Showing live logs for all services (Press Ctrl+C to exit)..."
         "${DOCKER_COMPOSE_CMD[@]}" logs -f
     else
-        INFO "Showing live logs for $svc (Press Ctrl+C to exit)..."
-        "${DOCKER_COMPOSE_CMD[@]}" logs -f -- "$svc"
+        INFO "Showing live logs for $SELECTED_SERVICE (Press Ctrl+C to exit)..."
+        "${DOCKER_COMPOSE_CMD[@]}" logs -f -- "$SELECTED_SERVICE"
     fi
 }
 
