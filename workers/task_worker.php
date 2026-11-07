@@ -14,12 +14,26 @@ function log_message($msg) {
 
 log_message("Worker started.");
 
+// Exponential backoff configuration
+$baseSleep = 3;
+$maxSleep = 10;
+$currentSleep = $baseSleep;
+$emptyPolls = 0;
+$staleRecoveryInterval = 10; // seconds
+$lastStaleRecovery = 0;
+$loopStartTime = time();
+
 while (true) {
     global $cache, $token_tested;
     $cache->clear();
     $token_tested = array();
-    // 1. Recover stale tasks (locked for more than 5 minutes)
-    $sql->query("UPDATE `task_queue` SET `status` = 'pending', `started_at` = NULL, `locked_at` = NULL WHERE `status` = 'running' AND `locked_at` < NOW() - INTERVAL 5 MINUTE");
+    
+    // 1. Recover stale tasks (locked for more than 5 minutes) - run every 10 seconds
+    $elapsedTime = time() - $loopStartTime;
+    if ($elapsedTime - $lastStaleRecovery >= $staleRecoveryInterval) {
+        $sql->query("UPDATE `task_queue` SET `status` = 'pending', `started_at` = NULL, `locked_at` = NULL WHERE `status` = 'running' AND `locked_at` < NOW() - INTERVAL 5 MINUTE");
+        $lastStaleRecovery = $elapsedTime;
+    }
     
     // 2. Claim one pending task (row lock held via transaction until COMMIT)
     $sql->begin_transaction();
@@ -27,9 +41,19 @@ while (true) {
 
     if (!$claim || $claim->num_rows === 0) {
         $sql->rollback();
-        sleep(3);
+        $emptyPolls++;
+        if ($emptyPolls === 1) {
+            $currentSleep = 5;
+        } elseif ($emptyPolls >= 2) {
+            $currentSleep = $maxSleep;
+        }
+        sleep($currentSleep);
         continue;
     }
+    
+    // Task found - reset backoff
+    $emptyPolls = 0;
+    $currentSleep = $baseSleep;
 
     $task_id = (int)$claim->fetch_assoc()['id'];
     $sql->query("UPDATE `task_queue` SET `status` = 'running', `started_at` = NOW(), `locked_at` = NOW() WHERE `id` = $task_id");
