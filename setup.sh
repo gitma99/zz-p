@@ -1747,24 +1747,24 @@ show_menu() {
         echo -e "     ZZPanelBot Management (3.2.7)       "
         echo -e "     Installed App Version: $app_ver     "
         echo -e "========================================="
-        echo -e "\n=== Service Control ==="
+        echo -e "\n=== Service Management ==="
         echo "  1) Start Services"
         echo "  2) Stop Services"
         echo "  3) Restart Services"
         echo "  4) Hard Restart (recreate all)"
+        echo "  5) Install ZZPanel"
+        echo "  6) Update ZZPanelBot"
         echo -e "\n=== Configuration ==="
-        echo "  5) Edit .env"
-        echo "  6) Initialize SSL (Let's Encrypt)"
+        echo "  7) Edit .env"
+        echo "  8) Initialize SSL (Let's Encrypt)"
         echo -e "\n=== Maintenance ==="
-        echo "  7) Backup Database & Files"
-        echo "  8) Restore Database & Files"
+        echo "  9) Backup Database & Files"
+        echo " 10) Restore Database & Files"
         echo -e "\n=== Diagnostics ==="
-        echo "  9) View Live Logs (all)"
-        echo " 10) View Logs (specific service)"
-        echo " 11) Run Health Check"
+        echo " 11) View Live Logs (all)"
+        echo " 12) View Logs (specific service)"
+        echo " 13) Run Health Check"
         echo -e "\n=== System ==="
-        echo " 12) Install ZZPanel"
-        echo " 13) Update ZZPanelBot"
         echo " 14) Update zzbot Menu"
         echo " 15) Uninstall ZZPanel"
         echo " 16) Update Menu Cache"
@@ -1778,15 +1778,15 @@ show_menu() {
             2) stop_services || true ;;
             3) soft_restart_services || true ;;
             4) hard_restart_services || true ;;
-            5) edit_env || true ;;
-            6) init_ssl || true ;;
-            7) backup_services || true ;;
-            8) restore_services || true ;;
-            9) show_live_logs || true ;;
-            10) show_live_logs_for_service || true ;;
-            11) diagnose_menu || true ;;
-            12) install_zzbot || true ;;
-            13) update_services || true ;;
+            5) install_zzbot || true ;;
+            6) update_services || true ;;
+            7) edit_env || true ;;
+            8) init_ssl || true ;;
+            9) backup_services || true ;;
+            10) restore_services || true ;;
+            11) show_live_logs || true ;;
+            12) show_live_logs_for_service || true ;;
+            13) diagnose_menu || true ;;
             14) install_or_update_zzbot_script || true ;;
             15) uninstall_zzbot ;;
             16) invalidate_all_caches; get_installed_app_version; get_cached_services; get_cached_panels; INFO "Menu caches updated" ;;
