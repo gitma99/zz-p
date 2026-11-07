@@ -1754,19 +1754,19 @@ show_menu() {
         echo "  4) Hard Restart (recreate all)"
         echo "  5) Install ZZPanel"
         echo "  6) Update ZZPanelBot"
+        echo "  7) Uninstall ZZPanel"
         echo -e "\n=== Configuration ==="
-        echo "  7) Edit .env"
-        echo "  8) Initialize SSL (Let's Encrypt)"
+        echo "  8) Edit .env"
+        echo "  9) Initialize SSL (Let's Encrypt)"
         echo -e "\n=== Maintenance ==="
-        echo "  9) Backup Database & Files"
-        echo " 10) Restore Database & Files"
+        echo " 10) Backup Database & Files"
+        echo " 11) Restore Database & Files"
         echo -e "\n=== Diagnostics ==="
-        echo " 11) View Live Logs (all)"
-        echo " 12) View Logs (specific service)"
-        echo " 13) Run Health Check"
+        echo " 12) View Live Logs (all)"
+        echo " 13) View Logs (specific service)"
+        echo " 14) Run Health Check"
         echo -e "\n=== System ==="
-        echo " 14) Update zzbot Menu"
-        echo " 15) Uninstall ZZPanel"
+        echo " 15) Update zzbot Menu"
         echo " 16) Update Menu Cache"
         echo "  0) Exit"
         echo "========================================="
@@ -1780,15 +1780,15 @@ show_menu() {
             4) hard_restart_services || true ;;
             5) install_zzbot || true ;;
             6) update_services || true ;;
-            7) edit_env || true ;;
-            8) init_ssl || true ;;
-            9) backup_services || true ;;
-            10) restore_services || true ;;
-            11) show_live_logs || true ;;
-            12) show_live_logs_for_service || true ;;
-            13) diagnose_menu || true ;;
-            14) install_or_update_zzbot_script || true ;;
-            15) uninstall_zzbot ;;
+            7) uninstall_zzbot ;;
+            8) edit_env || true ;;
+            9) init_ssl || true ;;
+            10) backup_services || true ;;
+            11) restore_services || true ;;
+            12) show_live_logs || true ;;
+            13) show_live_logs_for_service || true ;;
+            14) diagnose_menu || true ;;
+            15) install_or_update_zzbot_script || true ;;
             16) invalidate_all_caches; get_installed_app_version; get_cached_services; get_cached_panels; INFO "Menu caches updated" ;;
             0) INFO "Exiting. Goodbye!"; exit 0 ;;
             999) get_current_script_version ;;
