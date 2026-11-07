@@ -943,8 +943,98 @@ get_current_script_version() {
     echo "$local_ver"
 }
 
+# ==== Caching Layer ====
+CACHE_DIR="${BASE_DIR}/temp/zzbot"
+
+ensure_cache_dir() {
+    mkdir -p "${CACHE_DIR}"
+}
+
+# Generic cache read with TTL
+read_cache() {
+    local file="$1" ts_file="$2" ttl="$3"
+    ensure_cache_dir
+    if [ -f "$file" ] && [ -f "$ts_file" ]; then
+        local age=$(( $(date +%s) - $(cat "$ts_file" 2>/dev/null || echo 0) ))
+        if [ "$age" -lt "$ttl" ]; then
+            cat "$file"
+            return 0
+        fi
+    fi
+    return 1
+}
+
+# Generic cache write (atomic)
+write_cache() {
+    local file="$1" content="$2"
+    ensure_cache_dir
+    printf '%s' "$content" > "${file}.tmp" && mv "${file}.tmp" "$file"
+    date +%s > "${file}_ts"
+}
+
+# Invalidate specific cache
+invalidate_cache() {
+    local base="$1"
+    rm -f "$base" "${base}_ts"
+}
+
+# Invalidate all caches
+invalidate_all_caches() {
+    invalidate_cache "${CACHE_DIR}/version"
+    invalidate_cache "${CACHE_DIR}/services"
+    invalidate_cache "${CACHE_DIR}/panels"
+}
+
+# Version cache (1h TTL)
+get_cached_version() {
+    read_cache "${CACHE_DIR}/version" "${CACHE_DIR}/version_ts" 3600
+}
+
+set_cached_version() {
+    write_cache "${CACHE_DIR}/version" "$1"
+}
+
+invalidate_version_cache() {
+    invalidate_cache "${CACHE_DIR}/version"
+}
+
+# Services cache (5min TTL)
+get_cached_services() {
+    read_cache "${CACHE_DIR}/services.json" "${CACHE_DIR}/services_ts" 300
+}
+
+set_cached_services() {
+    write_cache "${CACHE_DIR}/services.json" "$1"
+}
+
+invalidate_services_cache() {
+    invalidate_cache "${CACHE_DIR}/services"
+}
+
+# Panels cache (5min TTL)
+get_cached_panels() {
+    read_cache "${CACHE_DIR}/panels.json" "${CACHE_DIR}/panels_ts" 300
+}
+
+set_cached_panels() {
+    write_cache "${CACHE_DIR}/panels.json" "$1"
+}
+
+invalidate_panels_cache() {
+    invalidate_cache "${CACHE_DIR}/panels"
+}
+# ==== End Caching Layer ====
+
 get_installed_app_version() {
-    # 1. Query container (running or stopped) - reads VERSION file inside container
+    # 1. Try cache first (instant)
+    local cached
+    cached=$(get_cached_version)
+    if [ -n "$cached" ]; then
+        echo "$cached"
+        return 0
+    fi
+
+    # 2. Fallback: running container
     if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q '^zzpanel_app$'; then
         if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^zzpanel_app$'; then
             local container_ver
@@ -1254,6 +1344,7 @@ install_or_update_zzbot_script() {
     fi
     chmod 0755 "$tmp_file"
     mv "$tmp_file" /usr/local/bin/zzbot
+    invalidate_version_cache
     INFO "Setup script updated successfully. Reloading..."
     exec /usr/local/bin/zzbot
 }
@@ -1293,6 +1384,10 @@ install_zzbot() {
     target_ver=$(normalize_version_tag "$target_ver")
 
     INFO "Installation Started for version: $target_ver..."
+
+    invalidate_version_cache
+    invalidate_services_cache
+    invalidate_panels_cache
 
     check_and_install_tool "curl"
 
@@ -1549,6 +1644,10 @@ update_services() {
         backup_env_file .env || FATAL "Cannot back up .env before update — aborting to avoid overwriting your config."
     fi
 
+    invalidate_version_cache
+    invalidate_services_cache
+    invalidate_panels_cache
+
     download_and_extract_release "$download_url" || return 1
     set_env_app_version "$resolved_tag"
 
@@ -1579,6 +1678,10 @@ uninstall_zzbot() {
         INFO "Removing ZZPanel stack files in $BASE_DIR..."
         rm -f "$BASE_DIR/docker-compose.yml" "$BASE_DIR/docker-compose.build.yml" "$BASE_DIR/.env" "$BASE_DIR/.env.example"
         rm -rf "$BASE_DIR/docker" "$BASE_DIR/data" "$BASE_DIR/logs" "$BASE_DIR/sql" "$BASE_DIR/api" "$BASE_DIR/App" "$BASE_DIR/Templates" "$BASE_DIR/workers" "$BASE_DIR/Scripts" "$BASE_DIR/tools" "$BASE_DIR/docs"
+
+        invalidate_version_cache
+        invalidate_services_cache
+        invalidate_panels_cache
 
         INFO "Removing global zzbot binary..."
         rm -f /usr/local/bin/zzbot
@@ -1666,9 +1769,10 @@ show_menu() {
         echo " 13) Update ZZPanelBot"
         echo " 14) Update zzbot Menu"
         echo " 15) Uninstall ZZPanel"
+        echo " 16) Clear All Caches"
         echo "  0) Exit"
         echo "========================================="
-        read -r -p "Enter choice [0-15]: " CHOICE
+        read -r -p "Enter choice [0-16]: " CHOICE
         echo "========================================="
 
         case "$CHOICE" in
@@ -1687,6 +1791,7 @@ show_menu() {
             13) update_services || true ;;
             14) install_or_update_zzbot_script || true ;;
             15) uninstall_zzbot ;;
+            16) invalidate_all_caches; INFO "All caches cleared"; get_installed_app_version ;;
             0) INFO "Exiting. Goodbye!"; exit 0 ;;
             999) get_current_script_version ;;
             *) WARN "Invalid option. Please try again." ;;
