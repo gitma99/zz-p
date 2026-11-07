@@ -43,9 +43,9 @@ services:
       - ./logs/mysql:/var/log/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 60s
+      timeout: 10s
+      retries: 3
 
   phpmyadmin:
     image: phpmyadmin:5
@@ -58,9 +58,9 @@ services:
       PMA_ABSOLUTE_URI: https://${DOMAIN}/phpmyadmin/
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 60s
+      timeout: 10s
+      retries: 3
     depends_on:
       mysql:
         condition: service_healthy
