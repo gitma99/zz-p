@@ -1624,9 +1624,8 @@ update_services() {
 
     local target_ver="${1:-}"
     if [ -z "$target_ver" ]; then
-        local current_ver
-        current_ver=$(get_installed_app_version)
-        read -r -p "Enter target version to update/switch to (current: $current_ver) [default: latest]: " target_ver
+        # Prompt first (instant), fetch version in background for downgrade check
+        read -r -p "Enter target version to update/switch to [default: latest]: " target_ver
     fi
     target_ver=$(normalize_version_tag "$target_ver")
 
@@ -1638,6 +1637,9 @@ update_services() {
     local download_url="$RESOLVED_DOWNLOAD_URL"
     local resolved_tag="$RESOLVED_APP_TAG"
 
+    # Fetch current version for downgrade check (after prompt, cached if available)
+    local current_ver
+    current_ver=$(get_installed_app_version)
     confirm_downgrade_if_applicable "$resolved_tag" || return 1
 
     if [ -f .env ]; then
