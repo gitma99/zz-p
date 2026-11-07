@@ -1643,7 +1643,7 @@ show_menu() {
     app_ver=$(get_installed_app_version)
     while true; do
         echo -e "\n========================================="
-        echo -e "     ZZPanelBot Management (3.2.6)       "
+        echo -e "     ZZPanelBot Management (3.2.7)       "
         echo -e "     Installed App Version: $app_ver     "
         echo -e "========================================="
         echo -e "\n=== Service Control ==="
