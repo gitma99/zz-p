@@ -1638,9 +1638,10 @@ show_live_logs_for_service() {
 
 # Main menu CLI loop
 show_menu() {
+    # Cache version once - docker calls are slow
+    local app_ver
+    app_ver=$(get_installed_app_version)
     while true; do
-        local app_ver
-        app_ver=$(get_installed_app_version)
         echo -e "\n========================================="
         echo -e "     ZZPanelBot Management (3.2.6)       "
         echo -e "     Installed App Version: $app_ver     "
