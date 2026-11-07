@@ -19,7 +19,7 @@ if (!$config) {
     $config = json_decode($config_json, true);
     apcu_safe_set(CONFIG_CACHE_KEY, $config, CONFIG_TTL);
 }
-$config['version'] = '3.1.0';
+$config['version'] = trim(file_exists(__DIR__ . '/../VERSION') ? file_get_contents(__DIR__ . '/../VERSION') : 'UNKNOWN');
 $config['domain'] = 'https://' . $_SERVER['HTTP_HOST'] . '/' . explode('/', explode('html/', $_SERVER['SCRIPT_FILENAME'])[1])[0];
 $maintainer_telegram_id_number = $config['maintainer'];
 require_once __DIR__ . "/App/Utils/Logger.php";

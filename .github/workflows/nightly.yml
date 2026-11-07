@@ -1,0 +1,84 @@
+name: Nightly Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    name: Build & Publish Nightly
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read VERSION
+        id: version
+        run: |
+          VERSION=$(cat VERSION)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Get Short SHA
+        id: sha
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lowercase Repository Owner
+        id: string
+        run: |
+          echo "owner=${OWNER,,}" >> "$GITHUB_OUTPUT"
+        env:
+          OWNER: ${{ github.repository_owner }}
+
+      - name: Build and Push App
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ steps.string.outputs.owner }}/zzpanel-app:${{ steps.version.outputs.version }}-${{ steps.sha.outputs.sha }}
+            ghcr.io/${{ steps.string.outputs.owner }}/zzpanel-app:nightly
+          cache-from: type=registry,ref=ghcr.io/${{ steps.string.outputs.owner }}/zzpanel-app:nightly
+          cache-to: type=inline
+
+      - name: Build and Push Backup
+        uses: docker/build-push-action@v5
+        with:
+          context: ./docker/backup
+          push: true
+          tags: |
+            ghcr.io/${{ steps.string.outputs.owner }}/zzpanel-backup:${{ steps.version.outputs.version }}-${{ steps.sha.outputs.sha }}
+            ghcr.io/${{ steps.string.outputs.owner }}/zzpanel-backup:nightly
+          cache-from: type=registry,ref=ghcr.io/${{ steps.string.outputs.owner }}/zzpanel-backup:nightly
+          cache-to: type=inline
+
+      - name: Archive Setup Files
+        run: |
+          zip -r zzpanel-docker-setup.zip docker/ docker-compose.yml .env.example 2>/dev/null || zip -r zzpanel-docker-setup.zip docker/ docker-compose.yml
+
+      - name: Create GitHub Prerelease
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}-${{ steps.sha.outputs.sha }}
+          name: Nightly ${{ steps.version.outputs.version }}-${{ steps.sha.outputs.sha }}
+          prerelease: true
+          files: zzpanel-docker-setup.zip
+          generate_release_notes: true
+          token: ${{ secrets.GITHUB_TOKEN }}

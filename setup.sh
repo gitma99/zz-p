@@ -8,7 +8,7 @@ BASE_DIR="/srv"
 DOCKER_COMPOSE_CMD=(docker compose)
 GITHUB_USERNAME="gitma99"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
-VERSION="3.2.6"
+VERSION="$(cat "${CURRENT_DIR}/VERSION" 2>/dev/null || echo "UNKNOWN")"
 
 # Output coloring helper functions
 INFO() { echo -e "\e[32m[INFO]\e[0m $*"; }
@@ -927,7 +927,20 @@ extract_asset_url_from_json() {
 }
 
 get_current_script_version() {
-    echo "$VERSION"
+    # Get version from app container (copied VERSION file) or local fallback
+    if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q '^zzpanel_app$'; then
+        local container_ver
+        container_ver=$(docker exec zzpanel_app cat /var/www/html/ZZPanelBot/VERSION 2>/dev/null | tr -d '\n\r' || true)
+        if [ -n "$container_ver" ]; then
+            echo "$container_ver"
+            return 0
+        fi
+    fi
+
+    # Fallback to local VERSION file (for host-side usage)
+    local local_ver
+    local_ver=$(cat "${CURRENT_DIR}/VERSION" 2>/dev/null | tr -d '\n\r' || echo "UNKNOWN")
+    echo "$local_ver"
 }
 
 get_installed_app_version() {
@@ -1639,7 +1652,7 @@ show_menu() {
         local app_ver
         app_ver=$(get_installed_app_version)
         echo -e "\n========================================="
-        echo -e "     ZZPanelBot Management ($VERSION)    "
+        echo -e "     ZZPanelBot Management (3.2.6)       "
         echo -e "     Installed App Version: $app_ver     "
         echo -e "========================================="
         echo -e "\n=== Service Control ==="

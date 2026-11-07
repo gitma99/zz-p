@@ -1,6 +1,6 @@
 <?php
 
-$APP_VERSION = "1.5.1";
+$APP_VERSION = trim(file_exists(__DIR__ . '/../VERSION') ? file_get_contents(__DIR__ . '/../VERSION') : 'UNKNOWN');
 $LOG_DIR_PATH = realpath(__DIR__ . '/../logs') ?: (__DIR__ . '/../logs');
 $BOT_CONFIG_PATH = realpath(__DIR__ . '/../bot_config.json') ?: (__DIR__ . '/../bot_config.json');
 $TEMP_DIR_PATH = realpath(__DIR__ . '/../temp') ?: (__DIR__ . '/../temp');

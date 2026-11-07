@@ -94,9 +94,9 @@ touch "\$BASE_DIR/.env"
 set_env_app_version "v3.5.0"
 [ "\$(get_installed_app_version)" = "v3.5.0" ]
 
-# Disk fallback overrides .env
+# Disk fallback overrides .env (reads from VERSION file)
 mkdir -p "\$BASE_DIR/App"
-echo '<?php \$APP_VERSION = "3.4.0";' > "\$BASE_DIR/App/vars.php"
+echo '3.4.0' > "\$BASE_DIR/VERSION"
 [ "\$(get_installed_app_version)" = "3.4.0" ]
 
 rm -rf "\$td"

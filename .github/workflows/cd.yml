@@ -1,17 +1,17 @@
-name: CD - Build & Push Nightly
+name: CI - Build Validation
 
 on:
-  push:
+  pull_request:
     branches:
       - main
 
 permissions:
   contents: read
-  packages: write
+  packages: read
 
 jobs:
   build:
-    name: Build & Push Nightly Images
+    name: Validate Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -53,25 +53,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and Push App
+      - name: Build App (no push)
         if: steps.filter.outputs.app == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ steps.string.outputs.owner }}/zzpanel-app:nightly
+          push: false
+          tags: ghcr.io/${{ steps.string.outputs.owner }}/zzpanel-app:pr-${{ github.event.pull_request.number }}
           cache-from: type=registry,ref=ghcr.io/${{ steps.string.outputs.owner }}/zzpanel-app:nightly
-          cache-to: type=inline
 
-      - name: Build and Push Backup
+      - name: Build Backup (no push)
         if: steps.filter.outputs.backup == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./docker/backup
-          push: true
-          tags: |
-            ghcr.io/${{ steps.string.outputs.owner }}/zzpanel-backup:nightly
+          push: false
+          tags: ghcr.io/${{ steps.string.outputs.owner }}/zzpanel-backup:pr-${{ github.event.pull_request.number }}
           cache-from: type=registry,ref=ghcr.io/${{ steps.string.outputs.owner }}/zzpanel-backup:nightly
-          cache-to: type=inline
