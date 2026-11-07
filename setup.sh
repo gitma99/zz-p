@@ -964,7 +964,17 @@ get_installed_app_version() {
         fi
     fi
 
-    # 2. Query host application file if present
+    # 2. Query host VERSION file if present
+    if [ -f "$BASE_DIR/VERSION" ]; then
+        local file_ver
+        file_ver=$(cat "$BASE_DIR/VERSION" 2>/dev/null | tr -d '\n\r' || true)
+        if [ -n "$file_ver" ]; then
+            echo "$file_ver"
+            return 0
+        fi
+    fi
+
+    # 3. Query host application file if present
     if [ -f "$BASE_DIR/App/vars.php" ]; then
         local file_ver
         file_ver=$(grep -F '$APP_VERSION' "$BASE_DIR/App/vars.php" 2>/dev/null | head -n 1 | cut -d '=' -f 2 | tr -d ' ";\r\n' || true)
@@ -974,7 +984,7 @@ get_installed_app_version() {
         fi
     fi
 
-    # 3. Fallback to .env APP_VERSION
+    # 4. Fallback to .env APP_VERSION
     if [ -f "$BASE_DIR/.env" ]; then
         local ver
         ver=$(grep -E '^[[:space:]]*APP_VERSION=' "$BASE_DIR/.env" 2>/dev/null | tail -n 1 | cut -d '=' -f 2- | tr -d ' "\r' || true)
