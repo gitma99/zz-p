@@ -220,7 +220,7 @@ init_diagnose_state
 type diagnose_all >/dev/null || { echo "FAIL: diagnose_all function does not exist"; exit 1; }
 
 # Test 11: verify main menu contains 16) and [0-16]
-grep -q '16) Clear All Caches' setup.sh || { echo "FAIL: setup.sh missing 16) in menu"; exit 1; }
+grep -q '16) Update Menu Cache' setup.sh || { echo "FAIL: setup.sh missing 16) in menu"; exit 1; }
 grep -q '\[0-16\]' setup.sh || { echo "FAIL: setup.sh missing [0-16] in prompt"; exit 1; }
 
 # Test 12: export_diagnose_report redacts credentials found in .env

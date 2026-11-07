@@ -950,16 +950,13 @@ ensure_cache_dir() {
     mkdir -p "${CACHE_DIR}"
 }
 
-# Generic cache read with TTL
+# Generic cache read (no TTL - permanent until invalidated)
 read_cache() {
-    local file="$1" ts_file="$2" ttl="$3"
+    local file="$1"
     ensure_cache_dir
-    if [ -f "$file" ] && [ -f "$ts_file" ]; then
-        local age=$(( $(date +%s) - $(cat "$ts_file" 2>/dev/null || echo 0) ))
-        if [ "$age" -lt "$ttl" ]; then
-            cat "$file"
-            return 0
-        fi
+    if [ -f "$file" ]; then
+        cat "$file"
+        return 0
     fi
     return 1
 }
@@ -969,13 +966,12 @@ write_cache() {
     local file="$1" content="$2"
     ensure_cache_dir
     printf '%s' "$content" > "${file}.tmp" && mv "${file}.tmp" "$file"
-    date +%s > "${file}_ts"
 }
 
 # Invalidate specific cache
 invalidate_cache() {
     local base="$1"
-    rm -f "$base" "${base}_ts"
+    rm -f "$base"
 }
 
 # Invalidate all caches
@@ -985,9 +981,9 @@ invalidate_all_caches() {
     invalidate_cache "${CACHE_DIR}/panels"
 }
 
-# Version cache (1h TTL)
+# Version cache (permanent until invalidated)
 get_cached_version() {
-    read_cache "${CACHE_DIR}/version" "${CACHE_DIR}/version_ts" 3600
+    read_cache "${CACHE_DIR}/version"
 }
 
 set_cached_version() {
@@ -998,9 +994,9 @@ invalidate_version_cache() {
     invalidate_cache "${CACHE_DIR}/version"
 }
 
-# Services cache (5min TTL)
+# Services cache (permanent until invalidated)
 get_cached_services() {
-    read_cache "${CACHE_DIR}/services.json" "${CACHE_DIR}/services_ts" 300
+    read_cache "${CACHE_DIR}/services.json"
 }
 
 set_cached_services() {
@@ -1011,9 +1007,9 @@ invalidate_services_cache() {
     invalidate_cache "${CACHE_DIR}/services"
 }
 
-# Panels cache (5min TTL)
+# Panels cache (permanent until invalidated)
 get_cached_panels() {
-    read_cache "${CACHE_DIR}/panels.json" "${CACHE_DIR}/panels_ts" 300
+    read_cache "${CACHE_DIR}/panels.json"
 }
 
 set_cached_panels() {
@@ -1771,7 +1767,7 @@ show_menu() {
         echo " 13) Update ZZPanelBot"
         echo " 14) Update zzbot Menu"
         echo " 15) Uninstall ZZPanel"
-        echo " 16) Clear All Caches"
+        echo " 16) Update Menu Cache"
         echo "  0) Exit"
         echo "========================================="
         read -r -p "Enter choice [0-16]: " CHOICE
@@ -1793,7 +1789,7 @@ show_menu() {
             13) update_services || true ;;
             14) install_or_update_zzbot_script || true ;;
             15) uninstall_zzbot ;;
-            16) invalidate_all_caches; INFO "All caches cleared"; get_installed_app_version ;;
+            16) invalidate_all_caches; get_installed_app_version; get_cached_services; get_cached_panels; INFO "Menu caches updated" ;;
             0) INFO "Exiting. Goodbye!"; exit 0 ;;
             999) get_current_script_version ;;
             *) WARN "Invalid option. Please try again." ;;
