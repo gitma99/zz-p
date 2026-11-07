@@ -64,6 +64,7 @@ assert_eq('https://example.com/download/zzpanel-docker-setup.zip', $foundUrl, 'e
 $bashTest = <<<BASH
 set -euo pipefail
 td=$(mktemp -d)
+CURRENT_DIR="\$td"
 BASE_DIR="\$td"
 GITHUB_TOKEN=""
 
@@ -89,14 +90,14 @@ if ( confirm_downgrade_if_applicable "" ) 2>/dev/null; then exit 1; fi
 [ "\$(normalize_version_tag "3.2.0")" = "v3.2.0" ]
 [ "\$(normalize_version_tag "v3.2.0")" = "v3.2.0" ]
 
-# Env persistence
+# Env persistence - .env is no longer read by get_installed_app_version
 touch "\$BASE_DIR/.env"
 set_env_app_version "v3.5.0"
-[ "\$(get_installed_app_version)" = "v3.5.0" ]
+[ "\$(get_installed_app_version)" = "unknown" ]
 
-# Disk fallback overrides .env (reads from VERSION file)
-mkdir -p "\$BASE_DIR/App"
-echo '3.4.0' > "\$BASE_DIR/VERSION"
+# Disk fallback overrides .env (reads from VERSION file at CURRENT_DIR)
+mkdir -p "\$CURRENT_DIR"
+echo '3.4.0' > "\$CURRENT_DIR/VERSION"
 [ "\$(get_installed_app_version)" = "3.4.0" ]
 
 rm -rf "\$td"

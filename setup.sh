@@ -944,13 +944,13 @@ get_current_script_version() {
 }
 
 get_installed_app_version() {
-    # 1. Query container (running or stopped)
+    # 1. Query container (running or stopped) - reads VERSION file inside container
     if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q '^zzpanel_app$'; then
         if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^zzpanel_app$'; then
-            local live_ver
-            live_ver=$(docker exec zzpanel_app php -r 'error_reporting(0); @include_once "/var/www/html/ZZPanelBot/App/vars.php"; if (isset($APP_VERSION) && $APP_VERSION !== "") { echo $APP_VERSION; }' 2>/dev/null || true)
-            if [ -n "$live_ver" ]; then
-                echo "$live_ver"
+            local container_ver
+            container_ver=$(docker exec zzpanel_app cat /var/www/html/ZZPanelBot/VERSION 2>/dev/null | tr -d '\n\r' || true)
+            if [ -n "$container_ver" ]; then
+                echo "$container_ver"
                 return 0
             fi
         fi
@@ -964,32 +964,12 @@ get_installed_app_version() {
         fi
     fi
 
-    # 2. Query host VERSION file if present
-    if [ -f "$BASE_DIR/VERSION" ]; then
-        local file_ver
-        file_ver=$(cat "$BASE_DIR/VERSION" 2>/dev/null | tr -d '\n\r' || true)
-        if [ -n "$file_ver" ]; then
-            echo "$file_ver"
-            return 0
-        fi
-    fi
-
-    # 3. Query host application file if present
-    if [ -f "$BASE_DIR/App/vars.php" ]; then
-        local file_ver
-        file_ver=$(grep -F '$APP_VERSION' "$BASE_DIR/App/vars.php" 2>/dev/null | head -n 1 | cut -d '=' -f 2 | tr -d ' ";\r\n' || true)
-        if [ -n "$file_ver" ]; then
-            echo "$file_ver"
-            return 0
-        fi
-    fi
-
-    # 4. Fallback to .env APP_VERSION
-    if [ -f "$BASE_DIR/.env" ]; then
-        local ver
-        ver=$(grep -E '^[[:space:]]*APP_VERSION=' "$BASE_DIR/.env" 2>/dev/null | tail -n 1 | cut -d '=' -f 2- | tr -d ' "\r' || true)
-        if [ -n "$ver" ]; then
-            echo "$ver"
+    # 2. Local development - check CURRENT_DIR/VERSION (project root)
+    if [ -f "${CURRENT_DIR}/VERSION" ]; then
+        local local_ver
+        local_ver=$(cat "${CURRENT_DIR}/VERSION" 2>/dev/null | tr -d '\n\r' || true)
+        if [ -n "$local_ver" ]; then
+            echo "$local_ver"
             return 0
         fi
     fi
