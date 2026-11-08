@@ -6,8 +6,8 @@ require_once __DIR__ . "/App/Utils/request_cache.php";
 require_once __DIR__ . "/App/Utils/pure.php";
 
 define('CONFIG_CACHE_KEY', 'botpanel_config'); define('CONFIG_TTL', 300);
-define('SCHEMA_CACHE_KEY', 'botpanel_tables_exist'); define('SCHEMA_TTL', 60);
-define('MEMBER_TTL', 60);
+define('SCHEMA_CACHE_KEY', 'botpanel_tables_exist'); define('SCHEMA_TTL', 300);
+define('MEMBER_TTL', 600);
 
 date_default_timezone_set('Asia/Tehran');
 error_reporting(E_ALL ^ E_NOTICE);

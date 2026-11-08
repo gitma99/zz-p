@@ -6,7 +6,7 @@ function apcu_warn_once() {
     static $warned = false;
     if ($warned) return;
     $warned = true;
-    if (class_exists('Logger')) Logger::warning('APCu unavailable; using fallback cache');
+    if (class_exists('Logger')) Logger::warning('APCu extension unavailable; cache disabled');
 }
 
 function apcu_safe_get($k, $default = false) {
@@ -16,6 +16,7 @@ function apcu_safe_get($k, $default = false) {
     if (function_exists('apcu_fetch')) {
         $v = apcu_fetch($k, $hit);
         if ($hit) return $v;
+        return $default;   // a miss is normal; only warn when the extension itself is gone
     }
     apcu_warn_once();
     return $default;
