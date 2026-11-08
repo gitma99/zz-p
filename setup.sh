@@ -1330,34 +1330,44 @@ sys.exit(0 if safe else 1)
 PY
 }
 
-# Install the running setup script as the zzbot system command
+# Install the zzbot launcher: always downloads and runs the latest setup.sh from main
 install_zzbot_command() {
-    local self_path
-    self_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
-    if [ ! -f "$self_path" ]; then
-        WARN "Could not locate the running setup script; skipping zzbot command install."
-        return 0
+    local tmp_file
+    INFO "Installing zzbot launcher (always fetches the latest setup script)..."
+    tmp_file=$(mktemp /tmp/zzbot-launcher.XXXXXX)
+
+    if ! cat > "$tmp_file" <<'ZZBOT_LAUNCHER'
+#!/usr/bin/env bash
+# zzbot launcher - downloads and runs the latest setup.sh from main
+ZZBOT_LATEST_URL="https://raw.githubusercontent.com/gitma99/zz-p/main/setup.sh?t=$(date +%s)"
+tmp="$(mktemp /tmp/zzbot-latest.XXXXXX)"
+trap 'rm -f "$tmp"' EXIT
+if ! curl -fsSL -o "$tmp" "$ZZBOT_LATEST_URL"; then
+    echo "[ERROR] Failed to download the latest zzbot setup script. Check your internet connection and retry." >&2
+    exit 1
+fi
+exec bash "$tmp" "$@"
+ZZBOT_LAUNCHER
+    then
+        rm -f "$tmp_file"
+        WARN "Failed to write the zzbot launcher."
+        return 1
     fi
-    if install -m 0755 "$self_path" /usr/local/bin/zzbot; then
-        INFO "Installed zzbot command to /usr/local/bin/zzbot."
-    else
+
+    if ! install -m 0755 "$tmp_file" /usr/local/bin/zzbot; then
+        rm -f "$tmp_file"
         WARN "Could not install zzbot to /usr/local/bin. Add its directory to PATH or install it manually."
         return 1
     fi
+    rm -f "$tmp_file"
+    INFO "Installed zzbot command to /usr/local/bin/zzbot."
 }
 
 install_or_update_zzbot_script() {
-    INFO "Install/Updating setup script to the latest version..."
-    local tmp_file
-    tmp_file=$(mktemp /tmp/zzbot.XXXXXX)
-    if ! curl -fsSL -o "$tmp_file" https://raw.githubusercontent.com/gitma99/zz-p/main/setup.sh; then
-        rm -f "$tmp_file"
-        ERROR "Failed to download setup script." || return 1
-    fi
-    chmod 0755 "$tmp_file"
-    mv "$tmp_file" /usr/local/bin/zzbot
+    INFO "Updating the zzbot command (launcher always fetches the latest setup script)..."
+    install_zzbot_command || return 1
     invalidate_version_cache
-    INFO "Setup script updated successfully. Reloading..."
+    INFO "zzbot command updated successfully. Reloading..."
     exec /usr/local/bin/zzbot
 }
 
