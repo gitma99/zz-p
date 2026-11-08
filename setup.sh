@@ -1330,6 +1330,22 @@ sys.exit(0 if safe else 1)
 PY
 }
 
+# Install the running setup script as the zzbot system command
+install_zzbot_command() {
+    local self_path
+    self_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+    if [ ! -f "$self_path" ]; then
+        WARN "Could not locate the running setup script; skipping zzbot command install."
+        return 0
+    fi
+    if install -m 0755 "$self_path" /usr/local/bin/zzbot; then
+        INFO "Installed zzbot command to /usr/local/bin/zzbot."
+    else
+        WARN "Could not install zzbot to /usr/local/bin. Add its directory to PATH or install it manually."
+        return 1
+    fi
+}
+
 install_or_update_zzbot_script() {
     INFO "Install/Updating setup script to the latest version..."
     local tmp_file
@@ -1426,6 +1442,8 @@ install_zzbot() {
 
     INFO "Opening .env for configuration..."
     nano .env
+
+    install_zzbot_command || true
 
     # pull images to ensure they are available before starting
     INFO "Pulling Docker images for version: $resolved_tag..."
@@ -1743,7 +1761,7 @@ show_menu() {
     app_ver=$(get_installed_app_version)
     while true; do
         echo -e "\n========================================="
-        echo -e "     ZZPanelBot Management (3.2.8)       "
+        echo -e "     ZZPanelBot Management (3.2.9)       "
         echo -e "     Installed App Version: $app_ver     "
         echo -e "========================================="
         echo -e "\n=== Service Management ==="
@@ -1765,11 +1783,12 @@ show_menu() {
         echo " 13) View Logs (specific service)"
         echo " 14) Run Health Check"
         echo -e "\n=== System ==="
-        echo " 15) Update zzbot Menu"
-        echo " 16) Update Menu Cache"
+        echo " 15) Install zzbot Command"
+        echo " 16) Update zzbot Menu"
+        echo " 17) Update Menu Cache"
         echo "  0) Exit"
         echo "========================================="
-        read -r -p "Enter choice [0-16]: " CHOICE
+        read -r -p "Enter choice [0-17]: " CHOICE
         echo "========================================="
 
         case "$CHOICE" in
@@ -1787,8 +1806,9 @@ show_menu() {
             12) show_live_logs || true ;;
             13) show_live_logs_for_service || true ;;
             14) diagnose_menu || true ;;
-            15) install_or_update_zzbot_script || true ;;
-            16) invalidate_all_caches; get_installed_app_version; get_cached_services; get_cached_panels; INFO "Menu caches updated" ;;
+            15) install_zzbot_command || true ;;
+            16) install_or_update_zzbot_script || true ;;
+            17) invalidate_all_caches; get_installed_app_version; get_cached_services; get_cached_panels; INFO "Menu caches updated" ;;
             0) INFO "Exiting. Goodbye!"; exit 0 ;;
             999) get_current_script_version ;;
             *) WARN "Invalid option. Please try again." ;;
