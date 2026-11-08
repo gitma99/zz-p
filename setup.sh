@@ -1401,7 +1401,6 @@ install_zzbot() {
     fi
 
     check_prerequisites || return 1
-    install_or_update_zzbot_script || return 1
 
     INFO "Creating base directory at $BASE_DIR..."
     mkdir -p "$BASE_DIR" || FATAL "Cannot create $BASE_DIR."
