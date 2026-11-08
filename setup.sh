@@ -444,11 +444,11 @@ diagnose_web() {
         DIAG_FAIL "Apache2 is not running or syntax error in zzpanel_app."
     fi
 
-    # 2. PHP-FPM check
-    if docker exec zzpanel_app service php7.4-fpm status &>/dev/null; then
-        DIAG_PASS "PHP7.4-FPM service is active in zzpanel_app."
+    # 2. PHP-FPM check (foreground mode: no init-script state, so probe by process)
+    if docker exec zzpanel_app pgrep -f "php-fpm: master process" &>/dev/null; then
+        DIAG_PASS "PHP7.4-FPM is active in zzpanel_app."
     else
-        DIAG_FAIL "PHP7.4-FPM service is inactive or crashed in zzpanel_app."
+        DIAG_FAIL "PHP7.4-FPM is inactive or crashed in zzpanel_app."
     fi
 
     # 3. HTTP loopback test

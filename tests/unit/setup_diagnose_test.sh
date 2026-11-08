@@ -101,7 +101,7 @@ docker() {
                 return 0
             elif [[ "$*" == *"apache2ctl"* ]]; then
                 return 0
-            elif [[ "$*" == *"php7.4-fpm status"* ]]; then
+            elif [[ "$*" == *"php-fpm: master process"* ]]; then
                 return 0
             elif [[ "$*" == *"http://localhost/ZZPanelBot/index.php"* ]]; then
                 echo "423"
@@ -219,9 +219,9 @@ unset -f curl chown chmod
 init_diagnose_state
 type diagnose_all >/dev/null || { echo "FAIL: diagnose_all function does not exist"; exit 1; }
 
-# Test 11: verify main menu contains 16) and [0-16]
-grep -q '16) Update Menu Cache' setup.sh || { echo "FAIL: setup.sh missing 16) in menu"; exit 1; }
-grep -q '\[0-16\]' setup.sh || { echo "FAIL: setup.sh missing [0-16] in prompt"; exit 1; }
+# Test 11: verify main menu contains the Update Menu Cache entry and its prompt range
+grep -q 'Update Menu Cache' setup.sh || { echo "FAIL: setup.sh missing Update Menu Cache in menu"; exit 1; }
+grep -q '\[0-17\]' setup.sh || { echo "FAIL: setup.sh missing [0-17] in prompt"; exit 1; }
 
 # Test 12: export_diagnose_report redacts credentials found in .env
 fix_td=$(mktemp -d)

@@ -79,9 +79,19 @@ TEXT_MESSAGE="✅ ربات شما با موفقیت راه اندازی/ریست
 curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
     -d chat_id="${CHAT_ID}" -d text="${TEXT_MESSAGE}" -d parse_mode="html" || echo "WARNING: Failed to send Telegram startup notification"
 
-# 9. Start PHP-FPM
+# 9. Start PHP-FPM in foreground mode (no daemonize): the process keeps the
+# container's stdio, so catch_workers_output worker output reaches `docker logs`.
+# Daemonizing via `service php7.4-fpm start` resets stdio to /dev/null, which
+# silently discarded FPM and PHP worker stderr.
 echo "Starting PHP-FPM..."
-service php7.4-fpm start
+/usr/sbin/php-fpm7.4 -F &
+FPM_PID=$!
+sleep 1
+if ! kill -0 "$FPM_PID" 2>/dev/null; then
+    echo "ERROR: PHP-FPM failed to start"
+    exit 1
+fi
+echo "PHP-FPM started (pid $FPM_PID)"
 
 # 10. Start Apache in foreground
 echo "Starting Apache2..."
