@@ -65,6 +65,7 @@ function check_config_defaults() {
     $cfg = LoggerConfig::fromArray(array());
     assert($cfg->level === 'WARNING');
     assert($cfg->bufferSize === 1000);
+    assert($cfg->dedupEnabled === false);
     $h = new NullHandler();
     $h->handle(array('msg' => 'x'));
     assert(count($h->seen) === 1);
@@ -130,7 +131,7 @@ function check_telegram_handler() {
                 'body' => file_get_contents($path),
             );
         },
-        'ERROR', 3600, $state
+        'ERROR', 3600, $state, true
     );
     // INFO below min level: skipped.
     $tg->handle(array('ts' => 'x', 'level' => 'INFO', 'file' => 'f', 'line' => 1,
@@ -409,7 +410,7 @@ function check_dedup_toggle() {
     $tg_off->handle($rec);
     $tg_off->handle($rec);
     assert(!is_file($state_off));
-    // Enabled (default): second send suppressed.
+    // Enabled (explicit): second send suppressed.
     $state_on = sys_get_temp_dir() . '/logger_tg_on_' . getmypid() . '.json';
     @unlink($state_on);
     $sent = 0;
@@ -435,7 +436,7 @@ function check_dedup_toggle() {
     assert($cfg_off->dedupEnabled === false);
     putenv('LOG_TELEGRAM_DEDUP_ENABLED=maybe');
     $cfg_bad = LoggerConfig::fromArray(array());
-    assert($cfg_bad->dedupEnabled === true && count($cfg_bad->warnings) === 1);
+    assert($cfg_bad->dedupEnabled === false && count($cfg_bad->warnings) === 1);
     putenv('LOG_TELEGRAM_DEDUP_ENABLED');
     echo "dedup toggle: OK\n";
 }

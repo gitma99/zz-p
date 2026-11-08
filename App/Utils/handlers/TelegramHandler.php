@@ -7,7 +7,7 @@ class TelegramHandler implements LogHandler {
     private $stateFile;
     private $dedupEnabled;
     private static $stateCache = null;
-    public function __construct($sender, $minLevel = 'ERROR', $dedupWindowSeconds = 3600, $stateFile = '', $dedupEnabled = true) {
+    public function __construct($sender, $minLevel = 'ERROR', $dedupWindowSeconds = 3600, $stateFile = '', $dedupEnabled = false) {
         $this->sender = $sender;
         $this->minLevel = $minLevel;
         $this->dedupWindowSeconds = $dedupWindowSeconds;

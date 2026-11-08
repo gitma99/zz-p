@@ -7,7 +7,7 @@ class LoggerConfig {
     public $telegramEnabled = true;
     public $telegramMinLevel = 'ERROR';
     public $dedupWindowSeconds = 3600;
-    public $dedupEnabled = true;
+    public $dedupEnabled = false;
     public $maintainerId = null;
     public $warnings = array();
     public static function fromArray(array $cfg) {
@@ -55,7 +55,7 @@ class LoggerConfig {
         $c->dedupEnabled = self::pickBool(
             getenv('LOG_TELEGRAM_DEDUP_ENABLED'),
             isset($tg['dedup_enabled']) ? $tg['dedup_enabled'] : null,
-            true, $c->warnings, 'LOG_TELEGRAM_DEDUP_ENABLED'
+            false, $c->warnings, 'LOG_TELEGRAM_DEDUP_ENABLED'
         );
         return $c;
     }
