@@ -18,9 +18,22 @@ class TelegramHandler implements LogHandler {
         if ($apiKey === null && defined('API_KEY')) $apiKey = API_KEY;
         return function ($filePath, $fileName, $caption, $extraChatId = null) use ($maintainerId, $apiKey) {
             if (!function_exists('sendFile')) return;
-            try { sendFile($maintainerId, $filePath, $fileName, 'application/json', $apiKey, $caption); } catch (Throwable $e) {}
+            if (empty($maintainerId)) { // ponytail: log+drop; add boot-time config fail-fast later
+                error_log('Logger Telegram: maintainer id not configured, dropping alert: ' . $caption);
+                return;
+            }
+            // ponytail: stderr + spool copy; add a resend queue when egress drops are frequent
+            $spool = function (Throwable $e) use ($filePath, $fileName, $caption) {
+                $dir = sys_get_temp_dir() . '/logger_tg_spool';
+                @mkdir($dir, 0755, true);
+                @copy($filePath, $dir . '/' . $fileName);
+                error_log('Logger Telegram: send to maintainer failed: ' . $e->getMessage() . ' :: ' . $caption);
+            };
+            try { sendFile($maintainerId, $filePath, $fileName, 'application/json', $apiKey, $caption); }
+            catch (Throwable $e) { $spool($e); }
             if ($extraChatId !== null && $extraChatId != $maintainerId) {
-                try { sendFile($extraChatId, $filePath, $fileName, 'application/json', $apiKey, $caption); } catch (Throwable $e) {}
+                try { sendFile($extraChatId, $filePath, $fileName, 'application/json', $apiKey, $caption); }
+                catch (Throwable $e) { $spool($e); }
             }
         };
     }
