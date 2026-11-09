@@ -69,7 +69,18 @@ class TelegramHandler implements LogHandler {
         $lvl = $hasMb ? mb_substr($record['level'], 0, 10) : substr($record['level'], 0, 10);
         $file = $hasMb ? mb_substr($record['file'], 0, 64) : substr($record['file'], 0, 64);
         $msg = $hasMb ? mb_substr($record['msg'], 0, 200) : substr($record['msg'], 0, 200);
-        $caption = sprintf('[%s] [%s:%d] %s', $lvl, $file, $record['line'], $msg);
+        $ctx = $record['context'];
+        $userId = isset($ctx['user_id']) ? $ctx['user_id']
+            : (isset($ctx['chat_id']) ? $ctx['chat_id']
+            : (isset($ctx['report']['USER-DATA']['chat_id']) ? $ctx['report']['USER-DATA']['chat_id'] : ''));
+        $userName = isset($ctx['user_name']) ? $ctx['user_name']
+            : (isset($ctx['report']['USER-DATA']['user_name']) ? $ctx['report']['USER-DATA']['user_name'] : '');
+        $from = $userName === '' ? (string)$userId : ($userName . ' ( ' . $userId . ' )');
+        $caption = "☢Exception Report☢:\n"
+            . "⚪From: " . $from . "\n"
+            . "⚪Level: " . $lvl . "\n"
+            . "⚪Location: " . $file . ':' . $record['line'] . "\n"
+            . "⚪Message: " . $msg;
         $len = $hasMb ? mb_strlen($caption) : strlen($caption);
         if ($len > 1024) {
             $caption = $hasMb ? mb_substr($caption, 0, 1024) : substr($caption, 0, 1024);
