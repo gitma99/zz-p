@@ -1682,10 +1682,17 @@ update_services() {
     fi
     INFO "Pull completed successfully."
 
-    if hard_restart_services; then
-        INFO "Update to $resolved_tag completed successfully."
+    local reply=""
+    read -r -p "Restart services now to apply the update? (y/N): " reply || reply="n"
+    if [[ "$reply" =~ ^[Yy]$ ]]; then
+        if hard_restart_services; then
+            INFO "Update to $resolved_tag completed successfully."
+        else
+            ERROR "Update applied but hard restart failed; run Hard Restart (4) to finish."
+        fi
     else
-        ERROR "Update applied but hard restart failed; run Hard Restart (8) to finish."
+        INFO "Update downloaded, but services were NOT restarted."
+        WARN "The bot is still running the old version. Restart when ready with option (4) Hard Restart."
     fi
 }
 
@@ -1801,7 +1808,7 @@ show_menu() {
     app_ver=$(get_installed_app_version)
     while true; do
         echo -e "\n========================================="
-        echo -e "     ZZPanelBot Management (3.2.10)      "
+        echo -e "     ZZPanelBot Management (3.2.11)      "
         echo -e "     Installed App Version: $app_ver     "
         echo -e "========================================="
         echo -e "\n=== Service Management ==="
