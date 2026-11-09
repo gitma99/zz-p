@@ -51,6 +51,7 @@ services:
     image: phpmyadmin:5
     container_name: zzpanel_phpmyadmin
     restart: unless-stopped
+    profiles: ["phpmyadmin"]
     env_file: .env
     environment:
       PMA_HOST: mysql
@@ -80,8 +81,6 @@ services:
       - ./logs/nginx:/var/log/nginx
     depends_on:
       app:
-        condition: service_healthy
-      phpmyadmin:
         condition: service_healthy
 
   certbot:
