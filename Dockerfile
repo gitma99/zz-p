@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     unzip \
     cron \
+    nano \
     && rm -rf /var/lib/apt/lists/*
 
 # Enable Apache modules
