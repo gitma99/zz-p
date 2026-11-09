@@ -3627,5 +3627,5 @@ try {
         ]
     ];
     Logger::error('Fatal exception', array('report' => $report), false);
-    sendMessage($from_id, $texts['error_encounter_msg']);
+    sendMessage($from_id, $texts['error_encounter_msg'], json_encode(['keyboard' => [[['text' => $texts['back_to_menu_button']]]], 'resize_keyboard' => true]));
 }
