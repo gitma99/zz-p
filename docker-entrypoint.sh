@@ -93,6 +93,18 @@ if ! kill -0 "$FPM_PID" 2>/dev/null; then
 fi
 echo "PHP-FPM started (pid $FPM_PID)"
 
+# Gate Apache access log on LOG_LEVEL: keep request logging only for INFO/DEBUG
+APACHE_SITE_CONF="${APACHE_SITE_CONF:-/etc/apache2/sites-available/000-default.conf}"
+case "$(echo "${LOG_LEVEL:-WARNING}" | tr '[:lower:]' '[:upper:]')" in
+    INFO|DEBUG)
+        echo "Apache access logging ENABLED (LOG_LEVEL=${LOG_LEVEL})"
+        ;;
+    *)
+        sed -i 's|^    CustomLog .*|    CustomLog /dev/null combined|' "$APACHE_SITE_CONF"
+        echo "Apache access logging DISABLED (LOG_LEVEL=${LOG_LEVEL})"
+        ;;
+esac
+
 # 10. Start Apache in foreground
 echo "Starting Apache2..."
 # Clear pid file if exists
