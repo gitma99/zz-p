@@ -1634,7 +1634,7 @@ soft_restart_services() {
 hard_restart_services() {
     require_installed || return 1
     INFO "Hard restarting services (down + up)..."
-    if run_compose_with_login down && run_compose_with_login up -d; then
+    if run_compose_with_login --profile phpmyadmin down && run_compose_with_login up -d; then
         INFO "Services hard-restarted."
     else
         ERROR "Hard restart failed. Check logs with option (13)." || return 1
@@ -1764,6 +1764,36 @@ show_live_logs_for_service() {
     fi
 }
 
+# 18. Start phpMyAdmin (profile-gated service)
+start_phpmyadmin() {
+    require_installed || return 1
+    if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^zzpanel_phpmyadmin$'; then
+        INFO "phpMyAdmin is already running."
+        return 0
+    fi
+    INFO "Starting phpMyAdmin (profile: phpmyadmin)..."
+    if run_compose_with_login --profile phpmyadmin up -d phpmyadmin; then
+        INFO "phpMyAdmin started."
+    else
+        ERROR "Failed to start phpMyAdmin."
+    fi
+}
+
+# 19. Stop phpMyAdmin (profile-gated service)
+stop_phpmyadmin() {
+    require_installed || return 1
+    if ! docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q '^zzpanel_phpmyadmin$'; then
+        INFO "phpMyAdmin is not running."
+        return 0
+    fi
+    INFO "Stopping phpMyAdmin..."
+    if run_compose_with_login --profile phpmyadmin down phpmyadmin; then
+        INFO "phpMyAdmin stopped."
+    else
+        ERROR "Failed to stop phpMyAdmin."
+    fi
+}
+
 # Main menu CLI loop
 show_menu() {
     # Cache version once - docker calls are slow
@@ -1792,13 +1822,16 @@ show_menu() {
         echo " 12) View Live Logs (all)"
         echo " 13) View Logs (specific service)"
         echo " 14) Run Health Check"
+        echo -e "\n=== Database Tools ==="
+        echo " 18) Start phpMyAdmin"
+        echo " 19) Stop phpMyAdmin"
         echo -e "\n=== System ==="
         echo " 15) Install zzbot Command"
         echo " 16) Update zzbot Menu"
         echo " 17) Update Menu Cache"
         echo "  0) Exit"
         echo "========================================="
-        read -r -p "Enter choice [0-17]: " CHOICE
+        read -r -p "Enter choice [0-19]: " CHOICE
         echo "========================================="
 
         case "$CHOICE" in
@@ -1819,6 +1852,8 @@ show_menu() {
             15) install_zzbot_command || true ;;
             16) install_or_update_zzbot_script || true ;;
             17) invalidate_all_caches; get_installed_app_version; get_cached_services; get_cached_panels; INFO "Menu caches updated" ;;
+            18) start_phpmyadmin || true ;;
+            19) stop_phpmyadmin || true ;;
             0) INFO "Exiting. Goodbye!"; exit 0 ;;
             999) get_current_script_version ;;
             *) WARN "Invalid option. Please try again." ;;

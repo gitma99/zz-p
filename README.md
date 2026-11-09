@@ -56,6 +56,10 @@ zzbot
 * **13) View Logs (specific service)**: مشاهده لاگ‌های زنده یک سرویس خاص (مانند `app`, `nginx`, یا `backup`).
 * **14) Run Health Check**: عیب‌یابی و بررسی سلامت کلی ربات و سرور.
 
+**Database Tools**
+* **18) Start phpMyAdmin**: راه‌اندازی phpMyAdmin (با پروفایل `phpmyadmin`).
+* **19) Stop phpMyAdmin**: توقف phpMyAdmin.
+
 **System**
 * **15) Install zzbot Command**: نصب یا نصب مجدد دستور سراسری `zzbot` در `/usr/local/bin` (مثلاً اگر در حین نصب ثبت نشده باشد).
 * **16) Update zzbot Menu**: نصب یا به‌روزرسانی منوی مدیریت `zzbot` از آخرین نسخه موجود در ریپازیتوری.
@@ -205,6 +209,17 @@ cp .env.example .env
 docker compose pull app
 docker compose up -d app
 ```
+
+## مدیریت phpMyAdmin
+
+phpMyAdmin به صورت پیش‌فرض اجرا نمی‌شود و با پروفایل `phpmyadmin` در Docker Compose قرار دارد. برای دسترسی به آن:
+
+```bash
+cd /srv && docker compose --profile phpmyadmin up -d phpmyadmin   # راه‌اندازی
+cd /srv && docker compose --profile phpmyadmin down phpmyadmin    # توقف
+```
+
+دسترسی: `https://yourdomain.com/phpmyadmin/`
 
 ## بکاپ خودکار
 
