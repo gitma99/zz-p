@@ -125,10 +125,12 @@ function check_telegram_handler() {
     $state = sys_get_temp_dir() . '/logger_tg_' . getmypid() . '.json';
     @unlink($state);
     $tg = new TelegramHandler(
-        function ($path, $name, $caption) use (&$sent) {
+        function () use (&$sent) {
+            $args = func_get_args();
             $sent[] = array(
-                'path' => $path, 'name' => $name, 'caption' => $caption,
-                'body' => file_get_contents($path),
+                'path' => $args[0], 'name' => $args[1], 'caption' => $args[2],
+                'reply_markup' => isset($args[4]) ? $args[4] : null,
+                'body' => file_get_contents($args[0]),
             );
         },
         'ERROR', 3600, $state, true
@@ -154,6 +156,10 @@ function check_telegram_handler() {
         'msg' => str_repeat('x', 5000), 'context' => array('chat_id' => 8), 'trace' => null));
     assert(count($sent) === 2);
     assert(strlen($sent[1]['caption']) <= 1024);
+    // User chat deep link button attached when user/chat id is numeric.
+    $mk = json_decode($sent[0]['reply_markup'], true);
+    assert($mk['inline_keyboard'][0][0]['url'] === 'tg://user?id=7');
+    assert(strpos($sent[0]['caption'], '<code>7</code>') !== false);
     // Missing sendFile(): silent no-op, never fatal.
     $noop = TelegramHandler::defaultSender(null);
     $noop(sys_get_temp_dir(), 'err-test.json', 'hello');

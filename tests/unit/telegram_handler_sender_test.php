@@ -5,9 +5,9 @@ require_once __DIR__ . '/../../App/Utils/handlers/TelegramHandler.php';
 
 $GLOBALS['sendFile_calls'] = [];
 $GLOBALS['sendFile_throw'] = null;
-function sendFile($chat_id, $file_path, $file_name, $mime_type, $api_key = null, $caption = null) {
+function sendFile($chat_id, $file_path, $file_name, $mime_type, $api_key = null, $caption = null, $reply_markup = null) {
     global $sendFile_calls, $sendFile_throw;
-    $sendFile_calls[] = ['chat_id' => $chat_id, 'file_name' => $file_name];
+    $sendFile_calls[] = ['chat_id' => $chat_id, 'file_name' => $file_name, 'caption' => $caption, 'reply_markup' => $reply_markup];
     if ($sendFile_throw !== null) throw $sendFile_throw;
     return ['ok' => true];
 }
@@ -67,6 +67,28 @@ TelegramHandler::defaultSender('111', 'k')($tmp, 'extrafail.json', '[ERROR] extr
 assert_eq($spooledBefore + 1, count(glob($spoolDir . '/*') ?: []), 'Extra recipient failure spooled once');
 assert_eq(2, count($sendFile_calls), 'Extra recipient still attempted after maintainer failure');
 @unlink($tmp);
+
+// 6. User id in caption is wrapped in <code> (tap-to-copy) and an inline open-chat button is attached
+reset_sender_state();
+$sender = TelegramHandler::defaultSender('123', 'k');
+$h = new TelegramHandler($sender, 'ERROR', 3600, sys_get_temp_dir() . '/logger_tg_dedup_t6.json', false);
+$h->handle(['level' => 'ERROR', 'msg' => 'boom', 'file' => 'index.php', 'line' => 42, 'context' => ['chat_id' => 987654321, 'user_name' => 'Ali']]);
+assert_eq(1, count($sendFile_calls), 'sendFile called with user record');
+$call = $sendFile_calls[0];
+assert_true(strpos($call['caption'], '<code>987654321</code>') !== false, 'User id wrapped in <code> for tap-to-copy');
+$markup = json_decode($call['reply_markup'], true);
+assert_eq('tg://user?id=987654321', $markup['inline_keyboard'][0][0]['url'], 'Inline button deep-links to user chat');
+@unlink(sys_get_temp_dir() . '/logger_tg_dedup_t6.json');
+
+// 7. No user id in record: no inline keyboard attached
+reset_sender_state();
+$sender = TelegramHandler::defaultSender('123', 'k');
+$h = new TelegramHandler($sender, 'ERROR', 3600, sys_get_temp_dir() . '/logger_tg_dedup_t7.json', false);
+$h->handle(['level' => 'ERROR', 'msg' => 'no user', 'file' => 'index.php', 'line' => 42, 'context' => []]);
+assert_eq(1, count($sendFile_calls), 'sendFile called without user record');
+assert_eq(null, $sendFile_calls[0]['reply_markup'], 'No inline keyboard when user id absent');
+assert_true(strpos($sendFile_calls[0]['caption'], '<code>') === false, 'No <code> id when absent');
+@unlink(sys_get_temp_dir() . '/logger_tg_dedup_t7.json');
 
 // cleanup
 array_map('unlink', glob($spoolDir . '/*') ?: []);

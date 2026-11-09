@@ -1,13 +1,17 @@
 <?php
 require_once __DIR__ . '/../utils/api_utils.php';
 
-function sendFile($chat_id, $file_path, $file_name, $mime_type, $api_key = API_KEY, $caption = null)
+function sendFile($chat_id, $file_path, $file_name, $mime_type, $api_key = API_KEY, $caption = null, $reply_markup = null)
 {
     $params = [
         'chat_id' => $chat_id,
         'document' => new CURLFile($file_path, $mime_type, $file_name)
     ];
-    if ($caption !== null && $caption !== '') $params['caption'] = $caption;
+    if ($caption !== null && $caption !== '') {
+        $params['caption'] = $caption;
+        $params['parse_mode'] = 'html';
+    }
+    if ($reply_markup !== null && $reply_markup !== '') $params['reply_markup'] = $reply_markup;
     $bot_reply = bot('sendDocument', $params, $api_key);
     if ($bot_reply["ok"] == false) {
         Logger::warning('sendFile failed', array('chat_id' => $chat_id, 'file' => $file_name, 'error' => isset($bot_reply['description']) ? $bot_reply['description'] : json_encode($bot_reply)));

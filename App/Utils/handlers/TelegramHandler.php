@@ -16,7 +16,7 @@ class TelegramHandler implements LogHandler {
     }
     public static function defaultSender($maintainerId, $apiKey = null) {
         if ($apiKey === null && defined('API_KEY')) $apiKey = API_KEY;
-        return function ($filePath, $fileName, $caption, $extraChatId = null) use ($maintainerId, $apiKey) {
+        return function ($filePath, $fileName, $caption, $extraChatId = null, $replyMarkup = null) use ($maintainerId, $apiKey) {
             if (!function_exists('sendFile')) return;
             if (empty($maintainerId)) { // ponytail: log+drop; add boot-time config fail-fast later
                 error_log('Logger Telegram: maintainer id not configured, dropping alert: ' . $caption);
@@ -29,10 +29,10 @@ class TelegramHandler implements LogHandler {
                 @copy($filePath, $dir . '/' . $fileName);
                 error_log('Logger Telegram: send to maintainer failed: ' . $e->getMessage() . ' :: ' . $caption);
             };
-            try { sendFile($maintainerId, $filePath, $fileName, 'application/json', $apiKey, $caption); }
+            try { sendFile($maintainerId, $filePath, $fileName, 'application/json', $apiKey, $caption, $replyMarkup); }
             catch (Throwable $e) { $spool($e); }
             if ($extraChatId !== null && $extraChatId != $maintainerId) {
-                try { sendFile($extraChatId, $filePath, $fileName, 'application/json', $apiKey, $caption); }
+                try { sendFile($extraChatId, $filePath, $fileName, 'application/json', $apiKey, $caption, $replyMarkup); }
                 catch (Throwable $e) { $spool($e); }
             }
         };
@@ -75,12 +75,15 @@ class TelegramHandler implements LogHandler {
             : (isset($ctx['report']['USER-DATA']['chat_id']) ? $ctx['report']['USER-DATA']['chat_id'] : ''));
         $userName = isset($ctx['user_name']) ? $ctx['user_name']
             : (isset($ctx['report']['USER-DATA']['user_name']) ? $ctx['report']['USER-DATA']['user_name'] : '');
-        $from = $userName === '' ? (string)$userId : ($userName . ' ( ' . $userId . ' )');
+        $esc = function ($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); };
+        // <code> = tap-to-copy (HTML parse mode equivalent of markdown backticks)
+        $userIdHtml = $userId !== '' && $userId !== null ? '<code>' . $esc($userId) . '</code>' : '';
+        $from = $userName === '' ? $userIdHtml : ($esc($userName) . ' ( ' . $userIdHtml . ' )');
         $caption = "☢Exception Report☢:\n"
             . "⚪From: " . $from . "\n"
-            . "⚪Level: " . $lvl . "\n"
-            . "⚪Location: " . $file . ':' . $record['line'] . "\n"
-            . "⚪Message: " . $msg;
+            . "⚪Level: " . $esc($lvl) . "\n"
+            . "⚪Location: " . $esc($file) . ':' . $esc($record['line']) . "\n"
+            . "⚪Message: " . $esc($msg);
         $len = $hasMb ? mb_strlen($caption) : strlen($caption);
         if ($len > 1024) {
             $caption = $hasMb ? mb_substr($caption, 0, 1024) : substr($caption, 0, 1024);
@@ -90,7 +93,16 @@ class TelegramHandler implements LogHandler {
         if (isset($record['context']['source']) && $record['context']['source'] === 'testmenu' && isset($record['context']['chat_id'])) {
             $extraChatId = $record['context']['chat_id'];
         }
-        try { $sender($path, $name, $caption, $extraChatId); } catch (Throwable $e) {}
+        // Inline "open chat" button: tg:// deep link to the numeric user id
+        $replyMarkup = null;
+        if ($userId !== '' && $userId !== null && ctype_digit((string)$userId)) {
+            $replyMarkup = json_encode([
+                'inline_keyboard' => [
+                    [['text' => '🔗 باز کردن گفتگوی کاربر', 'url' => 'tg://user?id=' . $userId]]
+                ]
+            ]);
+        }
+        try { $sender($path, $name, $caption, $extraChatId, $replyMarkup); } catch (Throwable $e) {}
         @unlink($path);
     }
 }
