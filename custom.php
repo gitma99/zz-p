@@ -429,7 +429,7 @@ function renewal_service($text, $from_id)
             delete_temp_file($file_name);
         }
         db_exec($sql, "DELETE FROM `service_factors` WHERE `from_id` = ?", "s", array($from_id));
-        Logger::info('renewal cancelled', array('from_id' => $from_id));
+        Logger::info('renewal_cancelled', array('from_id' => $from_id));
         sendMessage($from_id, sprintf($texts['start'], $first_name), $start_key);
     }
 }

@@ -105,8 +105,8 @@ Call sites:
 
 Duplicate-tap guard key `renewal_lock_<from_id>` (120s, APCu only, no file fallback):
 - Set atomically when the renewal confirm tap is accepted: `apcu_safe_add($lock_key, 1, 120)` (`custom.php:407-408`); a contended tap (returns `false`) gets the `wait` text and returns (`custom.php:409-411`).
-- Released in `finally` after `renewal_confirm($from_id)` on every exit path (`custom.php:413-419`); the 120s TTL (the request execution cap) is the backstop if the process dies before `finally` runs.
-- Fail-open: `apcu_safe_add` returns `null` when ext-apcu is absent (`App/Utils/apcu_tools.php:36-45`); `null !== false`, so without the extension the tap is unguarded and the renewal proceeds without the duplicate-tap lock.
+- Released in `finally` after `renewal_confirm($from_id)` on every exit path (`custom.php:413-419`); the 120s TTL (the `set_time_limit(120)` request cap in `index.php`) is the backstop if the process dies before `finally` runs.
+- Fail-open: `apcu_safe_add` returns `null` when ext-apcu is absent (`App/Utils/apcu_tools.php:36-45`); `null !== false`, so without the extension the tap is unguarded and the renewal proceeds without the duplicate-tap lock. Without ext-apcu the double-tap guard is absent entirely, and a true concurrent double-tap is then only limited by the renewal transaction (which prevents over-deduction but does not stop a second PUT+charge).
 - The usage reset no longer lives inside `marzban_renewal_api()`: it is a separate best-effort `marzban_reset_user_usage()` call after the PUT (`App/apis/marzban-api/api.php:98`, `App/functions/renewal_confirm.php:100-103`). A reset failure is logged as `renewal_reset_failed` and does not block persist or delivery.
 
 Invalidation: explicit `delete_temp_file` at flow ends above, explicit `apcu_safe_del` for `renewal_lock_<from_id>` above; no global clear; APCu entries otherwise expire after their TTLs (86400s / 120s).

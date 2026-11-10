@@ -32,17 +32,17 @@ function renewal_confirm($from_id)
         // 3. The order exists, is marzban, and is on the panel the user chose.
         $order = db_row($sql, "SELECT * FROM `orders` WHERE `code` = ? AND `from_id` = ? LIMIT 1", "ss", array($code_base, $from_id));
         if (!$order) {
-            Logger::error('renewal_order_missing', array('from_id' => $from_id, 'code' => $code_base));
+            Logger::error('renewal_order_missing', array('from_id' => $from_id, 'code' => $code_base, 'plan' => $plan, 'price' => $price));
             sendMessage($from_id, sprintf($texts['renew_error'], 2), $start_key);
             return;
         }
         if ($order['type'] !== 'marzban') {
-            Logger::error('renewal_not_marzban', array('from_id' => $from_id, 'code' => $code_base, 'type' => $order['type']));
+            Logger::error('renewal_not_marzban', array('from_id' => $from_id, 'code' => $code_base, 'type' => $order['type'], 'plan' => $plan, 'price' => $price));
             sendMessage($from_id, sprintf($texts['renew_error'], 2), $start_key);
             return;
         }
         if ($location !== $order['location']) {
-            Logger::error('renewal_panel_mismatch', array('from_id' => $from_id, 'code' => $code_base, 'state' => $location, 'order' => $order['location']));
+            Logger::error('renewal_panel_mismatch', array('from_id' => $from_id, 'code' => $code_base, 'state' => $location, 'order' => $order['location'], 'plan' => $plan, 'price' => $price));
             sendMessage($from_id, sprintf($texts['renew_error'], 2), $start_key);
             return;
         }
@@ -50,7 +50,7 @@ function renewal_confirm($from_id)
         // 4. Plan and panel must exist and be marzban.
         $plan_row = db_row($sql, "SELECT * FROM `category` WHERE `name` = ? LIMIT 1", "s", array($plan));
         if (!$plan_row) {
-            Logger::error('renewal_plan_missing', array('from_id' => $from_id, 'code' => $code_base, 'plan' => $plan));
+            Logger::error('renewal_plan_missing', array('from_id' => $from_id, 'code' => $code_base, 'plan' => $plan, 'price' => $price));
             sendMessage($from_id, sprintf($texts['renew_error'], 0), $start_key);
             return;
         }
@@ -58,7 +58,7 @@ function renewal_confirm($from_id)
         $date = $plan_row['date'];
         $panel = db_row($sql, "SELECT * FROM `panels` WHERE `name` = ? LIMIT 1", "s", array($location));
         if (!$panel) {
-            Logger::error('renewal_panel_missing', array('from_id' => $from_id, 'code' => $code_base, 'location' => $location));
+            Logger::error('renewal_panel_missing', array('from_id' => $from_id, 'code' => $code_base, 'location' => $location, 'plan' => $plan, 'price' => $price));
             sendMessage($from_id, sprintf($texts['renew_error'], 2), $start_key);
             return;
         }
@@ -75,7 +75,7 @@ function renewal_confirm($from_id)
         }
         $token = get_marzban_panel_token($panel['name']);
         if ($token === false) {
-            Logger::error('renewal_token_failed', array('from_id' => $from_id, 'code' => $code_base, 'location' => $location));
+            Logger::error('renewal_token_failed', array('from_id' => $from_id, 'code' => $code_base, 'location' => $location, 'plan' => $plan, 'price' => $price));
             sendMessage($from_id, $my_texts['error_show_service__token_is_incorrect'], $start_key);
             return;
         }
@@ -83,7 +83,7 @@ function renewal_confirm($from_id)
         // 6. The PUT is the source of truth: accepted means renewed.
         $res = marzban_renewal_api($code, convertToBytes($limit . 'GB'), strtotime("+ $date day"), $token, $panel['login_link']);
         if (empty($res['ok'])) {
-            Logger::error('renewal_api_failed', array('from_id' => $from_id, 'code' => $code_base, 'location' => $location, 'error' => isset($res['error']) ? $res['error'] : null));
+            Logger::error('renewal_api_failed', array('from_id' => $from_id, 'code' => $code_base, 'location' => $location, 'plan' => $plan, 'price' => $price, 'error' => isset($res['error']) ? $res['error'] : null));
             sendMessage($from_id, sprintf($texts['renew_error'], 1), $start_key);
             return;
         }
@@ -118,7 +118,7 @@ function renewal_confirm($from_id)
             $sql->commit();
         } catch (\Throwable $e) {
             $sql->rollback();
-            Logger::error('renewal_persist_failed', array('from_id' => $from_id, 'code' => $code_base, 'location' => $location, 'price' => $price, 'error' => $e->getMessage()));
+            Logger::error('renewal_persist_failed', array('from_id' => $from_id, 'code' => $code_base, 'location' => $location, 'plan' => $plan, 'price' => $price, 'error' => $e->getMessage()));
             sendMessage($from_id, sprintf($texts['renew_persist_failed'], $code_base), $start_key);
             return;
         }
@@ -141,9 +141,11 @@ function renewal_confirm($from_id)
         $caption_text = sprintf($texts[$key], $code, $location, $date, $limit, number_format($price), '', '@' . $bot_username);
         $message_text = sprintf($texts[$key], $code_base, $location, $date, $limit, number_format($price), $subscribe, '@' . $bot_username);
         try {
-            sendSuccessResponse($from_id, $panel['qr_code'], $subscribe, $caption_text, $message_text, $start_key);
+            // Empty subscribe URL: no QR payload exists, so skip the QR-photo flow straight to text.
+            $qr_status = $subscribe === '' ? 'inactive' : $panel['qr_code'];
+            sendSuccessResponse($from_id, $qr_status, $subscribe, $caption_text, $message_text, $start_key);
         } catch (\Throwable $e) {
-            Logger::error('renewal_delivery_failed', array('from_id' => $from_id, 'code' => $code_base, 'location' => $location, 'error' => $e->getMessage()));
+            Logger::error('renewal_delivery_failed', array('from_id' => $from_id, 'code' => $code_base, 'location' => $location, 'plan' => $plan, 'price' => $price, 'error' => $e->getMessage()));
             sendMessage($from_id, $texts['qr_unavailable_hint'], $start_key);
         }
     } catch (\Throwable $e) {

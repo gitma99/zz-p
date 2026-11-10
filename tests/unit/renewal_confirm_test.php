@@ -320,7 +320,7 @@ case_setup();
 $GLOBALS['renewal_api_result'] = array('ok' => true, 'body' => array('username' => 'svc_7'), 'error' => null);
 renewal_confirm(7);
 assert_eq(1, count(dlv()), 'case11: delivered anyway');
-assert_eq('active', dlv()[0]['qr_status'], 'case11: qr status passed');
+assert_eq('inactive', dlv()[0]['qr_status'], 'case11: empty sub URL => inactive (skip QR-photo flow)');
 assert_eq('', dlv()[0]['qr_data'], 'case11: empty subscribe URL');
 assert_eq('CC svc_7|srv1|30|100|5,000||@zzbot', dlv()[0]['caption'], 'case11: caption without sub URL');
 $coin_exec = null;
