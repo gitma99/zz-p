@@ -33,6 +33,17 @@ function apcu_safe_set($k, $v, $ttl = 0) {
     return false;
 }
 
+function apcu_safe_add($k, $v, $ttl = 0) {
+    if (!is_string($k) || $k === '') {
+        throw new InvalidArgumentException("apcu_safe_add: key must be a non-empty string");
+    }
+    if (function_exists('apcu_add')) {
+        return apcu_add($k, $v, $ttl);
+    }
+    apcu_warn_once();
+    return null;
+}
+
 function apcu_safe_del($k) {
     if (!is_string($k) || $k === '') {
         throw new InvalidArgumentException("apcu_safe_del: key must be a non-empty string");
