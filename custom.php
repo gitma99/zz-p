@@ -3,6 +3,7 @@ $my_texts = $texts;
 require_once __DIR__ . "/App/vars.php";
 require_once __DIR__ . "/App/Utils/db_tools.php";
 require_once __DIR__ . "/App/Utils/pure.php";
+require_once __DIR__ . "/App/functions/renewal_confirm.php";
 
 $BOT_CONFIG = json_decode(file_get_contents($BOT_CONFIG_PATH), true);
 function get_users_usage($user_id)
@@ -275,46 +276,73 @@ function renewal_service($text, $from_id)
         $_renewal_keyboard = json_encode(['keyboard' => $_renewal_keyboard_keys, 'resize_keyboard' => true]);
         sendMessage($from_id, $my_texts['renewal_service_config_name'], $_renewal_keyboard);
     } elseif ($user['step'] == 'renewal_service_get_service_name') {
-        $config_base_name = $text;
-        $config_name = $config_base_name . '_' . $from_id;
-        // deleteMessage($from_id, $message_id);
-        $old_config_location = $sql->query("SELECT `location` FROM `orders` WHERE `code` = '$config_base_name' AND `from_id` = '$from_id'")->fetch_assoc();
-        // $old_config_location = $sql->query("SELECT `location` FROM `orders` WHERE `code` = '$config_base_name'");
+        $config_base_name = trim((string) $text);
+        if ($config_base_name === '') {
+            $_renewal_keyboard = json_encode(['keyboard' => [[['text' => "⬅️ بازگشت به صفحه اصلی"]]], 'resize_keyboard' => true]);
+            sendMessage($from_id, $my_texts['renewal_service_config_name'], $_renewal_keyboard);
+            return;
+        }
 
-        if (isset($old_config_location)) {
-            sendMessage($from_id, $my_texts['renewal_service_config_found'],);
-            $user_array = array(
-                'config_base_name' => $config_base_name,
-                'config_name' => $config_name,
-                'old_server' => $old_config_location['location']
-            );
-            write_renewal_json($from_id, $user_array);
-            $server_rows = get_active_panels();
-            if (count($server_rows) > 0) {
-                if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0)
-                    $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
-                foreach ($server_rows as $row) {
-                    $location[] = ['text' => $row['name']];
-                }
-                $location = array_chunk($location, 2);
-                $location[] = [['text' => '🔙 بازگشت']];
-                $location = json_encode(['keyboard' => $location, 'resize_keyboard' => true]);
-                step('renewal_service_choose_server');
-                sendMessage($from_id, $my_texts['renewal_service_server_selection'], $location);
-            } else {
-                sendMessage($from_id, $texts['inactive_buy_service'], $start_key);
-            }
-        } else {
+        $order = db_row($sql, "SELECT `location`, `type` FROM `orders` WHERE `code` = ? AND `from_id` = ? LIMIT 1", "ss", array($config_base_name, $from_id));
+        if (!$order) {
             step('renewal_service_get_service_name');
             sendMessage($from_id, $my_texts['renewal_service_config_not_found']);
+            return;
         }
+        if (isset($order['type']) && $order['type'] !== 'marzban') {
+            Logger::warning('renewal rejected: order is not marzban', array('from_id' => $from_id, 'code' => $config_base_name, 'type' => $order['type']));
+            step('none');
+            sendMessage($from_id, sprintf($texts['renew_error'], 2), $start_key);
+            return;
+        }
+
+        sendMessage($from_id, $my_texts['renewal_service_config_found']);
+        write_renewal_json($from_id, array(
+            'config_base_name' => $config_base_name,
+            'config_name' => $config_base_name . '_' . $from_id,
+            'old_server' => $order['location']
+        ));
+
+        // Only the panel that actually hosts the service can be renewed;
+        // a real move would have to create the user on the target first.
+        $servers = json_encode(['keyboard' => [
+            [['text' => $order['location']]],
+            [['text' => '🔙 بازگشت']]
+        ], 'resize_keyboard' => true]);
+        step('renewal_service_choose_server');
+        sendMessage($from_id, $my_texts['renewal_service_server_selection'], $servers);
     } elseif ($user['step'] == 'renewal_service_choose_server') {
         $renewal_data = read_renewal_json($from_id);
+        if (!is_array($renewal_data) || empty($renewal_data['old_server'])) {
+            Logger::warning('renewal state missing at choose_server', array('from_id' => $from_id));
+            step('none');
+            sendMessage($from_id, $my_texts['renewal_service_config_not_found'], $start_key);
+            return;
+        }
+        if ($text === '🔙 بازگشت') {
+            step('renewal_service_get_service_name');
+            $_renewal_keyboard = json_encode(['keyboard' => [[['text' => "⬅️ بازگشت به صفحه اصلی"]]], 'resize_keyboard' => true]);
+            sendMessage($from_id, $my_texts['renewal_service_config_name'], $_renewal_keyboard);
+            exit(0); // handled here, so index.php's later back handler cannot reset it
+        }
+        if ($text !== $renewal_data['old_server']) {
+            $servers = json_encode(['keyboard' => [
+                [['text' => $renewal_data['old_server']]],
+                [['text' => '🔙 بازگشت']]
+            ], 'resize_keyboard' => true]);
+            sendMessage($from_id, $texts['choice_error'] . "\n\n" . $my_texts['renewal_service_server_selection'], $servers);
+            return;
+        }
         $renewal_data['new_server'] = $text;
-
         write_renewal_json($from_id, $renewal_data);
 
         $plan_rows = get_active_categories();
+        if (count($plan_rows) === 0) {
+            step('none');
+            sendMessage($from_id, $texts['inactive_buy_service'], $start_key);
+            return;
+        }
+        $plan = array();
         foreach ($plan_rows as $row) {
             $plan[] = ['text' => $row['name']];
         }
@@ -324,139 +352,84 @@ function renewal_service($text, $from_id)
         step('renewal_service_select_plan');
         sendMessage($from_id, $texts['select_plan'], $plan);
     } elseif ($user['step'] == 'renewal_service_select_plan') {
-        $plan_name = $text;
+        $plan_name = trim((string) $text);
         $renewal_data = read_renewal_json($from_id);
-        $renewal_data['new_plan'] = $plan_name;
-        $plan_details_sql_response = $sql->query("SELECT `name` FROM `category` WHERE `name` = '$plan_name'")->num_rows;
-
-        if ($plan_details_sql_response > 0) {
-            step('renewal_service_confirm_service');
-            sendMessage($from_id, $texts['create_factor'], $confirm_service);
-            $location = $renewal_data['new_server'];
-            $plan = $plan_name;
-            $code = $renewal_data['config_name'];
-            $code_base = $renewal_data['config_base_name'];
-
-
-            $panel = get_panel_by_name($location);
-
-            // $getUser = getUserInfo($code, $panel['token'], $panel['login_link']);
-
-
-            $fetch = $sql->query("SELECT * FROM `category` WHERE `name` = '$plan_name'")->fetch_assoc();
-
-
-            $price = $fetch['price'] ?? 0;
-            if ($user['coin'] < $price) {
-                step('none');
-                sendMessage($from_id, sprintf($texts['not_coin'], number_format($price)), $start_key);
-                exit(0);
-            }
-            $limit = $fetch['limit'] ?? 0;
-            $date = $fetch['date'] ?? 0;
-            $renewal_data['new_plan_price'] = $price;
-            $renewal_data['new_plan_limit'] = $limit;
-            $renewal_data['new_plan_date'] = $date;
-
-            write_renewal_json($from_id, $renewal_data);
-
-            // $sql->query("INSERT INTO `service_factors` (`from_id`, `location`, `protocol`, `plan`, `price`, `code`, `status`) VALUES ('$from_id', '$location', 'null', '$plan', '$price', '$code', 'active')");
-            // $copen_key = json_encode(['inline_keyboard' => [[['text' => '🎁 کد تخفیف', 'callback_data' => 'use_copen-' . $code]]]]);
-            // sendMessage($from_id, sprintf($texts['service_factor'], $location, $limit, $date, $code, number_format($price)), $copen_key);
-            sendMessage($from_id, sprintf($texts['service_factor'], $location, $limit, $date, $code_base, number_format($price)));
+        if (!is_array($renewal_data) || empty($renewal_data['old_server']) || empty($renewal_data['new_server']) || empty($renewal_data['config_name'])) {
+            Logger::warning('renewal state missing at select_plan', array('from_id' => $from_id));
+            step('none');
+            sendMessage($from_id, $my_texts['renewal_service_config_not_found'], $start_key);
+            return;
         }
-    } elseif ($user['step'] == 'renewal_service_confirm_service' and $text == '☑️ ایجاد سرویس') {
-        step('none');
-        sendMessage($from_id, $texts['create_service_proccess']);
-
-        # ---------------- get all information for create service ---------------- #
-        // $select_service = $sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->fetch_assoc();
-        $renewal_data = read_renewal_json($from_id);
-        $location = $renewal_data['new_server'];
-        $plan = $renewal_data['new_plan'];
-        $price = $renewal_data['new_plan_price'];
-        $code = $renewal_data['config_name'];
-        $code_base = $renewal_data['config_base_name'];
-        // $status = $select_service['status'];
-        // $name = base64_encode($code) . '_' . $from_id;
-        $name = $code;
-        $name_base = $code_base;
-        $get_plan = $sql->query("SELECT * FROM `category` WHERE `name` = '$plan'");
-        $get_plan_fetch = $get_plan->fetch_assoc();
-        $date = $get_plan_fetch['date'] ?? 0;
-        $limit = $get_plan_fetch['limit'] ?? 0;
-        $info_panel = $sql->query("SELECT * FROM `panels` WHERE `name` = '$location'");
-        $panel = $info_panel->fetch_assoc();
-
-        # --------------- check if panel exists -------------- #
-        if ($info_panel->num_rows == 0) {
-            sendMessage($from_id, sprintf($texts['create_error'], 2), $start_key);
-            throw new Exception("Panel exists check failed: panel '$location' not found in database.");
+        if ($plan_name === '🔙 بازگشت') {
+            $servers = json_encode(['keyboard' => [
+                [['text' => $renewal_data['old_server']]],
+                [['text' => '🔙 بازگشت']]
+            ], 'resize_keyboard' => true]);
+            step('renewal_service_choose_server');
+            sendMessage($from_id, $my_texts['renewal_service_server_selection'], $servers);
+            exit(0);
         }
 
-        # ---------------- delete extra files ---------------- #
-        delete_temp_file('renewal-service-' . $from_id . '.json');
-
-        # ---------------- check coin for create service ---------------- #
+        // One row, active only. Typed names cannot bypass the active list.
+        $plan_row = db_row($sql, "SELECT * FROM `category` WHERE `name` = ? AND `status` = 'active' LIMIT 1", "s", array($plan_name));
+        if (!$plan_row) {
+            sendMessage($from_id, $texts['choice_error']);
+            return; // stay on this step, unlike today's silent no-op
+        }
+        $price = isset($plan_row['price']) ? $plan_row['price'] : 0;
         if ($user['coin'] < $price) {
+            step('none');
             sendMessage($from_id, sprintf($texts['not_coin'], number_format($price)), $start_key);
-            exit();
+            return;
         }
-        # ---------------- check database ----------------#
-        if ($get_plan->num_rows == 0) {
-            sendMessage($from_id, sprintf($texts['create_error'], 0), $start_key);
-            throw new Exception("Plan check failed: plan '$plan' not found in category table.");
-        }
-        # ---------------- create service proccess ---------------- #
-        if ($panel['type'] !== 'marzban') {
-            sendMessage($from_id, "Not implanted Error", $start_key);
-            exit();
-        }
-        # ---------------- create service ---------------- #
-        $token = get_marzban_panel_token($panel['name']);
 
-        if ($token == false) {
-            step('none');
-            sendMessage($from_id, $my_texts['error_show_service__token_is_incorrect'], $start_key);
-            exit();
+        $renewal_data['new_plan'] = $plan_name;
+        $renewal_data['new_plan_price'] = $price;
+        $renewal_data['new_plan_limit'] = isset($plan_row['limit']) ? $plan_row['limit'] : 0;
+        $renewal_data['new_plan_date'] = isset($plan_row['date']) ? $plan_row['date'] : 0;
+        write_renewal_json($from_id, $renewal_data);
+
+        step('renewal_service_confirm_service');
+        sendMessage($from_id, $texts['create_factor'], $confirm_service);
+        $factor_key = isset($texts['renew_service_factor']) ? 'renew_service_factor' : 'service_factor';
+        sendMessage($from_id, sprintf(
+            $texts[$factor_key],
+            $renewal_data['new_server'],
+            $renewal_data['new_plan_limit'],
+            $renewal_data['new_plan_date'],
+            $renewal_data['config_base_name'],
+            number_format($price)
+        ));
+    } elseif ($user['step'] == 'renewal_service_confirm_service' and $text == '☑️ ایجاد سرویس') {
+        // Money path lives in one place; see renewal_confirm().
+        // Duplicate-tap guard: atomic add, 120s TTL (covers the request cap),
+        // released on every exit path. Without ext-apcu this degrades to no lock.
+        $lock_key = 'renewal_lock_' . $from_id;
+        $locked = apcu_safe_add($lock_key, 1, 120);
+        if ($locked === false) {
+            sendMessage($from_id, $texts['wait']);
+            return;
         }
-        $renewal_service = marzban_renewal_api($name, convertToBytes($limit . 'GB'), strtotime("+ $date day"), $token, $panel['login_link']);
-
-        $renewal_status = json_decode($renewal_service, true);
-
-        # ---------------- check errors ---------------- #
-        if (!isset($renewal_status['username'])) {
-            step('none');
-            sendMessage($from_id, sprintf($texts['renew_error'], 1), $start_key);
-            // sendMessage($from_id, sprintf($renewal_status['username'], 1), $start_key);
-            throw new Exception("Marzban renewal API error: " . json_encode($renewal_status));
+        try {
+            renewal_confirm($from_id);
+        } finally {
+            if ($locked === true) {
+                apcu_safe_del($lock_key);
+            }
         }
-        # ---------------- get links and subscription_url for send the user ---------------- #
-        $links = "";
-        foreach ($renewal_status['links'] as $link){
-            $links .= $link . "\n\n";
-        }
-        
-        $getMe = json_decode(file_get_contents("https://api.telegram.org/bot{$config['token']}/getMe"), true);
-        $bot_username = isset($getMe['result']) ? $getMe['result']['username'] : '*';
-
-        $subscribe = (strpos($renewal_status['subscription_url'], 'http') !== false) ? $renewal_status['subscription_url'] : $panel['login_link'] . $renewal_status['subscription_url'];
-        $caption_text = sprintf($texts['success_create_service'], $name, $location, $date, $limit, number_format($price), '', '@' . $bot_username);
-        $message_text = sprintf($texts['success_create_service'], $name_base, $location, $date, $limit, number_format($price), $subscribe, '@' . $bot_username);
-        sendSuccessResponse($from_id, $panel['qr_code'], $subscribe, $caption_text, $message_text, $start_key);
-        // `code` holds the BASE plan name, shared by every customer of that plan.
-        // Without `from_id` this UPDATE overwrote the location, date, volume,
-        // link and price of every other customer's order for the same plan.
-        $sql->query("UPDATE `orders` SET `location` = '$location', `date` = '$date', `volume` = '$limit', `link` = '$links', `price` = '$price' WHERE `code` = '$code_base' AND `from_id` = '$from_id'");
-
-        # ---------------- Deduct Coins  ---------------- #
-        $sql->query("UPDATE `users` SET `coin` = coin - $price WHERE `from_id` = '$from_id' LIMIT 1");
     } elseif ($text == '❌  انصراف' and $user['step'] == 'renewal_service_confirm_service') {
         step('none');
-        delete_temp_file($from_id . '-location.txt');
-        delete_temp_file($from_id . '-protocol.txt');
-        if ($sql->query("SELECT * FROM `service_factors` WHERE `from_id` = '$from_id'")->num_rows > 0)
-            $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
+        foreach (array(
+            $from_id . '-location.txt',
+            $from_id . '-protocol.txt',
+            $from_id . '-plan.txt',
+            $from_id . '-service-name.txt',
+            'renewal-service-' . $from_id . '.json'
+        ) as $file_name) {
+            delete_temp_file($file_name);
+        }
+        db_exec($sql, "DELETE FROM `service_factors` WHERE `from_id` = ?", "s", array($from_id));
+        Logger::info('renewal cancelled', array('from_id' => $from_id));
         sendMessage($from_id, sprintf($texts['start'], $first_name), $start_key);
     }
 }
