@@ -103,7 +103,13 @@ Call sites:
 - Service-list paging writes index map (`index.php:698`, `index.php:891`), reads + deletes on select (`index.php:1205-1206`); broadcast msg-id list read + deleted (`index.php:587-593`); stray `$file_name` delete (`index.php:362`).
 - Renewal flow `read_renewal_json`/`write_renewal_json` (`custom.php:250-261`), deletes on finish/cancel (`custom.php:399`, `custom.php:454-455`).
 
-Invalidation: explicit `delete_temp_file` at flow ends above; no global clear; APCu entries otherwise expire after 86400s.
+Duplicate-tap guard key `renewal_lock_<from_id>` (120s, APCu only, no file fallback):
+- Set atomically when the renewal confirm tap is accepted: `apcu_safe_add($lock_key, 1, 120)` (`custom.php:407-408`); a contended tap (returns `false`) gets the `wait` text and returns (`custom.php:409-411`).
+- Released in `finally` after `renewal_confirm($from_id)` on every exit path (`custom.php:413-419`); the 120s TTL (the request execution cap) is the backstop if the process dies before `finally` runs.
+- Fail-open: `apcu_safe_add` returns `null` when ext-apcu is absent (`App/Utils/apcu_tools.php:36-45`); `null !== false`, so without the extension the tap is unguarded and the renewal proceeds without the duplicate-tap lock.
+- The usage reset no longer lives inside `marzban_renewal_api()`: it is a separate best-effort `marzban_reset_user_usage()` call after the PUT (`App/apis/marzban-api/api.php:98`, `App/functions/renewal_confirm.php:100-103`). A reset failure is logged as `renewal_reset_failed` and does not block persist or delivery.
+
+Invalidation: explicit `delete_temp_file` at flow ends above, explicit `apcu_safe_del` for `renewal_lock_<from_id>` above; no global clear; APCu entries otherwise expire after their TTLs (86400s / 120s).
 
 Risks:
 - Flag ignored on APCu path: `write_temp_file($array, $name, true)` passes raw array to APCu but JSON-encodes on filesystem (`App/Utils/temp_tools.php:6-11`); `read_temp_file($name, true)` skips `json_decode` on APCu hit (`App/Utils/temp_tools.php:14-19`). Works only because both sides stay on same backend per host. Mixed-backend read (APCu miss → file) after APCu write leaves orphan file never written.
