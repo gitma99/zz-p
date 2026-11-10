@@ -427,3 +427,16 @@ function getUsersInfo($token, $url, $list_offset = null, $max_list_count = null,
         'error'   => null
     ];
 }
+
+function marzban_parse_api_result($raw, $curl_error = null)
+{
+    if ($raw === false) {
+        return array('ok' => false, 'body' => null, 'error' => $curl_error);
+    }
+    $body = json_decode($raw, true);
+    if (!is_array($body) || !isset($body['username'])) {
+        $error = (is_array($body) && isset($body['detail'])) ? $body['detail'] : 'invalid response';
+        return array('ok' => false, 'body' => is_array($body) ? $body : null, 'error' => $error);
+    }
+    return array('ok' => true, 'body' => $body, 'error' => null);
+}
