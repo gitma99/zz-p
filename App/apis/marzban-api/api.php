@@ -45,6 +45,17 @@ function get_marzban_panel_token($panel_name)
 
 function marzban_renewal_api($username, $new_traffic_limit, $new_expire_time, $token, $url)
 {
+    // Fail fast on caller bugs; operational failures below return a result array.
+    if (!is_string($username) || $username === '') {
+        throw new InvalidArgumentException('marzban_renewal_api: username must be a non-empty string');
+    }
+    if (!is_string($token) || $token === '') {
+        throw new InvalidArgumentException('marzban_renewal_api: token must be a non-empty string');
+    }
+    if (!is_string($url) || $url === '') {
+        throw new InvalidArgumentException('marzban_renewal_api: url must be a non-empty string');
+    }
+
     $ch1 = curl_init();
     curl_setopt($ch1, CURLOPT_URL, $url . "/api/user/$username");
     // curl_setopt($ch, CURLOPT_PUT, true);
@@ -68,28 +79,45 @@ function marzban_renewal_api($username, $new_traffic_limit, $new_expire_time, $t
             )
         )
     );
-    $new_limit_response = curl_exec($ch1);
+    $raw = curl_exec($ch1);
+    $curl_error = curl_error($ch1);
     curl_close($ch1);
 
-    sleep(1.5);
-
-    $new_limit_response = json_decode($new_limit_response, true);
-    if (isset($new_limit_response['username'])) {
-        $ch2 = curl_init();
-        curl_setopt($ch2, CURLOPT_URL, $url . "/api/user/$username/reset");
-        curl_setopt($ch2, CURLOPT_POST, true);
-        curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, true);
-        curl_setopt($ch2, CURLOPT_SSL_VERIFYHOST, 2);
-        curl_setopt($ch2, CURLOPT_CONNECTTIMEOUT, 30);
-        curl_setopt($ch2, CURLOPT_TIMEOUT, 30);
-        curl_setopt($ch2, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token, 'Content-Type: application/json'));
-        $reset_data_usage_response = curl_exec($ch2);
-        curl_close($ch2);
-        return $reset_data_usage_response;
-    } else {
-        return $new_limit_response;
+    if ($raw === false) {
+        Logger::warning('Marzban renewal update failed (curl)', array('username' => $username, 'error' => $curl_error));
+        return array('ok' => false, 'body' => null, 'error' => $curl_error);
     }
+
+    $r = marzban_parse_api_result($raw, $curl_error);
+    if (!$r['ok']) {
+        Logger::warning('Marzban renewal update rejected', array('username' => $username, 'detail' => $r['error']));
+    }
+    return $r;
+}
+
+function marzban_reset_user_usage($username, $token, $url)
+{
+    if (!is_string($username) || $username === '') {
+        throw new InvalidArgumentException('marzban_reset_user_usage: username must be a non-empty string');
+    }
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url . "/api/user/$username/reset");
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: application/json', 'Authorization: Bearer ' . $token, 'Content-Type: application/json'));
+    $raw = curl_exec($ch);
+    $curl_error = curl_error($ch);
+    curl_close($ch);
+    $r = marzban_parse_api_result($raw, $curl_error);
+    if ($r['ok'] && isset($r['body']['detail'])) {
+        // reference behavior: a reset body carrying `detail` is a failure even with `username`
+        $r = array('ok' => false, 'body' => $r['body'], 'error' => $r['body']['detail']);
+    }
+    return $r;
 }
 
 

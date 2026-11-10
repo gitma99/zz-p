@@ -27,5 +27,19 @@ assert_eq(true, $r['ok'], 'valid body is ok');
 assert_eq(null, $r['error'], 'valid body has no error');
 assert_eq('u_1', $r['body']['username'], 'valid body decoded');
 
+// marzban_renewal_api: contract violations throw before any network call.
+assert_throws(function() {
+    marzban_renewal_api('', 1, 1, 't', 'https://p');
+}, InvalidArgumentException::class, 'renewal_api throws on empty username');
+assert_throws(function() {
+    marzban_renewal_api('u', 1, 1, '', 'https://p');
+}, InvalidArgumentException::class, 'renewal_api throws on empty token');
+assert_throws(function() {
+    marzban_renewal_api('u', 1, 1, 't', '');
+}, InvalidArgumentException::class, 'renewal_api throws on empty url');
+assert_throws(function() {
+    marzban_reset_user_usage(null, 't', 'https://p');
+}, InvalidArgumentException::class, 'reset throws on non-string username');
+
 echo "OK marzban_api_result_test.php\n";
 exit(0);
