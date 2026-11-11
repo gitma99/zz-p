@@ -67,7 +67,10 @@ class Logger {
         $frames = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 12);
         $caller = array('file' => 'unknown', 'line' => 0);
         foreach ($frames as $f) {
-            if (isset($f['class']) && $f['class'] === 'Logger') continue;
+            // Skip only the internal hops (caller, log). The facade frame
+            // (Logger::error/warning/info/critical) carries the call site.
+            if (isset($f['class'], $f['function']) && $f['class'] === 'Logger'
+                && ($f['function'] === 'caller' || $f['function'] === 'log')) continue;
             $caller = array('file' => isset($f['file']) ? basename($f['file']) : 'unknown', 'line' => isset($f['line']) ? $f['line'] : 0);
             break;
         }
