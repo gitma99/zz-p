@@ -313,15 +313,23 @@ except Exception:
         fi
 
         if [ "$status" = "running" ]; then
-            if [ -n "$health_status" ] && [ "$health_status" != "healthy" ]; then
-                DIAG_FAIL "Container $cname is running but UNHEALTHY (health: $health_status)."
-                scrape_container_crash_logs "$cname" 15
-                AUTO_FIX_CANDIDATES+=("$sname")
-            else
-                local h_label=""
-                [ -n "$health_status" ] && h_label=" (healthy)"
-                DIAG_PASS "Container $cname is running${h_label}."
-            fi
+            case "$health_status" in
+                ""|"healthy")
+                    local h_label=""
+                    [ -n "$health_status" ] && h_label=" (healthy)"
+                    DIAG_PASS "Container $cname is running${h_label}."
+                    ;;
+                "starting")
+                    # Docker hasn't finished start_period/retries yet — not a
+                    # failure. Restarting now would loop during warmup.
+                    DIAG_WARN "Container $cname is running, healthcheck still starting."
+                    ;;
+                *)
+                    DIAG_FAIL "Container $cname is running but UNHEALTHY (health: $health_status)."
+                    scrape_container_crash_logs "$cname" 15
+                    AUTO_FIX_CANDIDATES+=("$sname")
+                    ;;
+            esac
         else
             if [ "$oom_killed" = "true" ]; then
                 DIAG_FAIL "Container $cname CRASHED due to Out-Of-Memory (OOMKilled=true, ExitCode=$exit_code)."
@@ -763,7 +771,23 @@ apply_auto_fixes() {
     bot_token=$(get_env_var "BOT_TOKEN" "$env_file")
     [ -n "$bot_token" ] || bot_token="${BOT_TOKEN:-}"
 
-    for candidate in "${unique_candidates[@]}"; do
+    # Restart services in depends_on topological order. Restarting mysql
+    # alone cascades via service_healthy gates; order prevents deadlock.
+    local fix_order=(mysql app worker nginx certbot backup phpmyadmin)
+    local sorted_candidates=()
+    for ordered in "${fix_order[@]}"; do
+        for item in "${unique_candidates[@]}"; do
+            [ "$ordered" = "$item" ] && sorted_candidates+=("$item")
+        done
+    done
+    # Non-service candidates (permissions, webhook) keep original position.
+    for item in "${unique_candidates[@]}"; do
+        if ! printf "%s\n" "${fix_order[@]}" | grep -qxF "$item"; then
+            sorted_candidates+=("$item")
+        fi
+    done
+
+    for candidate in "${sorted_candidates[@]}"; do
         case "$candidate" in
             permissions)
                 INFO "Fixing directory permissions on logs and temp..."
@@ -1808,7 +1832,7 @@ show_menu() {
     app_ver=$(get_installed_app_version)
     while true; do
         echo -e "\n========================================="
-        echo -e "     ZZPanelBot Management (3.2.11)      "
+        echo -e "     ZZPanelBot Management (3.2.12)      "
         echo -e "     Installed App Version: $app_ver     "
         echo -e "========================================="
         echo -e "\n=== Service Management ==="
