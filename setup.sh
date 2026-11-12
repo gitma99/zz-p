@@ -272,7 +272,6 @@ diagnose_containers() {
         "worker:zzpanel_worker"
         "certbot:zzpanel_certbot"
         "backup:zzpanel_backup"
-        "phpmyadmin:zzpanel_phpmyadmin"
     )
 
     for item in "${stack_services[@]}"; do
@@ -282,7 +281,7 @@ diagnose_containers() {
         local inspect_json
         inspect_json=$(docker inspect "$cname" 2>/dev/null || true)
         if [ -z "$inspect_json" ] || [ "$inspect_json" = "[]" ]; then
-            if [[ "$sname" =~ ^(phpmyadmin|backup)$ ]]; then
+            if [[ "$sname" =~ ^backup$ ]]; then
                 DIAG_WARN "Container $cname is not created."
             else
                 DIAG_FAIL "Container $cname is missing / not created."
@@ -773,7 +772,7 @@ apply_auto_fixes() {
 
     # Restart services in depends_on topological order. Restarting mysql
     # alone cascades via service_healthy gates; order prevents deadlock.
-    local fix_order=(mysql app worker nginx certbot backup phpmyadmin)
+    local fix_order=(mysql app worker nginx certbot backup)
     local sorted_candidates=()
     for ordered in "${fix_order[@]}"; do
         for item in "${unique_candidates[@]}"; do
