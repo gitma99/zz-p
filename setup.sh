@@ -1997,8 +1997,12 @@ if [ $# -gt 0 ]; then
                 host|containers|db|web|ssl|telegram)
                     init_diagnose_state
                     "diagnose_${target_cat}" || true
-                    if [ "${#AUTO_FIX_CANDIDATES[@]}" -gt 0 ] && [ "$auto_fix" = "true" ]; then
-                        apply_auto_fixes false
+                    if [ "${#AUTO_FIX_CANDIDATES[@]}" -gt 0 ]; then
+                        if [ "$auto_fix" = "true" ]; then
+                            apply_auto_fixes false
+                        else
+                            apply_auto_fixes true
+                        fi
                     fi
                     if [ "$export_rep" = "true" ]; then
                         saved_file=$(export_diagnose_report)
