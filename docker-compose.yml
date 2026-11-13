@@ -20,7 +20,9 @@ services:
       LOG_TELEGRAM_DEDUP_ENABLED: ${LOG_TELEGRAM_DEDUP_ENABLED:-false}
     volumes:
       - ./logs/app:/var/www/html/ZZPanelBot/logs
-      - ./logs/apache:/var/log/apache2
+      # /var/log/apache2 intentionally NOT mounted: per-vhost ErrorLog/
+      # CustomLog go to stdout/stderr (docker logs). Only the one-time
+      # global startup error log would land in the image's own dir.
       - app_temp:/var/www/html/ZZPanelBot/temp
     healthcheck:
       # Liveness only: TCP accept on Apache. No PHP/index.php, no DB.

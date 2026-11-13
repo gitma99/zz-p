@@ -13,7 +13,8 @@ services:
       DB_HOST: mysql
     volumes:
       - ./logs/app:/var/www/html/ZZPanelBot/logs
-      - ./logs/apache:/var/log/apache2
+      # /var/log/apache2 intentionally NOT mounted: per-vhost ErrorLog/
+      # CustomLog go to stdout/stderr (docker logs).
       - app_temp:/var/www/html/ZZPanelBot/temp
     healthcheck:
       # Liveness only: TCP accept on Apache. No PHP/index.php, no DB.

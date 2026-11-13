@@ -8,6 +8,44 @@ BASE_DIR="/srv"
 DOCKER_COMPOSE_CMD=(docker compose)
 GITHUB_USERNAME="gitma99"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
+# UID/GID of the web user inside the app image (ubuntu base -> www-data, UID 33).
+# Container-invariant: chown by number so it works on any host distro.
+APP_UID=33
+# Each container writes its logs as its own image UID, so host log dirs need
+# per-service ownership — one tree-wide chown would break the others.
+MYSQL_LOG_UID=999  # mysql (mysql:8.0 image)
+NGINX_LOG_UID=101  # nginx worker (nginx:stable-alpine image)
+# Single source of truth for log dir ownership: "path relative to $BASE_DIR:uid".
+# Install, diagnose and auto-fix all iterate this — add a service here once.
+LOG_DIR_OWNERS=(
+    "logs/app:${APP_UID}"
+    "logs/worker:${APP_UID}"
+    "logs/mysql:${MYSQL_LOG_UID}"
+    "logs/nginx:${NGINX_LOG_UID}"
+)
+
+# Create host log bind-mount sources with the per-service UID each container
+# writes as. Without this the Docker daemon auto-creates them root:root, and
+# mysqld (uid 999) silently loses /var/log/mysql (error.log + slow.log never
+# appear — the lowcpu.cnf flight recorder goes blind).
+ensure_log_dirs() {
+    local spec d uid
+    for spec in "${LOG_DIR_OWNERS[@]}"; do
+        d="${spec%%:*}"
+        uid="${spec#*:}"
+        mkdir -p "$BASE_DIR/$d" || FATAL "Cannot create $BASE_DIR/$d."
+        chown "$uid":"$uid" "$BASE_DIR/$d" 2>/dev/null \
+            || WARN "Could not chown $BASE_DIR/$d to $uid — container may lose these logs."
+        chmod 775 "$BASE_DIR/$d" 2>/dev/null || true
+    done
+}
+
+# app container: logs + temp writable by the web user (uid $APP_UID)?
+app_dirs_writable_by_web_user() {
+    docker exec zzpanel_app su -s /bin/sh www-data -c \
+        "touch /var/www/html/ZZPanelBot/logs/.diag_test /var/www/html/ZZPanelBot/temp/.diag_test \
+         && rm -f /var/www/html/ZZPanelBot/logs/.diag_test /var/www/html/ZZPanelBot/temp/.diag_test"
+}
 VERSION="$(cat "${CURRENT_DIR}/VERSION" 2>/dev/null || echo "UNKNOWN")"
 
 # Output coloring helper functions
@@ -473,25 +511,29 @@ diagnose_web() {
         DIAG_WARN "Internal HTTP endpoint returned unexpected status: $http_code."
     fi
 
-    # 4. Directory permissions check
+    # 4. Log dir ownership check (host side)
+    # Each container writes as its own image UID (see LOG_DIR_OWNERS) — a
+    # daemon auto-created root:root dir blinds its logger silently.
     local perm_ok=1
-    for d in "$base_dir/logs" "$base_dir/temp"; do
+    local spec d uid
+    for spec in "${LOG_DIR_OWNERS[@]}"; do
+        d="$base_dir/${spec%%:*}"
+        uid="${spec#*:}"
         if [ ! -d "$d" ]; then
             perm_ok=0
-            DIAG_FAIL "Host directory $d does not exist."
-        elif [ ! -w "$d" ]; then
+            DIAG_FAIL "Log directory $d does not exist."
+        elif [ "$(stat -c %u "$d" 2>/dev/null)" != "$uid" ]; then
             perm_ok=0
-            DIAG_FAIL "Host directory $d is not writable."
+            DIAG_FAIL "Log directory $d owned by uid $(stat -c %u "$d" 2>/dev/null), expected $uid."
         fi
     done
 
-    local container_perm_check
-    container_perm_check=$(docker exec zzpanel_app su -s /bin/sh www-data -c "touch /var/www/html/ZZPanelBot/logs/.diag_test /var/www/html/ZZPanelBot/temp/.diag_test && rm -f /var/www/html/ZZPanelBot/logs/.diag_test /var/www/html/ZZPanelBot/temp/.diag_test && echo 'OK'" 2>/dev/null || echo "FAIL")
-    if [ "$container_perm_check" != "OK" ] || [ "$perm_ok" -eq 0 ]; then
-        DIAG_FAIL "Application logs or temp directories not writable by www-data."
+    # Container side: app logs + temp writable by the web user (uid $APP_UID)
+    if ! app_dirs_writable_by_web_user 2>/dev/null || [ "$perm_ok" -eq 0 ]; then
+        DIAG_FAIL "Log directory permissions are wrong (host ownership and/or app writability)."
         AUTO_FIX_CANDIDATES+=("permissions")
     else
-        DIAG_PASS "Application directory permissions are valid (writable by www-data)."
+        DIAG_PASS "Log directory permissions are valid (host ownership + app writability)."
     fi
 
     # 5. APCu cache check
@@ -789,16 +831,31 @@ apply_auto_fixes() {
     for candidate in "${sorted_candidates[@]}"; do
         case "$candidate" in
             permissions)
-                INFO "Fixing directory permissions on logs and temp..."
-                mkdir -p "$base_dir/logs" "$base_dir/temp" 2>/dev/null || true
-                chown -R www-data:www-data "$base_dir/logs" "$base_dir/temp" 2>/dev/null || true
-                chmod -R 770 "$base_dir/logs" "$base_dir/temp" 2>/dev/null || true
+                INFO "Fixing log directory permissions (owners from LOG_DIR_OWNERS table)..."
+                # Each dir keeps the ownership its container writes as — a
+                # single chown over all of $base_dir/logs would re-own the
+                # mysql/nginx dirs and blind their loggers.
+                local spec d uid
+                for spec in "${LOG_DIR_OWNERS[@]}"; do
+                    d="$base_dir/${spec%%:*}"
+                    uid="${spec#*:}"
+                    mkdir -p "$d" 2>/dev/null || true
+                    chown "$uid":"$uid" "$d" 2>/dev/null || true
+                    chmod 775 "$d" 2>/dev/null || true
+                done
                 if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^zzpanel_app$'; then
                     docker exec zzpanel_app mkdir -p /var/www/html/ZZPanelBot/logs /var/www/html/ZZPanelBot/temp 2>/dev/null || true
-                    docker exec zzpanel_app chown -R www-data:www-data /var/www/html/ZZPanelBot/logs /var/www/html/ZZPanelBot/temp 2>/dev/null || true
+                    docker exec zzpanel_app chown -R "$APP_UID":"$APP_UID" /var/www/html/ZZPanelBot/logs /var/www/html/ZZPanelBot/temp 2>/dev/null || true
                     docker exec zzpanel_app chmod -R 770 /var/www/html/ZZPanelBot/logs /var/www/html/ZZPanelBot/temp 2>/dev/null || true
+                    # Verify the fix actually took effect (re-run the failing probe)
+                    if app_dirs_writable_by_web_user 2>/dev/null; then
+                        INFO "Permissions repaired."
+                    else
+                        DIAG_FAIL "Permission fix did not take effect in zzpanel_app."
+                    fi
+                else
+                    INFO "Permissions repaired (zzpanel_app not running; container-side fix skipped)."
                 fi
-                INFO "Permissions repaired."
                 ;;
             webhook)
                 if [ -n "$bot_token" ] && [ -n "$domain" ]; then
@@ -1454,6 +1511,8 @@ install_zzbot() {
     INFO "Creating base directory at $BASE_DIR..."
     mkdir -p "$BASE_DIR" || FATAL "Cannot create $BASE_DIR."
     cd "$BASE_DIR" || FATAL "Cannot enter $BASE_DIR."
+
+    ensure_log_dirs
 
     if [ -f .env ]; then
         backup_env_file .env || WARN "Could not back up existing .env — continuing without backup."
