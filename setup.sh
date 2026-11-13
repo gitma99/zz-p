@@ -1853,6 +1853,128 @@ show_live_logs_for_service() {
     fi
 }
 
+# View host log files for a specific service
+view_log_files() {
+    require_installed || return 1
+
+    # Services that have host-mounted log directories (from LOG_DIR_OWNERS + backup)
+    local log_services=(
+        "app:logs/app"
+        "worker:logs/worker"
+        "mysql:logs/mysql"
+        "nginx:logs/nginx"
+        "backup:data/backups"
+    )
+
+    echo -e "\n=========================================" >&2
+    echo -e "     View Host Log Files" >&2
+    echo -e "=========================================" >&2
+
+    local i=1
+    for item in "${log_services[@]}"; do
+        local svc="${item%%:*}"
+        local path="${item#*:}"
+        if [ -d "$BASE_DIR/$path" ]; then
+            printf " %d) %s (%s)\n" "$i" "$svc" "$path" >&2
+        else
+            printf " %d) %s (%s) - NOT FOUND\n" "$i" "$svc" "$path" >&2
+        fi
+        ((i++))
+    done
+    printf " %d) All Services\n" "$i" >&2
+    printf " 0) Back\n" >&2
+    echo "=========================================" >&2
+    read -r -p "Enter choice [0-${#log_services[@]}]: " choice
+    echo "=========================================" >&2
+
+    if ! [[ "$choice" =~ ^[0-9]+$ ]]; then
+        WARN "Invalid option."
+        return 1
+    fi
+
+    if [ "$choice" -eq 0 ]; then
+        return 0
+    fi
+
+    local selected_services=()
+    if [ "$choice" -eq "$(( ${#log_services[@]} + 1 ))" ]; then
+        # All services
+        for item in "${log_services[@]}"; do
+            selected_services+=("$item")
+        done
+    elif [ "$choice" -ge 1 ] && [ "$choice" -le "${#log_services[@]}" ]; then
+        selected_services+=("${log_services[choice-1]}")
+    else
+        WARN "Invalid option."
+        return 1
+    fi
+
+    for item in "${selected_services[@]}"; do
+        local svc="${item%%:*}"
+        local path="${item#*:}"
+        local full_path="$BASE_DIR/$path"
+
+        if [ ! -d "$full_path" ]; then
+            WARN "Log directory not found: $full_path"
+            continue
+        fi
+
+        echo -e "\n========================================="
+        echo -e "  Log files for $svc ($full_path)"
+        echo -e "========================================="
+
+        local log_files=()
+        while IFS= read -r -d '' file; do
+            log_files+=("$file")
+        done < <(find "$full_path" -maxdepth 2 -type f \( -name "*.log" -o -name "*.log.*" -o -name "error*" -o -name "access*" -o -name "slow*" \) -print0 2>/dev/null | sort -z)
+
+        if [ ${#log_files[@]} -eq 0 ]; then
+            echo "  (No log files found)"
+            continue
+        fi
+
+        local j=1
+        for log_file in "${log_files[@]}"; do
+            local size=$(stat -c%s "$log_file" 2>/dev/null | awk '{printf "%.1fK", $1/1024}' || echo "?")
+            local mtime=$(stat -c%y "$log_file" 2>/dev/null | cut -d'.' -f1 || echo "?")
+            local rel_path="${log_file#$full_path/}"
+            printf " %d) %s (%s, %s)\n" "$j" "$rel_path" "$size" "$mtime"
+            ((j++))
+        done
+        printf " %d) View ALL log files (concatenated)\n" "$j" >&2
+        printf " 0) Back to service selection\n" >&2
+        echo "=========================================" >&2
+        read -r -p "Enter choice [0-${#log_files[@]}]: " log_choice
+        echo "=========================================" >&2
+
+        if ! [[ "$log_choice" =~ ^[0-9]+$ ]]; then
+            WARN "Invalid option."
+            continue
+        fi
+
+        if [ "$log_choice" -eq 0 ]; then
+            continue
+        elif [ "$log_choice" -eq "$(( ${#log_files[@]} + 1 ))" ]; then
+            # View all concatenated
+            INFO "Showing all log files for $svc (most recent first)..."
+            find "$full_path" -maxdepth 2 -type f \( -name "*.log" -o -name "*.log.*" -o -name "error*" -o -name "access*" -o -name "slow*" \) -exec ls -lt {} + 2>/dev/null | head -20
+            echo ""
+            for log_file in "${log_files[@]}"; do
+                echo "===== $(basename "$log_file") ====="
+                tail -n 50 "$log_file" 2>/dev/null
+                echo ""
+            done | less -R
+        elif [ "$log_choice" -ge 1 ] && [ "$log_choice" -le "${#log_files[@]}" ]; then
+            local selected_log="${log_files[log_choice-1]}"
+            echo -e "\n--- Viewing: $selected_log ---"
+            echo "Press 'q' to quit, 'f' to follow, or Enter to scroll"
+            less -R "$selected_log"
+        else
+            WARN "Invalid option."
+        fi
+    done
+}
+
 # 18. Start phpMyAdmin (profile-gated service)
 start_phpmyadmin() {
     require_installed || return 1
@@ -1910,17 +2032,18 @@ show_menu() {
         echo -e "\n=== Diagnostics ==="
         echo " 12) View Live Logs (all)"
         echo " 13) View Logs (specific service)"
-        echo " 14) Run Health Check"
+        echo " 14) View Log Files (host filesystem)"
+        echo " 15) Run Health Check"
         echo -e "\n=== Database Tools ==="
-        echo " 18) Start phpMyAdmin"
-        echo " 19) Stop phpMyAdmin"
+        echo " 19) Start phpMyAdmin"
+        echo " 20) Stop phpMyAdmin"
         echo -e "\n=== System ==="
-        echo " 15) Install zzbot Command"
-        echo " 16) Update zzbot Menu"
-        echo " 17) Update Menu Cache"
+        echo " 16) Install zzbot Command"
+        echo " 17) Update zzbot Menu"
+        echo " 18) Update Menu Cache"
         echo "  0) Exit"
         echo "========================================="
-        read -r -p "Enter choice [0-19]: " CHOICE
+        read -r -p "Enter choice [0-20]: " CHOICE
         echo "========================================="
 
         case "$CHOICE" in
@@ -1937,12 +2060,13 @@ show_menu() {
             11) restore_services || true ;;
             12) show_live_logs || true ;;
             13) show_live_logs_for_service || true ;;
-            14) diagnose_menu || true ;;
-            15) install_zzbot_command || true ;;
-            16) install_or_update_zzbot_script || true ;;
-            17) invalidate_all_caches; get_installed_app_version; get_cached_services; get_cached_panels; INFO "Menu caches updated" ;;
-            18) start_phpmyadmin || true ;;
-            19) stop_phpmyadmin || true ;;
+            14) view_log_files || true ;;
+            15) diagnose_menu || true ;;
+            16) install_zzbot_command || true ;;
+            17) install_or_update_zzbot_script || true ;;
+            18) invalidate_all_caches; get_installed_app_version; get_cached_services; get_cached_panels; INFO "Menu caches updated" ;;
+            19) start_phpmyadmin || true ;;
+            20) stop_phpmyadmin || true ;;
             0) INFO "Exiting. Goodbye!"; exit 0 ;;
             999) get_current_script_version ;;
             *) WARN "Invalid option. Please try again." ;;
