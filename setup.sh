@@ -1928,7 +1928,7 @@ view_log_files() {
         local log_files=()
         while IFS= read -r -d '' file; do
             log_files+=("$file")
-        done < <(find "$full_path" -maxdepth 2 -type f \( -name "*.log" -o -name "*.log.*" -o -name "error*" -o -name "access*" -o -name "slow*" \) -print0 2>/dev/null | sort -z)
+        done < <(find "$full_path" -maxdepth 2 -type f \( -name "*.log" -o -name "*.log.*" -o -name "error*" -o -name "access*" -o -name "slow*" \) -printf '%T@ %p\0' 2>/dev/null | sort -z -rn | cut -z -d' ' -f2-)
 
         if [ ${#log_files[@]} -eq 0 ]; then
             echo "  (No log files found)"
