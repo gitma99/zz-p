@@ -1295,6 +1295,7 @@ check_prerequisites() {
     check_and_install_tool "unzip"
     check_and_install_tool "nano"
     check_and_install_tool "python3"
+    check_and_install_tool "less"
 
     # Check/install Docker
     if ! command -v docker &> /dev/null; then
@@ -1726,6 +1727,7 @@ hard_restart_services() {
 # 7. Update
 update_services() {
     require_installed || return 1
+    check_prerequisites || return 1
 
     local target_ver="${1:-}"
     if [ -z "$target_ver" ]; then
