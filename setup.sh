@@ -2039,12 +2039,12 @@ show_menu() {
         echo " 14) View Log Files (host filesystem)"
         echo " 15) Run Health Check"
         echo -e "\n=== Database Tools ==="
-        echo " 19) Start phpMyAdmin"
-        echo " 20) Stop phpMyAdmin"
+        echo " 16) Start phpMyAdmin"
+        echo " 17) Stop phpMyAdmin"
         echo -e "\n=== System ==="
-        echo " 16) Install zzbot Command"
-        echo " 17) Update zzbot Menu"
-        echo " 18) Update Menu Cache"
+        echo " 18) Install zzbot Command"
+        echo " 19) Update zzbot Menu"
+        echo " 20) Update Menu Cache"
         echo "  0) Exit"
         echo "========================================="
         read -r -p "Enter choice [0-20]: " CHOICE
@@ -2066,11 +2066,11 @@ show_menu() {
             13) show_live_logs_for_service || true ;;
             14) view_log_files || true ;;
             15) diagnose_menu || true ;;
-            16) install_zzbot_command || true ;;
-            17) install_or_update_zzbot_script || true ;;
-            18) invalidate_all_caches; get_installed_app_version; get_cached_services; get_cached_panels; INFO "Menu caches updated" ;;
-            19) start_phpmyadmin || true ;;
-            20) stop_phpmyadmin || true ;;
+            16) start_phpmyadmin || true ;;
+            17) stop_phpmyadmin || true ;;
+            18) install_zzbot_command || true ;;
+            19) install_or_update_zzbot_script || true ;;
+            20) invalidate_all_caches; get_installed_app_version; get_cached_services; get_cached_panels; INFO "Menu caches updated" ;;
             0) INFO "Exiting. Goodbye!"; exit 0 ;;
             999) get_current_script_version ;;
             *) WARN "Invalid option. Please try again." ;;
