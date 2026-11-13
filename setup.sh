@@ -1388,6 +1388,42 @@ prune_env_backups() {
     ls -1t /tmp/zzpanel-env-backup.* 2>/dev/null | tail -n +4 | xargs -r rm -f
 }
 
+# --- ENV MERGE START ---
+
+merge_env_files() {
+    local env_file="$BASE_DIR/.env"
+    local example_file="$BASE_DIR/.env.example"
+
+    [ -f "$example_file" ] || return 0
+    [ -f "$env_file" ] || { cp "$example_file" "$env_file"; return 0; }
+
+    # For each variable line in the example — active "KEY=..." or commented
+    # "# KEY=..." — append the original line if KEY is unknown in .env (in
+    # either form). Free comments and section headers have no "KEY=" shape,
+    # so the anchor below never picks them up. Key = text up to the first
+    # '=', so values that themselves contain '=' are preserved verbatim.
+    local line key added=() added_lines=()
+    while IFS= read -r line || [ -n "$line" ]; do
+        [[ "$line" =~ ^[[:space:]]*(\#[[:space:]]*)?([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*= ]] || continue
+        key="${BASH_REMATCH[2]}"
+        if ! grep -Eq "^[[:space:]]*(#[[:space:]]*)?${key}[[:space:]]*=" "$env_file"; then
+            added+=("$key")
+            added_lines+=("$line")
+        fi
+    done < "$example_file"
+
+    if [ "${#added[@]}" -gt 0 ]; then
+        {
+            printf '# Merged from .env.example on %s: %s\n' \
+                "$(date +%Y-%m-%d)" "$(IFS=', '; echo "${added[*]}")"
+            printf '%s\n' "${added_lines[@]}"
+        } >> "$env_file"
+        INFO "Merged new env vars into .env: ${added[*]}"
+    fi
+}
+
+# --- ENV MERGE END ---
+
 validate_zip_paths() {
     local zip_file="$1"
     # zip-slip guard: reject entries that escape $BASE_DIR (absolute or ..) or are
