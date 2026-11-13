@@ -1794,6 +1794,7 @@ update_services() {
     invalidate_panels_cache
 
     download_and_extract_release "$download_url" || return 1
+    merge_env_files
     set_env_app_version "$resolved_tag"
 
     INFO "Updating services with image version: $resolved_tag..."
