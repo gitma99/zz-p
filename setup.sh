@@ -1921,59 +1921,61 @@ view_log_files() {
             continue
         fi
 
-        echo -e "\n========================================="
-        echo -e "  Log files for $svc ($full_path)"
-        echo -e "========================================="
+        while true; do
+            echo -e "\n========================================="
+            echo -e "  Log files for $svc ($full_path)"
+            echo -e "========================================="
 
-        local log_files=()
-        while IFS= read -r -d '' file; do
-            log_files+=("$file")
-        done < <(find "$full_path" -maxdepth 2 -type f \( -name "*.log" -o -name "*.log.*" -o -name "error*" -o -name "access*" -o -name "slow*" \) -printf '%T@ %p\0' 2>/dev/null | sort -z -rn | cut -z -d' ' -f2-)
+            local log_files=()
+            while IFS= read -r -d '' file; do
+                log_files+=("$file")
+            done < <(find "$full_path" -maxdepth 2 -type f \( -name "*.log" -o -name "*.log.*" -o -name "error*" -o -name "access*" -o -name "slow*" \) -printf '%T@ %p\0' 2>/dev/null | sort -z -rn | cut -z -d' ' -f2-)
 
-        if [ ${#log_files[@]} -eq 0 ]; then
-            echo "  (No log files found)"
-            continue
-        fi
+            if [ ${#log_files[@]} -eq 0 ]; then
+                echo "  (No log files found)"
+                break
+            fi
 
-        local j=1
-        for log_file in "${log_files[@]}"; do
-            local size=$(stat -c%s "$log_file" 2>/dev/null | awk '{printf "%.1fK", $1/1024}' || echo "?")
-            local mtime=$(stat -c%y "$log_file" 2>/dev/null | cut -d'.' -f1 || echo "?")
-            local rel_path="${log_file#$full_path/}"
-            printf " %d) %s (%s, %s)\n" "$j" "$rel_path" "$size" "$mtime"
-            ((j++))
-        done
-        printf " %d) View ALL log files (concatenated)\n" "$j" >&2
-        printf " 0) Back to service selection\n" >&2
-        echo "=========================================" >&2
-        read -r -p "Enter choice [0-${#log_files[@]}]: " log_choice
-        echo "=========================================" >&2
-
-        if ! [[ "$log_choice" =~ ^[0-9]+$ ]]; then
-            WARN "Invalid option."
-            continue
-        fi
-
-        if [ "$log_choice" -eq 0 ]; then
-            continue
-        elif [ "$log_choice" -eq "$(( ${#log_files[@]} + 1 ))" ]; then
-            # View all concatenated
-            INFO "Showing all log files for $svc (most recent first)..."
-            find "$full_path" -maxdepth 2 -type f \( -name "*.log" -o -name "*.log.*" -o -name "error*" -o -name "access*" -o -name "slow*" \) -exec ls -lt {} + 2>/dev/null | head -20
-            echo ""
+            local j=1
             for log_file in "${log_files[@]}"; do
-                echo "===== $(basename "$log_file") ====="
-                tail -n 50 "$log_file" 2>/dev/null
+                local size=$(stat -c%s "$log_file" 2>/dev/null | awk '{printf "%.1fK", $1/1024}' || echo "?")
+                local mtime=$(stat -c%y "$log_file" 2>/dev/null | cut -d'.' -f1 || echo "?")
+                local rel_path="${log_file#$full_path/}"
+                printf " %d) %s (%s, %s)\n" "$j" "$rel_path" "$size" "$mtime"
+                ((j++))
+            done
+            printf " %d) View ALL log files (concatenated)\n" "$j" >&2
+            printf " 0) Back to service selection\n" >&2
+            echo "=========================================" >&2
+            read -r -p "Enter choice [0-${#log_files[@]}]: " log_choice
+            echo "=========================================" >&2
+
+            if ! [[ "$log_choice" =~ ^[0-9]+$ ]]; then
+                WARN "Invalid option."
+                continue
+            fi
+
+            if [ "$log_choice" -eq 0 ]; then
+                break
+            elif [ "$log_choice" -eq "$(( ${#log_files[@]} + 1 ))" ]; then
+                # View all concatenated
+                INFO "Showing all log files for $svc (most recent first)..."
+                find "$full_path" -maxdepth 2 -type f \( -name "*.log" -o -name "*.log.*" -o -name "error*" -o -name "access*" -o -name "slow*" \) -exec ls -lt {} + 2>/dev/null | head -20
                 echo ""
-            done | less -R
-        elif [ "$log_choice" -ge 1 ] && [ "$log_choice" -le "${#log_files[@]}" ]; then
-            local selected_log="${log_files[log_choice-1]}"
-            echo -e "\n--- Viewing: $selected_log ---"
-            echo "Press 'q' to quit, 'f' to follow, or Enter to scroll"
-            less -R "$selected_log"
-        else
-            WARN "Invalid option."
-        fi
+                for log_file in "${log_files[@]}"; do
+                    echo "===== $(basename "$log_file") ====="
+                    tail -n 50 "$log_file" 2>/dev/null
+                    echo ""
+                done | less -R
+            elif [ "$log_choice" -ge 1 ] && [ "$log_choice" -le "${#log_files[@]}" ]; then
+                local selected_log="${log_files[log_choice-1]}"
+                echo -e "\n--- Viewing: $selected_log ---"
+                echo "Press 'q' to return to log list, 'f' to follow, or Enter to scroll"
+                less -R "$selected_log"
+            else
+                WARN "Invalid option."
+            fi
+        done
     done
 }
 
