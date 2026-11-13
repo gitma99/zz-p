@@ -2014,7 +2014,7 @@ show_menu() {
     app_ver=$(get_installed_app_version)
     while true; do
         echo -e "\n========================================="
-        echo -e "     ZZPanelBot Management (3.2.12)      "
+        echo -e "     ZZPanelBot Management (3.2.13)      "
         echo -e "     Installed App Version: $app_ver     "
         echo -e "========================================="
         echo -e "\n=== Service Management ==="
