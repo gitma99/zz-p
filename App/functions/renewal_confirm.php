@@ -47,6 +47,18 @@ function renewal_confirm($from_id)
             return;
         }
 
+        // Service name is IMMUTABLE during renewal - user selects existing service by code_base.
+        // The $code_base from state MUST match the order's code; no rename allowed.
+        if ($code_base !== $order['code']) {
+            Logger::error('renewal_name_mismatch', array(
+                'from_id' => $from_id,
+                'state_code' => $code_base,
+                'order_code' => $order['code']
+            ));
+            sendMessage($from_id, sprintf($texts['renew_error'], 2), $start_key);
+            return;
+        }
+
         // 4. Plan and panel must exist and be marzban.
         $plan_row = db_row($sql, "SELECT * FROM `category` WHERE `name` = ? LIMIT 1", "s", array($plan));
         if (!$plan_row) {

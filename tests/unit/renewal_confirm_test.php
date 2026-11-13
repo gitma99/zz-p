@@ -160,7 +160,7 @@ function texts_stub() {
 function case_setup() {
     reset_case();
     $GLOBALS['stub_rows']['SELECT * FROM `orders` WHERE `code` = ? AND `from_id` = ? LIMIT 1']
-        = array('location' => 'srv1', 'type' => 'marzban');
+        = array('code' => 'svc', 'location' => 'srv1', 'type' => 'marzban');
     $GLOBALS['stub_rows']['SELECT * FROM `category` WHERE `name` = ? LIMIT 1']
         = array('limit' => '100', 'date' => '30');
     $GLOBALS['stub_rows']['SELECT `coin` FROM `users` WHERE `from_id` = ? LIMIT 1 FOR UPDATE']
@@ -243,7 +243,7 @@ assert_log('error', 'renewal_order_missing', 'case3: ERROR log renewal_order_mis
 
 case_setup();
 $GLOBALS['stub_rows']['SELECT * FROM `orders` WHERE `code` = ? AND `from_id` = ? LIMIT 1']
-    = array('location' => 'srv1', 'type' => 'sanayi');
+    = array('code' => 'svc', 'location' => 'srv1', 'type' => 'sanayi');
 renewal_confirm(7);
 assert_sent('2 | RENEW ERROR', 'case4: renew_error with 2');
 assert_true(!cc(), 'case4: no API call');

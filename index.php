@@ -26,6 +26,7 @@ try {
     require_once __DIR__ . "/App/apis/telegram-api/api/get_chat.php";
     require_once __DIR__ . "/App/apis/telegram-api/functions/responses.php";
     require_once __DIR__ . "/App/Utils/temp_tools.php";
+    require_once __DIR__ . '/App/Utils/name_validator.php';
 
 
     require_once 'config.php';
@@ -242,90 +243,42 @@ try {
         }
     } elseif ($user['step'] == 'choose_name') {
         $selected_name = $text;
-        // $selected_name_full = $code_base . '_' . $from_id;
-
-
 
         $plan_name = read_temp_file("$from_id-plan.txt")[0];
         $response = $sql->query("SELECT `name` FROM `category` WHERE `name` = '$plan_name'")->num_rows;
         if ($response == 0) {
             sendMessage($from_id, $texts['choice_error']);
+            exit(0);
         }
 
         $location = read_temp_file("$from_id-location.txt")[0];
-        $plan = $plan_name;
+
+        // Validate service name using helper
+        $validation = validate_service_name($selected_name, $from_id, $location, $sql);
+        if (!$validation['valid']) {
+            $plan = [[['text' => '🔙 بازگشت']]];
+            $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
+            sendMessage($from_id, $my_texts[$validation['error']], $plan);
+            if ($validation['error'] !== 'buy_service__choose_name__error__too_long') {
+                sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $plan);
+            }
+            step('choose_name');
+            exit(0);
+        }
+
+        // Validation passed
         $code_base = $selected_name;
         $code = $code_base . '_' . $from_id;
 
-        if (strlen($code_base) > 20) {
-            sendMessage($from_id, $texts['buy_service__choose_name__error__too_long']);
-            sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], json_encode(['keyboard' => [[['text' => '🔙 بازگشت']]], 'resize_keyboard' => true]));
-            exit(0);
-        };
+        sendMessage($from_id, $texts['create_factor'], $confirm_service);
+        $fetch = $sql->query("SELECT * FROM `category` WHERE `name` = '$plan_name'")->fetch_assoc();
+        $price = $fetch['price'] ?? 0;
+        $limit = $fetch['limit'] ?? 0;
+        $date = $fetch['date'] ?? 0;
 
-        $panel = get_panel_by_name($location);
-        $getUser = getUserInfo($code, get_marzban_panel_token($location), $panel['login_link']);
-        # if ($getUser['detail'] == 'Could not validate credentials') {
-        // if (in_array($getUser['detail'], ['Could not validate credentials', 'Not authenticated'])) {
-        if ($getUser[0] == false) {
-            $new_marzban_token = get_marzban_panel_token($panel['name']);
-
-            if ($new_marzban_token !== false) {
-                $panel = get_panel_by_name($location);
-                $getUser = getUserInfo($code, get_marzban_panel_token($location), $panel['login_link']);
-            } else {
-                $plan = [];
-                $plan[] = [['text' => '🔙 بازگشت']];
-                $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
-                sendMessage($from_id, "{$texts['server_connection_failed']}({$panel['name']} token cant be renewed!!)", $plan);
-                exit(0);
-            }
-        }
-
-        if (isset($getUser[2])) {
-            $repeated_db_order_code_count = $sql->query("SELECT `code` FROM `orders` WHERE `code` = '{$code_base}' AND `from_id` = '$from_id'")->num_rows;
-            if ($getUser[1] == true || $repeated_db_order_code_count != 0) {
-                // if ((!isset($getUser['links']) and $getUser == false)) {
-                $plan = [];
-                $plan[] = [['text' => '🔙 بازگشت']];
-                $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
-
-                // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
-                sendMessage($from_id, $my_texts['repeated_config_name'], $plan);
-                sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $plan);
-                step('choose_name');
-                exit();
-            } elseif ($getUser[1] == false) {
-                sendMessage($from_id, $texts['create_factor'], $confirm_service);
-
-                $fetch = $sql->query("SELECT * FROM `category` WHERE `name` = '$plan_name'")->fetch_assoc();
-                $price = $fetch['price'] ?? 0;
-                $limit = $fetch['limit'] ?? 0;
-                $date = $fetch['date'] ?? 0;
-
-                $sql->query("INSERT INTO `service_factors` (`from_id`, `location`, `protocol`, `plan`, `price`, `code`, `status`) VALUES ('$from_id', '$location', 'null', '$plan', '$price', '$code_base', 'active')");
-                $copen_key = json_encode(['inline_keyboard' => [[['text' => '🎁 کد تخفیف', 'callback_data' => 'use_copen-' . $code]]]]);
-                // sendMessage($from_id, sprintf($texts['service_factor'], $location, $limit, $date, $code_base, number_format($price)), $copen_key);
-                sendMessage($from_id, sprintf($texts['service_factor'], $location, $limit, $date, $code_base, number_format($price)));
-                step('confirm_service');
-                exit();
-            } else {
-                $_keys = [[['text' => '🔙 بازگشت']]];
-                $_keyboard = json_encode(['keyboard' => $_keys, 'resize_keyboard' => true]);
-                // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
-                sendMessage($from_id, "{$texts['config_name_verification_failed']}({$getUser[2]['detail']})", $_keyboard);
-                exit();
-            }
-        } else {
-            $plan = [];
-            $plan[] = [['text' => '🔙 بازگشت']];
-            $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
-            // sendMessage($from_id, $custo['renew_service_server_selection'], $plan);
-            sendMessage($from_id, $texts['invalid_config_name'], $plan);
-            sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $plan);
-            step('choose_name');
-            exit();
-        }
+        $sql->query("INSERT INTO `service_factors` (`from_id`, `location`, `protocol`, `plan`, `price`, `code`, `status`) VALUES ('$from_id', '$location', 'null', '$plan_name', '$price', '$code_base', 'active')");
+        step('confirm_service');
+        exit();
     } elseif ($data == 'cancel_copen') {
         step('confirm_service');
         deleteMessage($from_id, $message_id);
