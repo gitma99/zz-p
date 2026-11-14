@@ -72,10 +72,17 @@ FATAL() { echo "[FATAL] \$*" >&2; exit 1; }
 INFO() { :; }
 WARN() { :; }
 
+# Hermetic: never observe a running zzpanel_app container.
+docker() { return 1; }
+CACHE_DIR="\$td/temp/zzbot"
+
 # Source target functions from setup.sh
 source <(sed -n '/^extract_asset_url_from_json()/,/^}/p' setup.sh)
 source <(sed -n '/^normalize_version_tag()/,/^}/p' setup.sh)
 source <(sed -n '/^set_env_app_version()/,/^}/p' setup.sh)
+source <(sed -n '/^ensure_cache_dir()/,/^}/p' setup.sh)
+source <(sed -n '/^read_cache()/,/^}/p' setup.sh)
+source <(sed -n '/^get_cached_version()/,/^}/p' setup.sh)
 source <(sed -n '/^get_installed_app_version()/,/^}/p' setup.sh)
 source <(sed -n '/^confirm_downgrade_if_applicable()/,/^}/p' setup.sh)
 
