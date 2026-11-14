@@ -1394,6 +1394,7 @@ merge_env_files() {
     local env_file="$BASE_DIR/.env"
     local example_file="$BASE_DIR/.env.example"
 
+    ENV_MERGED_COUNT=0
     [ -f "$example_file" ] || return 0
     [ -f "$env_file" ] || { cp "$example_file" "$env_file" || { WARN "Could not copy .env.example to .env — skipping env merge."; return 1; }; return 0; }
 
@@ -1417,13 +1418,15 @@ merge_env_files() {
         # own line (a missing final newline would glue the header onto the
         # user's last variable value).
         [ -s "$env_file" ] && [ -n "$(tail -c 1 "$env_file")" ] && echo >> "$env_file"
-        local keys="${added[0]}" k
-        for k in "${added[@]:1}"; do keys+=", $k"; done
         {
-            printf '# Merged from .env.example on %s: %s\n' \
-                "$(date +%Y-%m-%d)" "$keys"
+            # Blank line separates the merged block from existing content.
+            [ -s "$env_file" ] && echo
+            printf '# Merged from .env.example on %s: %s %s added\n' \
+                "$(date +%Y-%m-%d\ %H:%M)" "${#added[@]}" \
+                "$([ "${#added[@]}" -eq 1 ] && echo var || echo vars)"
             printf '%s\n' "${added_lines[@]}"
         } >> "$env_file"
+        ENV_MERGED_COUNT="${#added[@]}"
         INFO "Merged new env vars into .env: ${added[*]}"
     fi
 }
@@ -1801,6 +1804,10 @@ update_services() {
 
     download_and_extract_release "$download_url" || return 1
     merge_env_files || WARN "Could not merge new env vars from .env.example — update continues without them."
+    if [ "${ENV_MERGED_COUNT:-0}" -gt 0 ] && [ -t 0 ] && [ -t 1 ]; then
+        INFO "New env vars were added to .env — opening it for review (Ctrl+O save, Ctrl+X exit)."
+        nano .env
+    fi
     set_env_app_version "$resolved_tag"
 
     INFO "Updating services with image version: $resolved_tag..."

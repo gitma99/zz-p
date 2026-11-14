@@ -29,7 +29,7 @@ run_test() {
     td=$(mktemp -d)
     # Subshell cd's into $td so relative .env paths land there, and BASE_DIR
     # points at the same place the function reads from.
-    if ( cd "$td" && BASE_DIR="$td"; "$@" ); then
+    if ( cd "$td" && BASE_DIR="$td"; unset ENV_MERGED_COUNT; "$@" ); then
         PASS_COUNT=$((PASS_COUNT + 1))
         echo "PASS $name"
     else
@@ -83,14 +83,14 @@ test_no_change_no_merged_comment() {
     ! grep -q "Merged from .env.example" .env || return 1
 }
 
-# Case 6: dated comment above added block
+# Case 6: dated comment above added block (date + time + count only)
 test_dated_comment_above_added_block() {
     echo "BOT_TOKEN=mine" > .env
     printf 'BOT_TOKEN=example\nNEW_VAR=1\n' > .env.example
     merge_env_files
     local n
     n=$(grep -n "^NEW_VAR=1$" .env | cut -d: -f1) || return 1
-    head -n $((n - 1)) .env | tail -n 1 | grep -Eq '^# Merged from \.env\.example on [0-9]{4}-[0-9]{2}-[0-9]{2}: .*$' || return 1
+    head -n $((n - 1)) .env | tail -n 1 | grep -Eq '^# Merged from \.env\.example on [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}: 1 var added$' || return 1
 }
 
 # Case 7: idempotency
@@ -138,12 +138,13 @@ test_env_without_trailing_newline() {
     grep -q "^NEW_VAR=1$" .env || return 1
 }
 
-# Case 12: dated header joins multiple keys with ", " (plan's documented form)
-test_header_joins_keys_with_comma_space() {
+# Case 12: header for multiple vars shows count (plural) and no key names
+test_header_multiple_vars_count() {
     echo "BOT_TOKEN=mine" > .env
     printf 'NEW_VAR=1\nNEW_OPT=2\n' > .env.example
     merge_env_files
-    grep -Eq '^# Merged from \.env\.example on [0-9]{4}-[0-9]{2}-[0-9]{2}: NEW_VAR, NEW_OPT$' .env || return 1
+    grep -Eq '^# Merged from \.env\.example on [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}: 2 vars added$' .env || return 1
+    ! grep -Eq '^# Merged.*NEW_VAR' .env || return 1
 }
 
 # Case 13: .env.example without trailing newline — last var still merged
@@ -181,6 +182,33 @@ test_reverse_prefix_collision() {
     grep -q "^LOG_LEVEL_MAX=100$" .env || return 1
 }
 
+# Case 17: merge reports how many vars it added (ENV_MERGED_COUNT) so the
+# update flow can decide whether to open .env for review.
+test_reports_added_count() {
+    echo "BOT_TOKEN=mine" > .env
+    printf 'NEW_VAR=1\nNEW_OPT=2\n' > .env.example
+    merge_env_files
+    [ "${ENV_MERGED_COUNT:-0}" -eq 2 ] || return 1
+}
+
+# Case 18: no changes -> ENV_MERGED_COUNT is 0
+test_no_change_zero_count() {
+    printf 'A=1\n' > .env
+    cp .env .env.example
+    merge_env_files
+    [ "${ENV_MERGED_COUNT:-0}" -eq 0 ] || return 1
+}
+
+# Case 19: merged block is separated from existing content by a blank line
+test_blank_line_before_merged_block() {
+    echo "BOT_TOKEN=mine" > .env
+    printf 'NEW_VAR=1\n' > .env.example
+    merge_env_files
+    local n
+    n=$(grep -n "^# Merged from" .env | cut -d: -f1) || return 1
+    sed -n "$((n - 1))p" .env | grep -Eq '^$' || return 1
+}
+
 run_test "1 adds active new var" test_adds_active_new_var
 run_test "2 adds commented new var" test_adds_commented_new_var
 run_test "3 commented key blocks both forms" test_commented_key_blocks_both_forms
@@ -192,11 +220,14 @@ run_test "8 value with equals" test_value_with_equals
 run_test "9 missing example" test_missing_example
 run_test "10 prefix collision not a match" test_prefix_collision_not_a_match
 run_test "11 env without trailing newline" test_env_without_trailing_newline
-run_test "12 header joins keys with comma space" test_header_joins_keys_with_comma_space
+run_test "12 header multiple vars count" test_header_multiple_vars_count
 run_test "13 example without trailing newline" test_example_without_trailing_newline
 run_test "14 missing env copies example" test_missing_env_copies_example
 run_test "15 cp failure graceful" test_cp_failure_graceful
 run_test "16 reverse prefix collision" test_reverse_prefix_collision
+run_test "17 reports added count" test_reports_added_count
+run_test "18 no change zero count" test_no_change_zero_count
+run_test "19 blank line before merged block" test_blank_line_before_merged_block
 
 echo
 echo "Env merge tests: $PASS_COUNT passed, $FAIL_COUNT failed"
