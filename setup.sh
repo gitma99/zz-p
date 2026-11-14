@@ -1395,7 +1395,7 @@ merge_env_files() {
     local example_file="$BASE_DIR/.env.example"
 
     [ -f "$example_file" ] || return 0
-    [ -f "$env_file" ] || { cp "$example_file" "$env_file"; return 0; }
+    [ -f "$env_file" ] || { cp "$example_file" "$env_file" || { WARN "Could not copy .env.example to .env — skipping env merge."; return 1; }; return 0; }
 
     # For each variable line in the example — active "KEY=..." or commented
     # "# KEY=..." — append the original line if KEY is unknown in .env (in
@@ -1413,9 +1413,15 @@ merge_env_files() {
     done < "$example_file"
 
     if [ "${#added[@]}" -gt 0 ]; then
+        # Guarantee a trailing newline so the block we append starts on its
+        # own line (a missing final newline would glue the header onto the
+        # user's last variable value).
+        [ -s "$env_file" ] && [ -n "$(tail -c 1 "$env_file")" ] && echo >> "$env_file"
+        local keys="${added[0]}" k
+        for k in "${added[@]:1}"; do keys+=", $k"; done
         {
             printf '# Merged from .env.example on %s: %s\n' \
-                "$(date +%Y-%m-%d)" "$(IFS=', '; echo "${added[*]}")"
+                "$(date +%Y-%m-%d)" "$keys"
             printf '%s\n' "${added_lines[@]}"
         } >> "$env_file"
         INFO "Merged new env vars into .env: ${added[*]}"
@@ -1794,7 +1800,7 @@ update_services() {
     invalidate_panels_cache
 
     download_and_extract_release "$download_url" || return 1
-    merge_env_files
+    merge_env_files || WARN "Could not merge new env vars from .env.example — update continues without them."
     set_env_app_version "$resolved_tag"
 
     INFO "Updating services with image version: $resolved_tag..."
