@@ -259,7 +259,7 @@ try {
             $plan = [[['text' => '🔙 بازگشت']]];
             $plan = json_encode(['keyboard' => $plan, 'resize_keyboard' => true]);
             sendMessage($from_id, $my_texts[$validation['error']], $plan);
-            if ($validation['error'] !== 'buy_service__choose_name__error__too_long') {
+            if (in_array($validation['error'], array('buy_service__choose_name__error__too_long', 'buy_service__choose_name__error__invalid_chars'))) {
                 sendMessage($from_id, $my_texts['buy_service_choose_name_hint'], $plan);
             }
             step('choose_name');
@@ -270,11 +270,13 @@ try {
         $code_base = $selected_name;
         $code = $code_base . '_' . $from_id;
 
-        sendMessage($from_id, $texts['create_factor'], $confirm_service);
         $fetch = $sql->query("SELECT * FROM `category` WHERE `name` = '$plan_name'")->fetch_assoc();
         $price = $fetch['price'] ?? 0;
         $limit = $fetch['limit'] ?? 0;
         $date = $fetch['date'] ?? 0;
+
+        sendMessage($from_id, $texts['create_factor'], $confirm_service);
+        sendMessage($from_id, sprintf($texts['service_factor'], $location, $limit, $date, $code_base, number_format($price)));
 
         $sql->query("INSERT INTO `service_factors` (`from_id`, `location`, `protocol`, `plan`, `price`, `code`, `status`) VALUES ('$from_id', '$location', 'null', '$plan_name', '$price', '$code_base', 'active')");
         step('confirm_service');

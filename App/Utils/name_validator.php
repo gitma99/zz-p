@@ -10,7 +10,7 @@ function validate_service_name($name, $from_id, $location, $sql)
 
     // 2. Character set: English letters, numbers, underscore only, no spaces
     if (!preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
-        return ['valid' => false, 'error' => 'buy_service_choose_name_hint'];
+        return ['valid' => false, 'error' => 'buy_service__choose_name__error__invalid_chars'];
     }
 
     // 3. Uniqueness on panel (Marzban)
