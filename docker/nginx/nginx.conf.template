@@ -59,6 +59,7 @@ server {
     }
 
     location /phpmyadmin/ {
+        resolver 127.0.0.11 valid=10s;
         set $pma_backend http://phpmyadmin;
         proxy_pass $pma_backend/;
         proxy_set_header Host $host;
