@@ -61,7 +61,13 @@ server {
     location /phpmyadmin/ {
         resolver 127.0.0.11 valid=10s;
         set $pma_backend http://phpmyadmin;
-        proxy_pass $pma_backend/;
+        # Variable in proxy_pass does NOT strip the location prefix (nginx
+        # passes the URI "as is"), so /phpmyadmin/x.js would hit the
+        # backend as / and serve the login HTML for every asset (blank
+        # page). Strip explicitly; no-URI proxy_pass then forwards the
+        # rewritten URI.
+        rewrite ^/phpmyadmin/(.*)$ /$1 break;
+        proxy_pass $pma_backend;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
