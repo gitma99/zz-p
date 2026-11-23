@@ -424,7 +424,10 @@ try {
             }
         }
         $sql->query("DELETE FROM `service_factors` WHERE `from_id` = '$from_id'");
-        $sql->query("UPDATE `users` SET `coin` = coin - $price, `count_service` = count_service + 1 WHERE `from_id` = '$from_id' LIMIT 1");
+        $sql->query("UPDATE `users` SET `coin` = coin - $price WHERE `from_id` = '$from_id' LIMIT 1");
+        if (!recompute_user_service_count($sql, $from_id)) {
+            Logger::warning('buy_count_service_stale', array('from_id' => $from_id, 'code' => $code_base));
+        }
     } elseif ($text == '🎁 سرویس تستی (رایگان)' and $test_account_setting['status'] == 'active') {
         step('none');
         if ($user['test_account'] == 'no') {
@@ -466,7 +469,7 @@ try {
                         foreach ($create_status['links'] as $link)
                             $links .= $link . "\n\n";
                         $subscribe = (strpos($create_status['subscription_url'], 'http') !== false) ? $create_status['subscription_url'] : $panel_fetch['login_link'] . $create_status['subscription_url'];
-                        $sql->query("UPDATE `users` SET `count_service` = count_service + 1, `test_account` = 'yes' WHERE `from_id` = '$from_id'");
+                        $sql->query("UPDATE `users` SET `test_account` = 'yes' WHERE `from_id` = '$from_id'");
                         $sql->query("INSERT INTO `test_account` (`from_id`, `location`, `date`, `volume`, `link`, `price`, `code`, `status`) VALUES ('$from_id', '{$panel_fetch['name']}', '{$test_account_setting['date']}', '{$test_account_setting['volume']}', '$links', '0', '$code', 'active')");
                         deleteMessage($from_id, $message_id + 1);
                         sendMessage($from_id, sprintf($texts['create_test_account'], $test_account_setting['time'], $subscribe, $panel_fetch['name'], $test_account_setting['time'], $test_account_setting['volume'], base64_encode($code)), $start_key);
@@ -492,7 +495,7 @@ try {
                         throw new Exception("Sanayi test account creation failed: " . json_encode($create_status));
                     }
                     # ---------------------------------------------- #
-                    $sql->query("UPDATE `users` SET `count_service` = count_service + 1, `test_account` = 'yes' WHERE `from_id` = '$from_id'");
+                    $sql->query("UPDATE `users` SET `test_account` = 'yes' WHERE `from_id` = '$from_id'");
                     $sql->query("INSERT INTO `test_account` (`from_id`, `location`, `date`, `volume`, `link`, `price`, `code`, `status`) VALUES ('$from_id', '{$panel_fetch['name']}', '{$test_account_setting['date']}', '{$test_account_setting['volume']}', '$link', '0', '$code', 'active')");
                     deleteMessage($from_id, $message_id + 1);
                     sendMessage($from_id, sprintf($texts['create_test_account'], $test_account_setting['time'], $link, $panel_fetch['name'], $test_account_setting['time'], $test_account_setting['volume'], base64_encode($code)), $start_key);
@@ -2908,7 +2911,7 @@ try {
                 }
 
                 $coin = number_format($info['coin']) ?? 0;
-                $count_service = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'")->num_rows ?? 0;
+                $count_service = (int)($info['count_service'] ?? 0);
                 $count_payment = $info['count_charge'] ?? 0;
                 $keys = [
                     [
@@ -2980,8 +2983,7 @@ try {
                     $username = (!empty($info['username']) && $info['username'] !== '❌') ? $info['username'] : '⚠ خطا ⚠';
                 }
                 $coin = number_format($info['coin']) ?? 0;
-                $count_service = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'")->num_rows ?? 0;
-                // $count_service = $info['count_service'] ?? 0;
+                $count_service = (int)($info['count_service'] ?? 0);
                 $count_payment = $info['count_charge'] ?? 0;
 
                 $count_all_active = 0;

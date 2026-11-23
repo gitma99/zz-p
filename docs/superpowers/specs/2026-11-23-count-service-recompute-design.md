@@ -97,3 +97,10 @@ Stale-by-one-window: if a recompute fails (DB blip), the count is wrong until
 the user's next buy/renew/sync or the backfill reruns. Acceptable — every
 failure is logged, and the admin display can fall back to a live count later
 if that ever matters.
+
+Edge (accepted, 2026-11-23 final review): a mid-sync deletion failure after
+some deletions already committed makes that run return before the recompute,
+and the next sync will not re-delete the already-gone rows — the count heals
+on the user's next buy or renewal. The sync error itself is surfaced to the
+user (alert / task failure), so this path is visible even without a
+`*_stale` log line.

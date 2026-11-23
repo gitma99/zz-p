@@ -112,6 +112,12 @@ function sendSuccessResponse($from_id, $qr_code_status, $qr_data, $caption_text,
 
 function get_marzban_panel_token($panel_name) { return $GLOBALS['panel_token']; }
 
+$GLOBALS['recompute_calls'] = array();
+function recompute_user_service_count($sql, $from_id) {
+    $GLOBALS['recompute_calls'][] = $from_id;
+    return true;
+}
+
 // --- Case plumbing -----------------------------------------------------
 
 function reset_case() {
@@ -135,6 +141,7 @@ function reset_case() {
     $GLOBALS['getMe_thrown'] = array();
     $GLOBALS['panel_token'] = 'tok';
     $GLOBALS['user'] = array('coin' => 10000);
+    $GLOBALS['recompute_calls'] = array();
     $GLOBALS['texts'] = texts_stub();
     $GLOBALS['my_texts'] = $GLOBALS['texts'];
     $GLOBALS['start_key'] = 'key';
@@ -219,6 +226,7 @@ assert_sent('renewal config not found', 'case1: config not found message');
 assert_true(!cc(), 'case1: no API call');
 assert_eq(0, txg()['begin'], 'case1: no tx begin');
 assert_log('warning', 'renewal_state_missing', 'case1: WARNING log renewal_state_missing', 'from_id', 7);
+assert_eq(array(), $GLOBALS['recompute_calls'], 'case1: no recompute on missing state');
 
 // --- 2. invalid price ----------------------------------------------------
 
@@ -229,6 +237,7 @@ assert_sent('1 | RENEW ERROR', 'case2: renew_error with 1');
 assert_true(!cc(), 'case2: no API call');
 assert_eq(0, count(dlv()), 'case2: nothing delivered');
 assert_log('error', 'renewal_bad_price', 'case2: ERROR log for bad price', 'from_id', 7);
+assert_eq(array(), $GLOBALS['recompute_calls'], 'case2: no recompute on bad price');
 
 // --- 3. order missing -----------------------------------------------------
 
@@ -238,6 +247,7 @@ renewal_confirm(7);
 assert_sent('2 | RENEW ERROR', 'case3: renew_error with 2');
 assert_true(!cc(), 'case3: no API call');
 assert_log('error', 'renewal_order_missing', 'case3: ERROR log renewal_order_missing', 'from_id', 7);
+assert_eq(array(), $GLOBALS['recompute_calls'], 'case3: no recompute on missing order');
 
 // --- 4. non-marzban order --------------------------------------------------
 
@@ -248,6 +258,7 @@ renewal_confirm(7);
 assert_sent('2 | RENEW ERROR', 'case4: renew_error with 2');
 assert_true(!cc(), 'case4: no API call');
 assert_log('error', 'renewal_not_marzban', 'case4: ERROR log renewal_not_marzban', 'from_id', 7);
+assert_eq(array(), $GLOBALS['recompute_calls'], 'case4: no recompute on non-marzban order');
 
 // --- 5. panel mismatch ------------------------------------------------------
 
@@ -257,6 +268,7 @@ renewal_confirm(7);
 assert_sent('2 | RENEW ERROR', 'case5: renew_error with 2');
 assert_true(!cc(), 'case5: no API call');
 assert_log('error', 'renewal_panel_mismatch', 'case5: ERROR log renewal_panel_mismatch', 'from_id', 7);
+assert_eq(array(), $GLOBALS['recompute_calls'], 'case5: no recompute on panel mismatch');
 
 // --- 6. plan missing ----------------------------------------------------------
 
@@ -266,6 +278,7 @@ renewal_confirm(7);
 assert_sent('0 | RENEW ERROR', 'case6: renew_error with 0');
 assert_true(!cc(), 'case6: no API call');
 assert_log('error', 'renewal_plan_missing', 'case6: ERROR log renewal_plan_missing', 'from_id', 7);
+assert_eq(array(), $GLOBALS['recompute_calls'], 'case6: no recompute on missing plan');
 
 // --- 7a. panel missing ----------------------------------------------------------
 
@@ -275,6 +288,7 @@ renewal_confirm(7);
 assert_sent('2 | RENEW ERROR', 'case7a: renew_error with 2');
 assert_true(!cc(), 'case7a: no API call');
 assert_log('error', 'renewal_panel_missing', 'case7a: ERROR log renewal_panel_missing', 'from_id', 7);
+assert_eq(array(), $GLOBALS['recompute_calls'], 'case7a: no recompute on missing panel');
 
 // --- 7b. non-marzban panel --------------------------------------------------------
 
@@ -284,6 +298,7 @@ renewal_confirm(7);
 assert_sent('Not implanted Error', 'case7b: existing "Not implanted Error" message');
 assert_true(!cc(), 'case7b: no API call');
 assert_true(count(dlv()) === 0, 'case7b: nothing delivered');
+assert_eq(array(), $GLOBALS['recompute_calls'], 'case7b: no recompute on non-marzban panel');
 
 // --- 8. coin short ------------------------------------------------------------------
 
@@ -293,6 +308,7 @@ renewal_confirm(7);
 assert_sent('NOT COIN 5,000', 'case8: not_coin message');
 assert_true(!cc(), 'case8: no API call');
 assert_eq(0, txg()['begin'], 'case8: no tx begin');
+assert_eq(array(), $GLOBALS['recompute_calls'], 'case8: no recompute on insufficient coin');
 
 // --- 9. token failure -----------------------------------------------------------------
 
@@ -303,6 +319,7 @@ assert_sent('token bad', 'case9: token incorrect message');
 assert_true(!cc(), 'case9: no API call');
 assert_eq(0, txg()['begin'], 'case9: no tx begin');
 assert_log('error', 'renewal_token_failed', 'case9: ERROR log renewal_token_failed', 'from_id', 7);
+assert_eq(array(), $GLOBALS['recompute_calls'], 'case9: no recompute on token failure');
 
 // --- 10. API failure ---------------------------------------------------------------------
 
@@ -313,6 +330,7 @@ assert_sent('1 | RENEW ERROR', 'case10: renew_error with 1');
 assert_true($GLOBALS['reset_called'] === false, 'case10: no reset call');
 assert_eq(0, txg()['begin'], 'case10: no tx begin');
 assert_log('error', 'renewal_api_failed', 'case10: ERROR log renewal_api_failed', 'from_id', 7);
+assert_eq(array(), $GLOBALS['recompute_calls'], 'case10: no recompute on API failure');
 
 // --- 11. accepted but incomplete body -----------------------------------------------------
 
@@ -360,6 +378,7 @@ foreach ($GLOBALS['exec_calls'] as $c) {
 }
 assert_true($orders_exec !== null, 'case13: orders UPDATE attempted inside tx');
 assert_eq(array('srv1', '30', '100', "vless://a\n\nvless://b", 5000, 'svc', 7), $orders_exec['params'], 'case13: orders params');
+assert_eq(array(), $GLOBALS['recompute_calls'], 'case13: no recompute on rolled-back tx');
 
 // --- 13b. persistence failure (balance row missing) --------------------------------------------------
 
@@ -368,6 +387,7 @@ $GLOBALS['stub_rows']['SELECT `coin` FROM `users` WHERE `from_id` = ? LIMIT 1 FO
 renewal_confirm(7);
 assert_eq(1, txg()['rollback'], 'case13b: tx rolled back on missing balance row');
 assert_sent('persist failed: svc', 'case13b: renew_persist_failed text with code');
+assert_eq(array(), $GLOBALS['recompute_calls'], 'case13b: no recompute on missing balance row');
 assert_eq(0, count(dlv()), 'case13b: nothing delivered');
 assert_eq(array(), $GLOBALS['deleted'], 'case13b: no file deleted');
 
@@ -388,6 +408,7 @@ $GLOBALS['getMe_thrown'] = array('yes'); // getMe() throws: username falls back 
 renewal_confirm(7);
 assert_eq(array('none'), $GLOBALS['steps'], 'case15: steps == [none] (one call, first)');
 assert_eq(array('begin' => 1, 'commit' => 1, 'rollback' => 0), txg(), 'case15: tx begin 1 commit 1 rollback 0');
+assert_eq(array(7), $GLOBALS['recompute_calls'], 'case15: recompute called exactly once with from_id, after commit');
 assert_eq(array('renewal-service-7.json'), $GLOBALS['deleted'], 'case15: state file deleted');
 assert_eq(1, count(dlv()), 'case15: delivered exactly once');
 // delivery must come after the whole transaction: assert it is sequenced

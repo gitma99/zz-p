@@ -128,6 +128,9 @@ function renewal_confirm($from_id)
                 throw new RuntimeException('renewal_confirm: coin UPDATE failed');
             }
             $sql->commit();
+            if (!recompute_user_service_count($sql, $from_id)) {
+                Logger::warning('renewal_count_service_stale', array('from_id' => $from_id, 'code' => $code_base));
+            }
         } catch (\Throwable $e) {
             $sql->rollback();
             Logger::error('renewal_persist_failed', array('from_id' => $from_id, 'code' => $code_base, 'location' => $location, 'plan' => $plan, 'price' => $price, 'error' => $e->getMessage()));

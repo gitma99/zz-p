@@ -4,6 +4,7 @@ require_once __DIR__ . "/App/vars.php";
 require_once __DIR__ . "/App/Utils/db_tools.php";
 require_once __DIR__ . "/App/Utils/pure.php";
 require_once __DIR__ . "/App/functions/renewal_confirm.php";
+require_once __DIR__ . "/App/Utils/user_counter.php";
 
 $BOT_CONFIG = json_decode(file_get_contents($BOT_CONFIG_PATH), true);
 function get_users_usage($user_id)

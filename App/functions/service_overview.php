@@ -126,6 +126,7 @@ function fetch_user_service_overview($target_user_id, $sql) {
         # `orders_archive` is created by sql/sql.php (install/update), NOT here: a
         # CREATE TABLE in the request path takes a metadata lock on every
         # service-overview request.
+        $deleted = 0;
         foreach ($location_sorted_objs as $service_location_name => $location_detail) {
             foreach ($location_detail['unknown_services'] as $service_username => $svc) {
                 $order_id = (int)($svc['row'] ?? 0);
@@ -201,7 +202,15 @@ function fetch_user_service_overview($target_user_id, $sql) {
                 }
 
                 $sql->commit();
+                $deleted++;
             }
+        }
+
+        // Orders were removed above; keep the cached count current. Failure is a
+        // logged warning, not an error: the overview is already computed and the
+        // next sync heals a stale count.
+        if ($deleted > 0 && !recompute_user_service_count($sql, $target_user_id)) {
+            Logger::warning('sync_count_service_stale', array('user' => $target_user_id, 'deleted' => $deleted));
         }
 
         // $user_usage = get_users_usage($target_user_id);
