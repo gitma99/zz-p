@@ -2898,19 +2898,14 @@ try {
             if ($info->num_rows > 0) {
                 step('none');
                 $info = $info->fetch_assoc();
-                $res_get = getChatMember($text, $text);
-                if ($res_get['ok']) {
+                try {
+                    $res_get = getChatMember($text, $text);
                     $first_name = $res_get['result']['user']['first_name'];
                     $username = '@' . $res_get['result']['user']['username'];
-                } else {
-                    if (!isset($res_get['error_code']) || !isset($res_get['description'])) {
-                        throw new Exception(json_encode($res_get, 448));
-                    };
-                    $username = '⚠ خطا ⚠';
-                    $first_name = '⚠ خطا ⚠';
-                    // $username = 'خطا: ' . $res_get->error_code;
-                    // $first_name = 'خطا: ' . $res_get->description;
-                };
+                } catch (Exception $e) {
+                    $first_name = (!empty($info['first_name']) && $info['first_name'] !== '❌') ? $info['first_name'] : '⚠ خطا ⚠';
+                    $username = (!empty($info['username']) && $info['username'] !== '❌') ? $info['username'] : '⚠ خطا ⚠';
+                }
 
                 $coin = number_format($info['coin']) ?? 0;
                 $count_service = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'")->num_rows ?? 0;
@@ -2976,9 +2971,14 @@ try {
             if ($info->num_rows > 0) {
                 $info = $info->fetch_assoc();
                 step('none');
-                $res_get = getChatMember($text, $text);
-                $first_name = $res_get->result->user->first_name;
-                $username = '@' . $res_get->result->user->username;
+                try {
+                    $res_get = getChatMember($text, $text);
+                    $first_name = $res_get->result->user->first_name;
+                    $username = '@' . $res_get->result->user->username;
+                } catch (Exception $e) {
+                    $first_name = (!empty($info['first_name']) && $info['first_name'] !== '❌') ? $info['first_name'] : '⚠ خطا ⚠';
+                    $username = (!empty($info['username']) && $info['username'] !== '❌') ? $info['username'] : '⚠ خطا ⚠';
+                }
                 $coin = number_format($info['coin']) ?? 0;
                 $count_service = $sql->query("SELECT * FROM `orders` WHERE `from_id` = '$text'")->num_rows ?? 0;
                 // $count_service = $info['count_service'] ?? 0;

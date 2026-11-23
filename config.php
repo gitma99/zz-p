@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . "/App/vars.php";
+require_once __DIR__ . "/App/Utils/db_tools.php";
 require_once __DIR__ . "/App/Utils/apcu_tools.php";
 require_once __DIR__ . "/App/Utils/Logger.php";
 require_once __DIR__ . "/App/Utils/request_cache.php";
@@ -89,12 +90,16 @@ if (!isset($sql->connect_error)) {
 
     if ($tables_exist) {
         if (isset($update)) {
-            $user_query = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$from_id' LIMIT 1");
-            if ($user_query->num_rows == 0) {
-                $sql->query("INSERT INTO `users`(`from_id`) VALUES ('$from_id')");
-                $user_query = $sql->query("SELECT * FROM `users` WHERE `from_id` = '$from_id' LIMIT 1");
+            $user = db_row($sql, "SELECT * FROM `users` WHERE `from_id` = ? LIMIT 1", 's', [$from_id]);
+            if ($user === null) {
+                $ins_ok = db_exec($sql, "INSERT INTO `users`(`from_id`, `username`, `first_name`) VALUES (?, ?, ?)", 'sss', [$from_id, $username, $first_name]);
+                $user = $ins_ok ? db_row($sql, "SELECT * FROM `users` WHERE `from_id` = ? LIMIT 1", 's', [$from_id]) : null;
             }
-            $user = $user_query->fetch_assoc();
+            if ($user && $username !== '❌' && $username !== 'ندارد' && $first_name !== '❌'
+                && ($user['username'] !== $username || $user['first_name'] !== $first_name)) {
+                db_exec($sql, "UPDATE `users` SET `username` = ?, `first_name` = ? WHERE `from_id` = ?", 'sss', [$username, $first_name, $from_id]);
+            }
+            $stmt->close();
 
             if ($sql->multi_query("
                 SELECT * FROM `test_account_setting` LIMIT 1;
