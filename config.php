@@ -99,7 +99,6 @@ if (!isset($sql->connect_error)) {
                 && ($user['username'] !== $username || $user['first_name'] !== $first_name)) {
                 db_exec($sql, "UPDATE `users` SET `username` = ?, `first_name` = ? WHERE `from_id` = ?", 'sss', [$username, $first_name, $from_id]);
             }
-            $stmt->close();
 
             if ($sql->multi_query("
                 SELECT * FROM `test_account_setting` LIMIT 1;
