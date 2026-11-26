@@ -590,7 +590,7 @@ diagnose_ssl() {
     # 2. SSL certificate check
     local cert_file="$base_dir/data/certbot/conf/live/$domain/fullchain.pem"
     if [ ! -f "$cert_file" ]; then
-        DIAG_WARN "No SSL certificate found at $cert_file. Run option (4) Initialize SSL."
+        DIAG_WARN "No SSL certificate found at $cert_file. Run option (9) Initialize SSL."
     else
         local end_date_str
         end_date_str=$(openssl x509 -enddate -noout -in "$cert_file" 2>/dev/null | cut -d '=' -f 2 || true)
@@ -1605,7 +1605,7 @@ install_zzbot() {
 # Ensure base directory exists for subsequent commands
 ensure_installed() {
     if [ ! -d "$BASE_DIR" ] || [ ! -f "$BASE_DIR/docker-compose.yml" ]; then
-        ERROR "ZZPanel is not installed yet. Please run option (1) Install first." || return 1
+        ERROR "ZZPanel is not installed yet. Please run option (5) Install first." || return 1
     fi
 }
 
@@ -1765,7 +1765,7 @@ hard_restart_services() {
     if run_compose_with_login --profile phpmyadmin down && run_compose_with_login up -d; then
         INFO "Services hard-restarted."
     else
-        ERROR "Hard restart failed. Check logs with option (13)." || return 1
+        ERROR "Hard restart failed. Check logs with option (12)." || return 1
     fi
 }
 
@@ -1859,25 +1859,12 @@ uninstall_zzbot() {
     fi
 }
 
-# 9. Backup
-backup_services() {
+# 10. Backup & Restore (the backup script opens its own Backup/Restore submenu)
+backup_restore_services() {
     require_installed || return 1
     local backup_script="./docker/scripts/docker_backup.sh"
     if [ -f "$backup_script" ]; then
         chmod +x "$backup_script"
-        bash "$backup_script"
-    else
-        ERROR "Backup script not found at $backup_script" || return 1
-    fi
-}
-
-# 10. Restore
-restore_services() {
-    require_installed || return 1
-    local backup_script="./docker/scripts/docker_backup.sh"
-    if [ -f "$backup_script" ]; then
-        chmod +x "$backup_script"
-        # Run restore mode. The original script asks selection options.
         bash "$backup_script"
     else
         ERROR "Backup script not found at $backup_script" || return 1
@@ -2081,23 +2068,22 @@ show_menu() {
         echo "  8) Edit .env"
         echo "  9) Initialize SSL (Let's Encrypt)"
         echo -e "\n=== Maintenance ==="
-        echo " 10) Backup Database & Files"
-        echo " 11) Restore Database & Files"
+        echo " 10) Backup & Restore Database & Files"
         echo -e "\n=== Diagnostics ==="
-        echo " 12) View Live Logs (all)"
-        echo " 13) View Logs (specific service)"
-        echo " 14) View Log Files (host filesystem)"
-        echo " 15) Run Health Check"
+        echo " 11) View Live Logs (all)"
+        echo " 12) View Logs (specific service)"
+        echo " 13) View Log Files (host filesystem)"
+        echo " 14) Run Health Check"
         echo -e "\n=== Database Tools ==="
-        echo " 16) Start phpMyAdmin"
-        echo " 17) Stop phpMyAdmin"
+        echo " 15) Start phpMyAdmin"
+        echo " 16) Stop phpMyAdmin"
         echo -e "\n=== System ==="
-        echo " 18) Install zzbot Command"
-        echo " 19) Update zzbot Menu"
-        echo " 20) Update Menu Cache"
+        echo " 17) Install zzbot Command"
+        echo " 18) Update zzbot Menu"
+        echo " 19) Update Menu Cache"
         echo "  0) Exit"
         echo "========================================="
-        read -r -p "Enter choice [0-20]: " CHOICE
+        read -r -p "Enter choice [0-19]: " CHOICE
         echo "========================================="
 
         case "$CHOICE" in
@@ -2110,17 +2096,16 @@ show_menu() {
             7) uninstall_zzbot ;;
             8) edit_env || true ;;
             9) init_ssl || true ;;
-            10) backup_services || true ;;
-            11) restore_services || true ;;
-            12) show_live_logs || true ;;
-            13) show_live_logs_for_service || true ;;
-            14) view_log_files || true ;;
-            15) diagnose_menu || true ;;
-            16) start_phpmyadmin || true ;;
-            17) stop_phpmyadmin || true ;;
-            18) install_zzbot_command || true ;;
-            19) install_or_update_zzbot_script || true ;;
-            20) invalidate_all_caches; get_installed_app_version; get_cached_services; get_cached_panels; INFO "Menu caches updated" ;;
+            10) backup_restore_services || true ;;
+            11) show_live_logs || true ;;
+            12) show_live_logs_for_service || true ;;
+            13) view_log_files || true ;;
+            14) diagnose_menu || true ;;
+            15) start_phpmyadmin || true ;;
+            16) stop_phpmyadmin || true ;;
+            17) install_zzbot_command || true ;;
+            18) install_or_update_zzbot_script || true ;;
+            19) invalidate_all_caches; get_installed_app_version; get_cached_services; get_cached_panels; INFO "Menu caches updated" ;;
             0) INFO "Exiting. Goodbye!"; exit 0 ;;
             999) get_current_script_version ;;
             *) WARN "Invalid option. Please try again." ;;
