@@ -14,7 +14,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: test
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ptest"]
+      test: ["CMD-SHELL", "mysql -uroot -ptest -e 'SELECT 1' >/dev/null 2>&1"]
       interval: 5s
       timeout: 3s
       retries: 20

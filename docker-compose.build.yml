@@ -43,10 +43,11 @@ services:
       - ./docker/mysql/lowcpu.cnf:/etc/mysql/conf.d/lowcpu.cnf:ro
       - ./logs/mysql:/var/log/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      test: ["CMD-SHELL", "mysql -uroot -p\"$$MYSQL_ROOT_PASSWORD\" -e 'SELECT 1' >/dev/null 2>&1"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 60s
 
   phpmyadmin:
     image: phpmyadmin:5
