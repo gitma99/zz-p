@@ -3188,7 +3188,7 @@ try {
                 while ($row = $force_join_channels->fetch_assoc()) {
                     $name = $row['name'];
                     $link = str_replace("@", "", $row['chat_id']);
-                    $button[] = [['text' => $name, 'url' => "https://t.me/$link"], ['text' => '🗑', 'callback_data' => "remove_lock-{$row['chat_id']}"]];
+                    $button[] = [['text' => $name, 'url' => "https://t.me/$link"], ['text' => '🗑', 'callback_data' => "remove_lock|{$row['chat_id']}"]];
                 }
             } else
                 $locksText = '❌ شما قفلی برای حذف و مشاهده ندارید لطفا از طریق دکمه ی ( ➕ افزودن قفل ) اضافه کنید.';
@@ -3229,8 +3229,8 @@ try {
             } else {
                 sendMessage($from_id, "❌ یوزرنیم ارسالی شما باید با @ باشد !", $back_panel);
             }
-        } elseif (strpos($data, "remove_lock-") !== false) {
-            $link = explode("-", $data)[1];
+        } elseif (strpos($data, "remove_lock|") !== false) {
+            $link = substr($data, strlen("remove_lock|"));
             $sql->query("DELETE FROM `lock` WHERE `chat_id` = '$link' LIMIT 1");
             $force_join_channels = $sql->query("SELECT `chat_id`, `name` FROM `lock`");
             if (mysqli_num_rows($force_join_channels) > 0) {
@@ -3239,7 +3239,7 @@ try {
                 while ($row = $force_join_channels->fetch_assoc()) {
                     $name = $row['name'];
                     $link = str_replace("@", "", $row['chat_id']);
-                    $button[] = [['text' => $name, 'url' => "https://t.me/$link"], ['text' => '🗑', 'callback_data' => "remove_lock_{$row['chat_id']}"]];
+                    $button[] = [['text' => $name, 'url' => "https://t.me/$link"], ['text' => '🗑', 'callback_data' => "remove_lock|{$row['chat_id']}"]];
                 }
             } else
                 $locksText = '❌ شما قفلی برای حذف و مشاهده ندارید لطفا از طریق دکمه ی ( ➕ افزودن قفل ) اضافه کنید.';

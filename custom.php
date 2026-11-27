@@ -113,30 +113,20 @@ function change_account_status($text, $from_id)
 
                 }
 
-                if ($config_found_count == 1) {
-                    if ($last_row['from_id'] == $from_id) {
-                        $config_base_name = $text;
-                        $config_user_id = $from_id;
-                    } else {
-                        step('account_status_changer_service_get_service_name');
-                        sendMessage($from_id, $my_texts['account_status_changer_service_config_not_found'] . "(code 1)");
-                        exit();
-                    }
+                if ($config_found_count >= 1) {
+                    // Found among the caller's own orders: the typed text IS the base name.
+                    $config_base_name = $text;
+                    $config_user_id = $from_id;
                 } else {
+                    // Not among the caller's own: only admins reach a foreign service,
+                    // addressed as "service_name_<owner_id>" where the last _segment is numeric.
                     $config_parts = explode("_", $text);
-
-                    // $t = json_encode($config_parts, 448);
-                    // sendMessage($from_id, "config_parts : $t");
-
-                    // $t = json_encode(count($config_parts), 448);
-                    // sendMessage($from_id, "count($config_parts) : $t");
-
-                    if (count($config_parts) == 1) {
-                        $config_base_name = $text;
-                        $config_user_id = $from_id;
-                    } else {
+                    if (count($config_parts) > 1 && ctype_digit(end($config_parts))) {
                         $config_base_name = implode("_", array_slice($config_parts, 0, -1));
                         $config_user_id = end($config_parts);
+                    } else {
+                        $config_base_name = $text;
+                        $config_user_id = $from_id;
                     }
                 }
             } else {
@@ -153,7 +143,7 @@ function change_account_status($text, $from_id)
             // $t = json_encode($config_name, 448);
             // sendMessage($from_id, "config_name : $t");
 
-            $mysql_config_array = $sql->query("SELECT `location`,`from_id` FROM `orders` WHERE `code` = '$config_base_name' AND `from_id` = '$from_id'");
+            $mysql_config_array = $sql->query("SELECT `location`,`from_id` FROM `orders` WHERE `code` = '$config_base_name' AND `from_id` = '$config_user_id'");
             $config_array = null;
             while ($row = $mysql_config_array->fetch_assoc()) {
                 if ($row['from_id'] == $config_user_id) {

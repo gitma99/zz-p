@@ -163,7 +163,7 @@ function isJoin($from_id)
         if (apcu_safe_get($ck, null) !== null) continue;
         $s = getChatMember($id['chat_id'], $from_id);
         $status = isset($s['result']['status']) ? $s['result']['status'] : 'left';
-        if ($status === 'left') return false;
+        if (in_array($status, array('left', 'kicked'), true)) return false;
         apcu_safe_set($ck, $status, MEMBER_TTL);
     }
     return true;
