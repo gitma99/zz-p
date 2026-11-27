@@ -50,14 +50,9 @@ until php -r "
 done
 echo "MySQL is ready!"
 
-# 5. Run database schema initialization
+# 5. Run database schema initialization (CLI-only sql.php; credentials from env)
 echo "Initializing database schema..."
-php -r '
-$_GET["db_username"] = $argv[1];
-$_GET["db_password"] = $argv[2];
-$_GET["db_name"] = $argv[3];
-include "/var/www/html/ZZPanelBot/sql/sql.php";
-' -- "$DB_USER" "$DB_PASS" "$DB_NAME"
+php "/var/www/html/ZZPanelBot/sql/sql.php"
 
 # 6. Run versioned schema migrations
 echo "Running versioned schema migrations..."

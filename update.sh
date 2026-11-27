@@ -69,12 +69,15 @@ do
             rm -r "${APP_DIR}"
             log "\nAll file and folder deleted for update bot . . .\n"
 
-            git clone $GITHUB_REPO_ADDRESS "${APP_DIR}"
+            git clone "$GITHUB_REPO_ADDRESS" "${APP_DIR}" || { mv /var/www/html/bot_config.json /var/www/html/bot_config.json.bak 2>/dev/null; fatal "git clone failed — config preserved at /var/www/html/bot_config.json(.bak); re-run the update"; }
             mkdir "${APP_DIR}/logs"
             mkdir "${APP_DIR}/temp"
-            sudo chmod -R 777 "${APP_DIR}"
+            sudo chown -R www-data:www-data "${APP_DIR}"
+            sudo find "${APP_DIR}" -type d -exec chmod 750 {} +
+            sudo find "${APP_DIR}" -type f -exec chmod 640 {} +
+            sudo chmod -R 770 "${APP_DIR}/temp" "${APP_DIR}/logs"
             mv /var/www/html/bot_config.json $BOT_CONFIG_JSON_PATH
-            sudo chmod 777 $BOT_CONFIG_JSON_PATH
+            sudo chown www-data:www-data "$BOT_CONFIG_JSON_PATH" && sudo chmod 600 "$BOT_CONFIG_JSON_PATH"
             sleep 2
             
             content=$(cat $BOT_CONFIG_JSON_PATH)
@@ -92,11 +95,8 @@ do
             mv "$destination_file" "$source_file"
 
             sleep 1
-            sudo chmod 777 $BOT_CONFIG_JSON_PATH
-            sleep 1
             sleep 1
 
-            curl --location "https://${domain}/ZZPanelBot/sql/sql.php?db_password=${db_password}&db_name=${db_name}&db_username=${db_username}"
             echo -e "\n"
 
             # -----------------------

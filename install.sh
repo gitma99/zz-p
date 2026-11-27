@@ -352,14 +352,10 @@ ok "Permissions updated."
 # -----------------------
 # Schema Initialization
 # -----------------------
+export DB_USER DB_PASS DB_NAME
 log "Running database schema initialization..."
 SQL_INIT_OUT="${APP_DIR}/temp/sql_init_output.json"
-php -r '
-$_GET["db_username"] = $argv[1];
-$_GET["db_password"] = $argv[2];
-$_GET["db_name"] = $argv[3];
-include "'"${APP_DIR}"'/sql/sql.php";
-' -- "$DB_USER" "$DB_PASS" "$DB_NAME" > "$SQL_INIT_OUT" || fatal "Database schema initialization execution failed."
+php "${APP_DIR}/sql/sql.php" > "$SQL_INIT_OUT" || fatal "Database schema initialization execution failed."
 
 if [[ -f "$SQL_INIT_OUT" ]]; then
 	status=$(jq -r '.status' "$SQL_INIT_OUT" 2>/dev/null || echo "false")
@@ -377,7 +373,6 @@ ok "Database schema initialized successfully."
 # Versioned Schema Migrations
 # -----------------------
 log "Running versioned schema migrations..."
-export DB_USER DB_PASS DB_NAME
 php "${APP_DIR}/tools/run-migrations.php" || fatal "Schema migrations failed."
 
 # -----------------------
