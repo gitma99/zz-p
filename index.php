@@ -3520,7 +3520,7 @@ try {
             $texts['edu_' . $platform] = str_replace('
     ', '\n', $text);
             if (file_put_contents($TEXTS_JSON_PATH, json_encode($texts, 448)) == false) {
-                throw new Exception("file_put_contents('{$TEXTS_JSON_PATH}', {$e->getMessage()}) failed");
+                throw new Exception("file_put_contents('{$TEXTS_JSON_PATH}') failed");
             }
             sendMessage($from_id, "✅ متن شما با موفقیت تنظیم شد.\n\n#️⃣ سیستم عامل : <b>{$platform}</b>", $manage_texts);
         }
