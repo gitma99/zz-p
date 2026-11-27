@@ -11,7 +11,6 @@ if (!is_dir($LOG_DIR_PATH)) {
 }
 ini_set('error_log', $LOG_DIR_PATH . '/error.log'); // Specify the path to the error log file
 error_reporting(E_ALL); // Set the error reporting level as needed
-date_default_timezone_set("UTC");
 
 $users = $sql->query("SELECT * FROM `users`");
 $sql_sends_result = $sql->query("SELECT * FROM `sends`");

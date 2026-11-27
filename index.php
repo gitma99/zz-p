@@ -9,7 +9,6 @@ if (!is_dir($LOG_DIR_PATH)) {
 }
 ini_set('error_log', $LOG_DIR_PATH . '/error.log'); // Specify the path to the error log file
 error_reporting(E_ALL); // Set the error reporting level as needed
-date_default_timezone_set("UTC");
 
 try {
     require_once __DIR__ . '/App/Utils/request_cache.php';

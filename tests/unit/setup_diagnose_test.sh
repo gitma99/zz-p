@@ -235,7 +235,7 @@ type diagnose_all >/dev/null || { echo "FAIL: diagnose_all function does not exi
 
 # Test 11: verify main menu contains the Update Menu Cache entry and its prompt range
 grep -q 'Update Menu Cache' setup.sh || { echo "FAIL: setup.sh missing Update Menu Cache in menu"; exit 1; }
-grep -q '\[0-20\]' setup.sh || { echo "FAIL: setup.sh missing [0-20] in prompt"; exit 1; }
+grep -q '\[0-19\]' setup.sh || { echo "FAIL: setup.sh missing [0-19] in prompt"; exit 1; }
 
 # Test 12: export_diagnose_report redacts credentials found in .env
 fix_td=$(mktemp -d)
