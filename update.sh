@@ -75,6 +75,7 @@ do
             sudo chown -R www-data:www-data "${APP_DIR}"
             sudo find "${APP_DIR}" -type d -exec chmod 750 {} +
             sudo find "${APP_DIR}" -type f -exec chmod 640 {} +
+            sudo chmod 755 "${APP_DIR}/Scripts/"*.sh
             sudo chmod -R 770 "${APP_DIR}/temp" "${APP_DIR}/logs"
             mv /var/www/html/bot_config.json $BOT_CONFIG_JSON_PATH
             sudo chown www-data:www-data "$BOT_CONFIG_JSON_PATH" && sudo chmod 600 "$BOT_CONFIG_JSON_PATH"

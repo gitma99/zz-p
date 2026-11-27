@@ -90,7 +90,8 @@ select opt in "${options[@]}"; do
 					docker exec -it zzpanel_backup /restore.sh /tmp/zz-p-restore-temp.zip
 					
 					colorized_echo blue "Running schema migrations in the app container..."
-					docker compose -f "$PROJECT_ROOT/docker-compose.yml" exec -T app php /var/www/html/ZZPanelBot/tools/run-migrations.php
+					docker compose -f "$PROJECT_ROOT/docker-compose.yml" exec -T app php /var/www/html/ZZPanelBot/tools/run-migrations.php \
+						|| colorized_echo yellow "WARNING: schema migrations did not run (app container down?); run manually: docker compose -f \"$PROJECT_ROOT/docker-compose.yml\" exec app php /var/www/html/ZZPanelBot/tools/run-migrations.php"
 					
 					# Clean up copied file inside container
 					docker exec zzpanel_backup rm -f /tmp/zz-p-restore-temp.zip
