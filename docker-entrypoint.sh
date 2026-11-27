@@ -38,13 +38,10 @@ chmod -R 770 /var/www/html/ZZPanelBot/temp /var/www/html/ZZPanelBot/logs
 
 # 4. Wait for MySQL to become ready
 echo "Waiting for MySQL database connection..."
-until php -r "
-  \$db_host = getenv('DB_HOST') ?: 'localhost';
-  \$mysqli = @new mysqli(\$db_host, '$DB_USER', '$DB_PASS', '$DB_NAME');
-  if (\$mysqli->connect_error) {
-    exit(1);
-  }
-" 2>/dev/null; do
+until php -r '
+  $mysqli = @new mysqli(getenv("DB_HOST") ?: "localhost", getenv("DB_USER"), getenv("DB_PASS"), getenv("DB_NAME"));
+  exit($mysqli->connect_error ? 1 : 0);
+' 2>/dev/null; do
   echo "Database is not ready yet, retrying in 2 seconds..."
   sleep 2
 done

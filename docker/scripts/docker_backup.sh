@@ -89,6 +89,9 @@ select opt in "${options[@]}"; do
 					# Run restore script inside container
 					docker exec -it zzpanel_backup /restore.sh /tmp/zz-p-restore-temp.zip
 					
+					colorized_echo blue "Running schema migrations in the app container..."
+					docker compose -f "$PROJECT_ROOT/docker-compose.yml" exec -T app php /var/www/html/ZZPanelBot/tools/run-migrations.php
+					
 					# Clean up copied file inside container
 					docker exec zzpanel_backup rm -f /tmp/zz-p-restore-temp.zip
 					

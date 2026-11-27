@@ -43,7 +43,7 @@ services:
       - ./docker/mysql/lowcpu.cnf:/etc/mysql/conf.d/lowcpu.cnf:ro
       - ./logs/mysql:/var/log/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
       interval: 10s
       timeout: 5s
       retries: 5

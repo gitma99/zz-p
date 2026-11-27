@@ -73,12 +73,6 @@ start=$(date +%s)
 mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$SQL_FILE"
 log "INFO" "Database import completed in $(( $(date +%s) - start ))s"
 
-# Run migrations
-log "INFO" "Running versioned schema migrations"
-start=$(date +%s)
-cd /var/www/html/ZZPanelBot && php tools/run-migrations.php
-log "INFO" "Migrations completed in $(( $(date +%s) - start ))s"
-
 # Cleanup
 rm -rf "$EXTRACT_DIR"
 log "DEBUG" "Cleaned up extraction dir"
