@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../utils/api_utils.php';
 
-function deleteMessage($chat_id, $message_id, $only_handler = false)
+function deleteMessage($chat_id, $message_id)
 {
     $params = [
         'chat_id' => $chat_id,
@@ -16,7 +16,7 @@ function deleteMessage($chat_id, $message_id, $only_handler = false)
         return $bot_reply;
     }
 }
-function deleteMessages($chat_id, $message_ids, $only_handler = false)
+function deleteMessages($chat_id, $message_ids)
 {
     $params = [
         'chat_id' => $chat_id,

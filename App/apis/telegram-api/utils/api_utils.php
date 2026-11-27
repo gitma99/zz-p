@@ -1,5 +1,5 @@
 <?php
-function bot($method, $data = array(), $api_key = API_KEY, $only_handler = false, $retry_on_failure_count = 2)
+function bot($method, $data = array(), $api_key = API_KEY, $retry_on_failure_count = 2)
 {
     $curl_response = null;
     $curl_error = null;
@@ -30,15 +30,10 @@ function bot($method, $data = array(), $api_key = API_KEY, $only_handler = false
         $ch = curl_init($url);
         curl_setopt_array($ch, array(
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => false,
             CURLOPT_POSTFIELDS => $data,
             CURLOPT_CONNECTTIMEOUT => 5,
             CURLOPT_TIMEOUT => 15
         ));
-        if ($only_handler == true) {
-            return $ch;
-        }
         $curl_response = curl_exec($ch);
         $curl_error = curl_error($ch);
         curl_close($ch);

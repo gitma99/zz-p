@@ -9,5 +9,6 @@ data/
 temp/
 docker-compose.test.yml
 .env.test
+.env
 docker/nginx/init-letsencrypt.sh
 *.md
