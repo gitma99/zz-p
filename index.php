@@ -501,7 +501,8 @@ try {
                     sendMessage($from_id, sprintf($texts['create_test_account'], $test_account_setting['time'], $link, $panel_fetch['name'], $test_account_setting['time'], $test_account_setting['volume'], base64_encode($code)), $start_key);
                 }
             } catch (\Throwable $e) {
-                sendMessage($config['dev'], $e);
+                Logger::error('test_account_creation_failed', array('from_id' => $from_id, 'error' => $e->getMessage()));
+                sendMessage($config['dev'], "❌ خطا در ساخت اکانت تستی : " . $e->getMessage());
             }
         } else {
             sendMessage($from_id, $texts['already_test_account'], $start_key);
@@ -3519,7 +3520,7 @@ try {
             $texts['edu_' . $platform] = str_replace('
     ', '\n', $text);
             if (file_put_contents($TEXTS_JSON_PATH, json_encode($texts, 448)) == false) {
-                throw new Exception("file_put_contents('{$TEXTS_JSON_PATH}', {$new_texts}) failed");
+                throw new Exception("file_put_contents('{$TEXTS_JSON_PATH}', {$e->getMessage()}) failed");
             }
             sendMessage($from_id, "✅ متن شما با موفقیت تنظیم شد.\n\n#️⃣ سیستم عامل : <b>{$platform}</b>", $manage_texts);
         }

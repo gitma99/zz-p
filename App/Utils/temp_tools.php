@@ -13,7 +13,8 @@ function temp_key($file_name) {
 function write_temp_file($content, $file_name, $json_encode = false) {
     if ($json_encode) $content = json_encode($content);
     if (function_exists('apcu_store')) {
-        return apcu_store(temp_key($file_name), $content, FLOW_TTL);
+        if (apcu_store(temp_key($file_name), $content, FLOW_TTL)) return true;
+        // store failed (cache full/evicted) — fall through to the file so state is not lost
     }
     global $TEMP_DIR_PATH;
     return write_file($content, $TEMP_DIR_PATH . "/" . basename($file_name));

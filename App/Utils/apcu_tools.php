@@ -33,15 +33,23 @@ function apcu_safe_set($k, $v, $ttl = 0) {
     return false;
 }
 
+function apcu_live() {
+    static $live = null;
+    if ($live === null) {
+        $live = function_exists('apcu_store') && apcu_store('botpanel_apcu_live_probe', 1, 1) === true;
+    }
+    return $live;
+}
+
 function apcu_safe_add($k, $v, $ttl = 0) {
     if (!is_string($k) || $k === '') {
         throw new InvalidArgumentException("apcu_safe_add: key must be a non-empty string");
     }
-    if (function_exists('apcu_add')) {
-        return apcu_add($k, $v, $ttl);
+    if (!apcu_live()) {
+        apcu_warn_once();
+        return null;
     }
-    apcu_warn_once();
-    return null;
+    return apcu_add($k, $v, $ttl);
 }
 
 function apcu_safe_del($k) {

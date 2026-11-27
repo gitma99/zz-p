@@ -7,7 +7,7 @@ error_reporting(E_ALL ^ E_NOTICE);
 // Whether the APCu cache is actually usable in this SAPI: the extension
 // can be loaded yet inactive (CI runners, CLI with apc.enable_cli=0),
 // where apcu_*() exist but are no-ops returning false.
-$cache_live = function_exists('apcu_store') && apcu_store('apcu_tools_test_probe', 1, 1) === true;
+$cache_live = apcu_live();
 if ($cache_live) {
     apcu_clear_cache();
 }
@@ -41,8 +41,8 @@ if ($cache_live) {
     assert_eq(true, apcu_safe_add('add:key', 1, 120), 'apcu_safe_add adds a fresh key');
     assert_eq(false, apcu_safe_add('add:key', 2, 120), 'apcu_safe_add reports an existing key');
 } else {
-    // null when ext-apcu absent; false when present but SAPI-inactive.
-    $expected = function_exists('apcu_add') ? false : null;
+    // null when ext-apcu absent or present but SAPI-inactive.
+    $expected = null;
     assert_eq($expected, apcu_safe_add('add:key', 1, 120), 'apcu_safe_add degrades when cache not live');
     assert_eq($expected, apcu_safe_add('add:key', 1, 120), 'repeated miss stays stable, no fatal');
 }

@@ -11,7 +11,10 @@ function send_debug_data_to_maintainer($text_string, $dev_id = null, $exit = fal
         if ($config[1] !== false){
             throw new Exception(json_encode($config, 448));
         }
-        $dev_id = $config[0]['maintainer']; 
+        $dev_id = isset($config[0]['maintainer']) ? $config[0]['maintainer'] : null;
+        if ($dev_id === null) {
+            throw new Exception('debug config missing maintainer id');
+        }
     }
     $current_time = time();
     $file_name = "debug-{$current_time}.txt";
@@ -31,7 +34,10 @@ function send_debug_msg_to_maintainer($text, $dev_id, $exit = false)
         if ($config[1] !== false){
             throw new Exception(json_encode($config, 448));
         }
-        $dev_id = $config[0]['maintainer']; 
+        $dev_id = isset($config[0]['maintainer']) ? $config[0]['maintainer'] : null;
+        if ($dev_id === null) {
+            throw new Exception('debug config missing maintainer id');
+        }
     }
     $bot_response = sendMessage($dev_id, $text);
     if ($bot_response["ok"] == false) {
