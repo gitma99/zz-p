@@ -29,17 +29,11 @@ if ($sql_sends_result->num_rows !== 0) {
                 sendMessage($send_request['user'],"صف با موفقیت ارسال شد ✅");
                 echo json_encode(['status' => true, 'msg' => 'send is successfuly.', 'status_code' => 200], 448);
             }
-        } elseif ($user['step'] == 'forward') {
-            while ($row = $users->fetch_assoc()) {
-                forwardMessage($from_id, $row['from_id'], $send_request['text']);
-                $count++;
-            }
-            echo json_encode(['status' => true, 'msg' => 'send is successfuly.', 'status_code' => 200], 448);
         } else {
             die('Error');
         }
     }
 } else {
-    echo json_encode(['status' => false, 'msg' => 'threr is no send request in db!', 'status_code' => 200], 448);
+    echo json_encode(['status' => false, 'msg' => 'there is no send request in db!', 'status_code' => 200], 448);
 }
 

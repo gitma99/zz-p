@@ -2085,7 +2085,7 @@ try {
             $response = loginPanel($info[1], $info[2], $text);
             if ($response !== false && isset($response['access_token'])) {
                 $code = rand(11111111, 99999999);
-                $sql->query("INSERT INTO `panels` (`name`, `login_link`, `username`, `password`, `token`, `code`, `type`) VALUES ('{$info[0]}', '{$info[1]}', '{$info[2]}', '$text', '{$response['access_token']}', '$code', 'marzban')");
+                $sql->query("INSERT INTO `panels` (`name`, `login_link`, `username`, `password`, `token`, `code`, `type`, `status`) VALUES ('{$info[0]}', '{$info[1]}', '{$info[2]}', '$text', '{$response['access_token']}', '$code', 'marzban', 'active')");
                 sendMessage($from_id, "✅ ربات با موفقیت به پنل شما لاگین شد!\n\n▫️یوزرنیم : <code>{$info[2]}</code>\n▫️پسورد : <code>{$text}</code>\n▫️کد پیگیری : <code>$code</code>", $manage_server);
             } else {
                 sendMessage($from_id, "❌ لاگین به پنل با خطا مواجه شد , بعد از گذشت چند دقیقه مجددا تلاش کنید !\n\n🎯 دلایل ممکن متصل نشدن ربات به پنل شما :↓\n\n◽باز نبودن پورت مورد نظر\n◽باز نشدن آدرس ارسالی\n◽آدرس ارسالی اشتباه\n◽یوزرنیم یا پسورد اشتباه\n◽قرار گرفتن آی‌پی در بلاک لیست\n◽️باز نبودن دسترسی CURL\n◽️مشکل کلی هاست", $manage_server);
@@ -2886,8 +2886,15 @@ try {
             curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
             curl_setopt($ch, CURLOPT_TIMEOUT, 120);
             $response = curl_exec($ch);
+            $curl_error = curl_error($ch);
+            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
-            $sql->query("DELETE from `sends`");
+            if ($response !== false && $http_code === 200) {
+                $sql->query("DELETE from `sends`");
+            } else {
+                Logger::warning('broadcast_send_failed', array('http_code' => $http_code, 'curl' => $curl_error));
+                sendMessage($from_id, "❌ ارسال با خطا مواجه شد ، لطفا مجدد تلاش کنید", $start_key);
+            }
             exit(0);
         }
 
